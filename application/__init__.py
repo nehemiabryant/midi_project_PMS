@@ -8,7 +8,7 @@ csrf = CSRFProtect()
 def create_app(config_filename=None):
     app = Flask(__name__)
 
-    app.secret_key = 'xk0asdf8@9*72201yp!7&-12sdf'
+    app.secret_key = ''
 
     if not config_filename:
         config_filename = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.py'))
