@@ -1,0 +1,11 @@
+{# Form Textarea Component — include 'components/form_textarea.html' #}
+{# Expects: label (str), name (str), required (bool, optional), rows (int, optional) #}
+
+<div class="form-group">
+    <label for="{{ name }}">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <textarea class="form-control" id="{{ name }}" name="{{ name }}" rows="{{ rows|default(4) }}" {% if required
+        %}required{% endif %}></textarea>
+</div>

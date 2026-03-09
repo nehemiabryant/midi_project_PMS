@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PMS - PT Midi Utama Indonesia, Tbk</title>
+
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='assets/img/alfamidi.ico') }}"
+    />
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='plugins/fontawesome-free/css/all.min.css') }}"
+    />
+    <!-- Login css -->
+    <link 
+      rel="stylesheet" href="{{ url_for('static', filename='css/csspms/login.css') }}"
+    >
+    <!-- icheck bootstrap -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='plugins/icheck-bootstrap/icheck-bootstrap.min.css') }}"
+    />
+    <!-- Theme style -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='assets/css/adminlte.min.css') }}"
+    />
+    <style type="text/css">
+      .alert-red {
+        background-color: #ec3535;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: normal;
+        padding: 10px 16px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .close-alert {
+        font-size: 14px;
+        font-weight: normal;
+        color: #ffffff;
+        opacity: 0.7;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0px;
+        margin: 1px 2px 0px 0px;
+      }
+    </style>
+  </head>
+
+  <body class="login-body">
+
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Logo -->
+      <div class="login-logo">
+        <img src="{{ url_for('static', filename='img/logo_alfamidi_square.png') }}" alt="Alfamidi Logo" />
+      </div>
+
+      <h1 class="login-title">Project Management System</h1>
+      <p class="login-subtitle">Silakan login untuk melanjutkan</p>
+
+      {% if error %}
+      <div class="login-alert">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('owh.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="login-field">
+          <label for="nik">NIK</label>
+          <div class="login-input-wrapper">
+            <i class="fas fa-user"></i>
+            <input type="text" id="nik" name="nik" placeholder="Masukkan NIK" required autofocus />
+          </div>
+        </div>
+
+        <div class="login-field">
+          <label for="password">Password</label>
+          <div class="login-input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" name="password" placeholder="Masukkan Password" required />
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn">
+          <span>Login</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+</body>
+
+    <!-- jQuery -->
+    <script src="{{ url_for('static', filename='plugins/jquery/jquery.min.js') }}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{{ url_for('static', filename='plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <!-- AdminLTE App -->
+    <script src="{{ url_for('static', filename='assets/js/adminlte.min.js') }}"></script>
+
+    <!-- flash notif -->
+    <script>
+      $(document).ready(function () {
+        $(".close-alert").click(function () {
+          $(this).closest(".alert").parent().fadeOut();
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+<!-- Modal Edit -->
+<style>
+	.modal-backdrop {
+		z-index: 0;
+	}
+</style>
+
+<div id="modal_edit_risk_tolerance" class="modal" style="padding: 60px">
+	<div class="modal-content">
+		<div class="modal-header">
+			<h3 class="modal-title">Edit Risk Tolerance</h3>
+			<button type="button" class="close" data-dismiss="modal">
+				&times;
+			</button>
+		</div>
+		<form
+			method="post"
+			id="form_update_tolerance"
+			action="{{ url_for('admin_tb_risk_tolerance.update_tolerance_view') }}"
+			style="margin-bottom: 48px"
+		>
+			{{ form_update.hidden_tag() }}
+			<div class="modal-body form-group" style="padding: 30px">
+				<div>
+					{{ form_update.input_id(id="tolerance_id", type="hidden") }}
+					<div style="display: flex; margin-bottom: 20px">
+						<label for="input_score2" style="width: 150px"
+							>Risk Level Score</label
+						>
+						<input
+							type="number"
+							class="form-control disabled-input"
+							id="input_score2"
+							name="input_score2"
+							value=""
+							min="1"
+							max="25"
+							step="1"
+							placeholder="Input Score"
+							style="width: 230px"
+							disabled
+						/>
+					</div>
+					<div style="display: flex; margin-bottom: 20px">
+						<label for="select_evaluation2" style="width: 150px"
+							>Risk Evaluation</label
+						>
+						{{ form_update.select_evaluation(class="form-control",
+						id="select_evaluation2", style="width: 230px",
+						onMouseOver="this.style.border='1px solid #343435'",
+						onMouseOut="this.style.border='1px solid #d1ccd5'") }}
+					</div>
+					<div style="display: flex; margin-bottom: 20px">
+						<label for="select_acceptability2" style="width: 150px"
+							>Risk Acceptability</label
+						>
+						{{
+						form_update.select_acceptability(class="form-control",
+						id="select_acceptability2", style="width: 230px",
+						onMouseOver="this.style.border='1px solid #343435'",
+						onMouseOut="this.style.border='1px solid #d1ccd5'") }}
+					</div>
+					<div style="display: flex">
+						<label for="select_treatment2" style="width: 150px"
+							>Risk Treatment</label
+						>
+						{{ form_update.select_treatment(class="form-control",
+						id="select_treatment2", style="width: 230px",
+						onMouseOver="this.style.border='1px solid #343435'",
+						onMouseOut="this.style.border='1px solid #d1ccd5'") }}
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer" style="padding-top: 24px">
+				{{ form_update.submit(class="btn-save") }}
+			</div>
+		</form>
+	</div>
+</div>

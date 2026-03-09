@@ -1,0 +1,139 @@
+.login-body {
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+}
+
+.login-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.login-logo img {
+  width: 120px;
+  height: auto;
+}
+
+.login-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.login-alert i {
+  flex-shrink: 0;
+}
+
+.login-field {
+  margin-bottom: 18px;
+}
+
+.login-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054;
+  margin-bottom: 6px;
+}
+
+.login-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.login-input-wrapper:focus-within {
+  border-color: #1e1e1e;
+  box-shadow: 0 0 0 3px rgba(30, 30, 30, 0.08);
+}
+
+.login-input-wrapper i {
+  padding: 0 12px;
+  color: #98a2b3;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.login-input-wrapper input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 11px 14px 11px 0;
+  font-size: 13.5px;
+  font-family: "Inter", sans-serif;
+  color: #1d2939;
+  background: transparent;
+}
+
+.login-input-wrapper input::placeholder {
+  color: #98a2b3;
+}
+
+.login-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  background: #1e1e1e;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.2s;
+}
+
+.login-btn:hover {
+  background: #333333;
+}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/update_timetable.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% with header_title='Update Table' %}
+{% include 'components/header.html' %}
+{% endwith %}
+    <div class="table-container">
+        <div class="action-bar">
+            <a href="#" class="btn-add">
+                <i class="fas fa-plus"></i> Tambah Data
+            </a>
+            
+            <div class="search-box-container">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-box" placeholder="Cari ID atau Nama...">
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>ID Proyek</th>
+                        <th>Nama Proyek</th>
+                        <th>PIC</th>
+                        <th>Departemen</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 500;">PRJ-001</td>
+                        <td>Pembaruan Sistem Gudang</td>
+                        <td>Budi Santoso</td>
+                        <td>IT Support</td>
+                        <td><span class="status-badge status-active">Aktif</span></td>
+                        <td>
+                            <button class="btn-action btn-edit" title="Edit Data"><i class="fas fa-edit"></i></button>
+                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 500;">PRJ-002</td>
+                        <td>Integrasi API Eksternal</td>
+                        <td>Siti Aminah</td>
+                        <td>IT Development</td>
+                        <td><span class="status-badge status-active">Aktif</span></td>
+                        <td>
+                            <button class="btn-action btn-edit" title="Edit Data"><i class="fas fa-edit"></i></button>
+                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="font-weight: 500;">PRJ-003</td>
+                        <td>Audit Keamanan Server</td>
+                        <td>Ahmad Fauzi</td>
+                        <td>IT Security</td>
+                        <td><span class="status-badge status-inactive">Pending</span></td>
+                        <td>
+                            <button class="btn-action btn-edit" title="Edit Data"><i class="fas fa-edit"></i></button>
+                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+{% endblock %}

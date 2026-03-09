@@ -1,0 +1,229 @@
+.my-work-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.my-work-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.my-work-search-form {
+  flex: 1;
+  max-width: 420px;
+}
+
+.my-work-search {
+  position: relative;
+}
+
+.my-work-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.my-work-search input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 34px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1d2939;
+  background: #ffffff;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.my-work-search input:focus {
+  border-color: #005bab;
+  box-shadow: 0 0 0 3px rgba(0, 91, 171, 0.12);
+}
+
+.my-work-toolbar-info {
+  font-size: 12px;
+  font-weight: 500;
+  color: #667085;
+  white-space: nowrap;
+}
+
+.my-work-table-wrap {
+  overflow-x: auto;
+}
+
+.my-work-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.my-work-table thead th {
+  background: #005bab;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 13px 16px;
+  text-align: left;
+}
+
+.my-work-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13.5px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.my-work-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.my-work-no {
+  font-weight: 600;
+  color: #0f172a;
+  min-width: 260px;
+}
+
+.my-work-title {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.status-backlog {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.status-progress {
+  background: #fff4e8;
+  color: #b45309;
+}
+
+.status-cancel {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-new {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-review {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.my-work-detail-btn {
+  border: 1px solid #98a2b3;
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.my-work-detail-btn:hover {
+  background: #f9fafb;
+}
+
+.my-work-empty-row td {
+  text-align: center;
+  color: #98a2b3;
+  padding: 24px 16px;
+  font-style: italic;
+}
+
+.my-work-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #667085;
+}
+
+.my-work-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-work-page-btn {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: #ffffff;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
+.my-work-page-btn:disabled {
+  opacity: 0.75;
+}
+
+@media (max-width: 900px) {
+  .my-work-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .my-work-search-form {
+    max-width: none;
+  }
+
+  .my-work-toolbar-info {
+    text-align: left;
+  }
+}
+
+@media (max-width: 768px) {
+  .my-work-card {
+    border-radius: 12px;
+  }
+
+  .my-work-toolbar {
+    padding: 14px;
+  }
+
+  .my-work-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 14px;
+  }
+}

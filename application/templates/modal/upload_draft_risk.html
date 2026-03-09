@@ -1,0 +1,32 @@
+<!-- Modal Upload -->
+<div id="modal_upload_draft_risk" class="modal" style="padding: 60px">
+	<div class="modal-content">
+		<div class="modal-header">
+			<h3 class="modal-title">Upload File Draft</h3>
+			<button type="button" class="close" data-dismiss="modal">
+				&times;
+			</button>
+		</div>
+		<form
+			method="post"
+			id="form_upload_draft_risk"
+			action="{{ url_for('draft_risk_reg.upload_draft_risk') }}"
+			enctype="multipart/form-data"
+		>
+			{{ form_upload.hidden_tag() }}
+			<div class="modal-body" style="padding: 40px 40px 10px 40px">
+				<div style="display: flex; margin-bottom: 20px;"">
+                    <label for="input_file" style="width: 150px">Upload File
+                        <span style="color: mediumspringgreen; font-weight: 700">(.xlsx)</span>
+                    </label>
+                    {{ form_upload.input_file(id="input_file", style="width: 400px;") }}
+                    {{ form_upload.select_dept(type="hidden", value=dept) }}
+			    </div>
+			</div>
+			<div class="modal-footer" style="padding-top: 24px">
+				{{ form_upload.submit(id="upload_draft_btn", class="btn-save",
+				style="width: 100px; margin-right: 20px") }}
+			</div>
+		</form>
+	</div>
+</div>

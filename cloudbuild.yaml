@@ -1,0 +1,18 @@
+steps:
+- name: gcr.io/cloud-builders/docker
+  args: ['build', '-t', 'asia-southeast2-docker.pkg.dev/alfamidilink/api-midi-delivery-prod/api-delivery-prod:v.1.0', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ["push", "asia-southeast2-docker.pkg.dev/alfamidilink/api-midi-delivery-prod/api-delivery-prod:v.1.0"]
+- name: 'gcr.io/cloud-builders/gcloud'
+  args:
+  - 'run'
+  - 'deploy'
+  - 'api-delivery-prod'
+  - '--image'
+  - 'asia-southeast2-docker.pkg.dev/alfamidilink/api-midi-delivery-prod/api-delivery-prod:v.1.0'
+  - '--region'
+  - 'asia-southeast2'
+  - '--platform'
+  - 'managed'
+  - '--allow-unauthenticated'
+  - '--no-use-http2'

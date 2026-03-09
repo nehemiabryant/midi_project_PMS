@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/my-work.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% with header_title='My Work' %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+<div class="page-content">
+  <section class="my-work-card">
+    <div class="my-work-toolbar">
+      <form method="GET" action="{{ url_for('owh.myWork_menu') }}" class="my-work-search-form">
+        <div class="my-work-search">
+          <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+          <input
+            type="text"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search SR number or title..."
+          />
+        </div>
+      </form>
+      <div class="my-work-toolbar-info">
+        {{ my_work_items|length }} SR ditampilkan
+      </div>
+    </div>
+
+    <div class="my-work-table-wrap">
+      <table class="my-work-table">
+        <thead>
+          <tr>
+            <th>NO SR</th>
+            <th>STATUS</th>
+            <th>CREATED SR</th>
+            <th>UPDATED</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if my_work_items %}
+            {% for item in my_work_items %}
+              <tr>
+                <td class="my-work-no">
+                  <div>{{ item.sr_no }}</div>
+                  <div class="my-work-title">{{ item.title }}</div>
+                </td>
+                <td>
+                  <span class="status-badge {{ item.status_class }}">{{ item.status_label }}</span>
+                </td>
+                <td>{{ item.created_at }}</td>
+                <td>{{ item.updated_at }}</td>
+                <td>
+                  <button type="button" class="my-work-detail-btn">Details</button>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr class="my-work-empty-row">
+              <td colspan="5">Belum ada SR yang sedang berada di akun Anda.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="my-work-footer">
+      <span>Showing {{ my_work_items|length }} of {{ my_work_total }} SR</span>
+      <div class="my-work-pagination">
+        <button type="button" class="my-work-page-btn" disabled>Previous</button>
+        <button type="button" class="my-work-page-btn" disabled>Next</button>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

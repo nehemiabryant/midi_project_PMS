@@ -1,0 +1,11 @@
+{# Form Input Component — include 'components/form_input.html' #}
+{# Expects: label (str), name (str), placeholder (str, optional), required (bool, optional), type (str, optional) #}
+
+<div class="form-group">
+    <label for="{{ name }}">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <input type="{{ type|default('text') }}" class="form-control" id="{{ name }}" name="{{ name }}"
+        placeholder="{{ placeholder|default('') }}" {% if required %}required{% endif %} />
+</div>

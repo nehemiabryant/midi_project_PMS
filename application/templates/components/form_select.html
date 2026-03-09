@@ -1,0 +1,14 @@
+{# Form Select Component — include 'components/form_select.html' #}
+{# Expects: label (str), name (str), options (list of dicts with 'value' and 'text'), required (bool, optional) #}
+
+<div class="form-group">
+    <label for="{{ name }}">
+        {{ label }}
+        {% if required %}<span class="required">*</span>{% endif %}
+    </label>
+    <select class="form-control" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+        {% for opt in options %}
+        <option value="{{ opt.value }}">{{ opt.text }}</option>
+        {% endfor %}
+    </select>
+</div>

@@ -1,0 +1,30 @@
+{# Progress Card Component — include 'components/progress_card.html' #}
+{# Expects: title (str), rows (list of dicts with 'divisi' and 'pct' keys) #}
+
+<div class="dashboard-progress-card">
+    <div class="dashboard-progress-card-title">{{ title }}</div>
+    <div class="dashboard-progress-table">
+        <div class="dashboard-progress-table-header">
+            <span class="dashboard-col-divisi">Divisi</span>
+            <span class="dashboard-col-bar">Progress</span>
+            <span class="dashboard-col-pct">%</span>
+        </div>
+        {% for row in rows %}
+        <div class="dashboard-progress-row">
+            <span class="dashboard-col-divisi">{{ row.divisi }}</span>
+            <div class="dashboard-col-bar">
+                <div class="dashboard-bar-track">
+                    <div class="dashboard-bar-fill {% if row.pct >= 70 %}bar-high{% elif row.pct >= 40 %}bar-med{% else %}bar-low{% endif %}"
+                        style="width:{{ row.pct }}%"></div>
+                </div>
+            </div>
+            <span class="dashboard-col-pct">{{ row.pct }}%</span>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="dashboard-pagination">
+        <button class="dashboard-page-btn active">1</button>
+        <button class="dashboard-page-btn">2</button>
+        <button class="dashboard-page-btn">3</button>
+    </div>
+</div>

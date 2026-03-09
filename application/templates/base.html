@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PMS - Alfamidi{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/create_sr.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/my_work.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/update_timetable.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/page-header.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f8fa; /* Warna background abu-abu terang */
+            font-family: 'Poppins', Arial, sans-serif;
+        }
+
+        .main-wrapper {
+            /* Dorong konten ke kanan sejauh lebar sidebar (260px) */
+            margin-left: 260px; 
+            min-height: 100vh;
+        }
+
+        .content {
+            padding: 20px; 
+        }
+    </style>
+</head>
+<body>
+    {% include 'menu.html' %}
+    <div class="main-wrapper">
+        <div class="content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/components/sidebar-toggle.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

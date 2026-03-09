@@ -1,0 +1,11 @@
+{# File Upload Component — include 'components/file_upload.html' #}
+{# Expects: label (str), name (str), accept (str, optional, default '.pdf') #}
+
+<div class="upload-card">
+    <div class="upload-label">{{ label }}</div>
+    <div class="upload-zone" id="upload-{{ name }}">
+        <div class="upload-text">Pilih file atau <strong>drag kesini</strong></div>
+        <div class="upload-hint">PDF, maks 10 MB</div>
+        <input type="file" name="{{ name }}" accept="{{ accept|default('.pdf') }}" />
+    </div>
+</div>
