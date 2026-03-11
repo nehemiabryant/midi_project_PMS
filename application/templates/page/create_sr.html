@@ -8,25 +8,11 @@
 
 <div class="page-content">
 	<div class="form-card">
-		<form id="createSrForm" method="POST" enctype="multipart/form-data">
+		<form id="createSrForm" method="POST" enctype="multipart/form-data" action="/createSR">
+
+			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
 			<div class="form-section">
-				<!-- Status -->
-				<div class="form-row">
-					<div class="form-label">Status</div>
-					<div class="form-field">
-						<div class="status-radio-group">
-							<label class="radio-option">
-								<input type="radio" name="status" value="Baru" checked />
-								<span>Baru</span>
-							</label>
-							<label class="radio-option">
-								<input type="radio" name="status" value="Edit" />
-								<span>Edit</span>
-							</label>
-						</div>
-					</div>
-				</div>
 
 				<!-- Katagori SR -->
 				<div class="form-row">
@@ -34,15 +20,15 @@
 					<div class="form-field">
 						<div class="kategori-radio-group">
 							<label class="kategori-option">
-								<input type="radio" name="kategori_sr" value="MSM" checked />
+								<input type="radio" name="kategori_sr" value="1" checked />
 								<span class="kategori-badge">MSM</span>
 							</label>
 							<label class="kategori-option">
-								<input type="radio" name="kategori_sr" value="DIVISIONAL" />
+								<input type="radio" name="kategori_sr" value="2" />
 								<span class="kategori-badge">DIVISIONAL</span>
 							</label>
 							<label class="kategori-option">
-								<input type="radio" name="kategori_sr" value="SAT" />
+								<input type="radio" name="kategori_sr" value="3" />
 								<span class="kategori-badge">SAT</span>
 							</label>
 						</div>
@@ -53,10 +39,7 @@
 				<div class="form-row">
 					<div class="form-label">Requester</div>
 					<div class="form-field">
-						<div class="input-with-btn">
-							<input type="text" class="form-input" id="requester" name="requester" />
-							<button type="button" class="btn-cari">Cari</button>
-						</div>
+						<input type="text" class="form-input" value="{{ user.nik }} - {{ user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
 					</div>
 				</div>
 
@@ -64,13 +47,7 @@
 				<div class="form-row">
 					<div class="form-label">Divisi</div>
 					<div class="form-field">
-						<select class="form-input form-select" id="divisi" name="divisi">
-							<option value="">-</option>
-							<option value="it_division">IT Division</option>
-							<option value="hr_division">HR Division</option>
-							<option value="finance">Finance</option>
-							<option value="operations">Operations</option>
-						</select>
+						<input type="text" class="form-input" value="{{ user.divisi }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
 					</div>
 				</div>
 
@@ -78,7 +55,7 @@
 				<div class="form-row">
 					<div class="form-label">Nama Aplikasi</div>
 					<div class="form-field">
-						<input type="text" class="form-input" id="nama_aplikasi" name="nama_aplikasi" />
+						<input type="text" class="form-input" id="nama_aplikasi" name="nama_aplikasi" required/>
 					</div>
 				</div>
 
@@ -86,7 +63,7 @@
 				<div class="form-row">
 					<div class="form-label">Modul</div>
 					<div class="form-field">
-						<input type="text" class="form-input" id="modul" name="modul" />
+						<input type="text" class="form-input" id="modul" name="modul" required/>
 					</div>
 				</div>
 
@@ -94,7 +71,7 @@
 				<div class="form-row">
 					<div class="form-label">Tujuan</div>
 					<div class="form-field">
-						<textarea class="form-input richtext" id="tujuan" name="tujuan"></textarea>
+						<textarea class="form-input richtext" id="tujuan" name="tujuan" required></textarea>
 					</div>
 				</div>
 
@@ -102,7 +79,7 @@
 				<div class="form-row">
 					<div class="form-label">Detail Permohonan</div>
 					<div class="form-field">
-						<textarea class="form-input richtext" id="detail_permohonan" name="detail_permohonan"></textarea>
+						<textarea class="form-input richtext" id="detail_permohonan" name="detail_permohonan" required></textarea>
 					</div>
 				</div>
 
@@ -110,7 +87,7 @@
 				<div class="form-row">
 					<div class="form-label">Frequency</div>
 					<div class="form-field">
-						<textarea class="form-input richtext" id="frequency" name="frequency"></textarea>
+						<textarea class="form-input richtext" id="frequency" name="frequency" required></textarea>
 					</div>
 				</div>
 
@@ -118,7 +95,7 @@
 				<div class="form-row">
 					<div class="form-label">Values</div>
 					<div class="form-field">
-						<input type="text" class="form-input" id="values" name="values" />
+						<input type="text" class="form-input" id="values" name="values" required />
 					</div>
 				</div>
 
@@ -126,7 +103,7 @@
 				<div class="form-row">
 					<div class="form-label">Keterangan Values</div>
 					<div class="form-field">
-						<textarea class="form-input richtext" id="keterangan_values" name="keterangan_values"></textarea>
+						<textarea class="form-input richtext" id="keterangan_values" name="keterangan_values" required></textarea>
 					</div>
 				</div>
 
@@ -134,7 +111,7 @@
 				<div class="form-row">
 					<div class="form-label">Number of User</div>
 					<div class="form-field">
-						<input type="text" class="form-input" id="number_of_user" name="number_of_user" />
+						<input type="text" class="form-input" id="number_of_user" name="number_of_user" required />
 					</div>
 				</div>
 

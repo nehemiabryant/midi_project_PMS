@@ -9,7 +9,7 @@ from flask import (
 # from config import MainConfig
 from common.midiconnectserver.midilog import Logger
 
-from . import transaction
+from .transactions import sr_transaction
 from .helpers.login import validate_user_gateway
 from .helpers.decorators import login_required
 from .utils.converters import convert_to_dicts
@@ -62,6 +62,22 @@ def dashboard_menu():
 @owh_app.route('/createSR', methods=['GET', 'POST'])
 @login_required
 def createSR_menu():
+    if request.method == 'POST':
+        print("yes")
+
+        raw_form_data = request.form.to_dict()
+        raw_form_data['requester'] = session.get('user', {}).get('nik', '')
+        raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
+
+        trx_result = sr_transaction.sr_request_trx(raw_form_data)
+
+        if trx_result.get('status'):
+            flash("Service Request created successfully!", "success")
+            return redirect(url_for('owh.dashboard_menu'))
+        else:
+            flash(f"Error: {trx_result.get('msg')}", "error")
+            return redirect(request.url) #ERROR PAGE IN PROGRESS
+
     return render_template('/page/create_sr.html', user=session['user'], role=session['role'], active_menu='create_sr')
 
 #MYWORK
