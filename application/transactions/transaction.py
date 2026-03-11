@@ -1,6 +1,6 @@
 from common.midiconnectserver.midilog import Logger
 from flask import flash, jsonify, render_template, session
-from . import model
+from ..models import model
 
 Log = Logger()
 

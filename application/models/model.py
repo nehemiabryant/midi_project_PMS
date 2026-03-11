@@ -1,5 +1,5 @@
 import traceback, pandas as pd
-from common.midiconnectserver import DatabaseORA, DatabasePG
+from common.midiconnectserver import DatabasePG
 from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
