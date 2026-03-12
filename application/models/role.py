@@ -103,6 +103,31 @@ def delete_role_model(approle_id: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# sr_role_permission — semua mapping dalam satu query
+# ---------------------------------------------------------------------------
+
+def get_all_role_permissions_model() -> dict:
+    """Ambil semua permission_id per approle_id dalam satu query JOIN."""
+    sql = """
+        SELECT rp.approle_id, p.permission_id
+        FROM sr_role_permission rp
+        JOIN sr_ms_permission p ON rp.permission_id = p.permission_id
+        ORDER BY rp.approle_id, p.permission_id
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectHeader(sql)
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_role_permissions | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+# ---------------------------------------------------------------------------
 # sr_ms_permission
 # ---------------------------------------------------------------------------
 
