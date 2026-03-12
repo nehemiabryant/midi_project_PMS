@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% with header_title='Master User' %}
+{% include 'components/header.html' %}
+{% endwith %}
+    <div class="master-user-container">
+        <div class="action-bar">
+            <button class="btn-add">Tambah User</button>
+        </div>
+
+        <div class="table-container">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Nama User</th>
+                        <th>Role</th>
+                        <th>Update Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ARISKA NUGROHO</td>
+                        <td>ADMIN</td>
+                        <td><button class="btn-edit">Edit</button></td>
+                    </tr>
+
+                    <tr>
+                        <td>TUSA DWI KUSUMA</td>
+                        <td>ADMIN USER</td>
+                        <td><button class="btn-edit">Edit</button></td>
+                    </tr>
+
+                    <tr>
+                        <td>GALIH AGUSFIAN PERMANA</td>
+                        <td>ADMIN</td>
+                        <td><button class="btn-edit">Edit</button></td>
+                    </tr>
+
+                    <tr>
+                        <td>NOVRI RISKY PATALALA</td>
+                        <td>USER IT</td>
+                        <td><button class="btn-edit">Edit</button></td>
+                    </tr>
+
+                    <tr>
+                        <td>AGUNG JADMIKO</td>
+                        <td>USER IT</td>
+                        <td><button class="btn-edit">Edit</button></td>
+                    </tr>
+
+                    <tr>
+                        <td>MARVIN JOSEPH MANUEL SETYAWAN</td>
+                        <td>USER IT</td>
+                        <td><button class="btn-edit">Edit</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+{% endblock %}
