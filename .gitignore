@@ -164,3 +164,4 @@ cython_debug/
 *.pyc
 common/config/Connection2.cfg
 log/*.txt
+common/midiconnectserver/config/

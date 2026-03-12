@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Service Requests</title>
+</head>
+<body>
+    {% for row in sr_data %}
+    <tr>
+        <td>{{ row.sr_no }}</td>
+        <td>{{ row.name }}</td>
+        <td>{{ row.status }}</td>
+        <td>
+            <a href="{{ url_for('owh_sr.editSR_menu', token=row.token) }}" class="btn btn-primary">
+                Edit
+            </a>
+        </td>
+    </tr>
+    <br>
+    {% endfor %}
+</body>
+</html>

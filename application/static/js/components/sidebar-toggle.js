@@ -1,16 +1,23 @@
-document.addEventListener("DOMContentLoaded", function() {
-    // Ambil semua elemen dengan class nav-toggle
-    const toggles = document.querySelectorAll(".nav-toggle");
+document.addEventListener('DOMContentLoaded', () => {
+    initSidebarToggle();
+});
 
-    toggles.forEach(toggle => {
-        toggle.addEventListener("click", function() {
-            const chevron = this.querySelector(".chevron");
-            if (chevron) chevron.classList.toggle("open");
+function initSidebarToggle() {
+    document.querySelectorAll('.nav-toggle').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const submenu = btn.nextElementSibling;
+            const chevron = btn.querySelector('.chevron');
 
-            const submenu = this.nextElementSibling;
-            if (submenu && submenu.classList.contains("nav-submenu")) {
-                submenu.classList.toggle("open");
-            }
+            document.querySelectorAll('.nav-submenu.open').forEach((openMenu) => {
+                if (openMenu !== submenu) {
+                    openMenu.classList.remove('open');
+                    const otherChevron = openMenu.previousElementSibling?.querySelector('.chevron');
+                    if (otherChevron) otherChevron.classList.remove('open');
+                }
+            });
+
+            submenu?.classList.toggle('open');
+            chevron?.classList.toggle('open');
         });
     });
-});
+}
