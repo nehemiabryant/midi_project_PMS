@@ -1,117 +1,136 @@
+{# Sidebar Component — menu.html #}
+{# Expects variable: active_menu (string, e.g. 'dashboard', 'create_sr', 'my_work', etc.) #}
+
+{% set user_permissions = session.get('role', {}).get('permissions', []) %}
 {% set transaction_menus = ['create_sr', 'my_work'] %}
 {% set document_menus = ['upload_draft', 'approved_draft'] %}
+{% set report_menus = ['monitoring'] %}
+{% set admin_menus = ['master_user', 'master_role'] %}
 
 <aside class="sidebar">
+
+    <!-- Brand -->
     <div class="sidebar-brand">
-        <img src="{{ url_for('static', filename='img/logo_alfamidi_square.png') }}" 
-             alt="Logo" class="sidebar-brand-logo-img" 
-             onerror="this.style.display='none'">
-        <span class="brand-system">Project Management<br>System</span>
+        <img src="{{ url_for('static', filename='img/logo_alfamidi_square.png') }}" alt="Alfamidi Logo"
+            class="sidebar-brand-logo-img" onerror="this.style.display='none'" />
+        <span class="brand-system">Project Management&nbsp;System</span>
     </div>
 
+    <!-- User Profile -->
     <div class="sidebar-user">
         <div class="sidebar-user-avatar">
-            {{ session.get('user', {}).get('nama', 'User')[:2] | upper }}
+            {{ session.get('user', {}).get('nama', 'Guest')[:2] | upper }}
         </div>
         <div class="sidebar-user-info">
             <p class="user-name">{{ session.get('user', {}).get('nama', 'Guest') }}</p>
-            <p class="user-role">{{ session.get('role', {}).get('name', 'Staff') }}</p>
+            <p class="user-role">{{ session.get('role', {}).get('name', '-') }}</p>
         </div>
     </div>
 
+    <!-- Navigation -->
     <nav class="sidebar-nav">
-        
+
+        <!-- Main -->
         <span class="nav-section-label">Main</span>
         <div class="nav-item">
-            <a href="{{ url_for('owh.dashboard_menu') }}" 
-               class="nav-link {{ 'active' if active_menu == 'dashboard' }}">
-                <span class="nav-icon"><i class="fas fa-gauge-high"></i></span>
+            <a href="{{ url_for('owh_dashboard.dashboard_menu') }}"
+                class="nav-link {{ 'active' if active_menu == 'dashboard' }}">
+                <span class="nav-icon"><i class="fas fa-gauge-high" aria-hidden="true"></i></span>
                 <span class="nav-text">Dashboard</span>
             </a>
         </div>
 
-        <span class="nav-section-label">Transaction</span>
+        <!-- Transaction -->
+        <span class="nav-section-label">Transaksi</span>
         <div class="nav-item">
             <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in transaction_menus }}">
-                <span class="nav-icon"><i class="fas fa-file-invoice"></i></span>
+                <span class="nav-icon"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></span>
                 <span class="nav-text">Transaction</span>
-                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in transaction_menus }}"></i>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in transaction_menus }}"
+                    aria-hidden="true"></i>
             </button>
-
             <div class="nav-submenu {{ 'open' if active_menu in transaction_menus }}">
-                <a href="{{ url_for('owh.createSR_menu') }}" 
-                   class="nav-sublink {{ 'active' if active_menu == 'create_sr' }}">
-                    <i class="fas fa-circle"></i> Create SR
+                <a href="{{ url_for('owh_sr.createSR_menu') }}"
+                    class="nav-sublink {{ 'active' if active_menu == 'create_sr' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Create SR
                 </a>
-                <a href="{{ url_for('owh.myWork_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
-                    <i class="fas fa-circle"></i> My Work
+                {% if 'view_my_work' in user_permissions %}
+                <a href="{{ url_for('owh_dashboard.myWork_menu') }}"
+                    class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> My Work
                 </a>
+                {% endif %}
             </div>
         </div>
 
-        <span class="nav-section-label">Document</span>
+        <!-- Documents -->
+        {% if 'manage_documents' in user_permissions %}
+        <span class="nav-section-label">Dokumen</span>
         <div class="nav-item">
             <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in document_menus }}">
                 <span class="nav-icon"><i class="fas fa-file-lines" aria-hidden="true"></i></span>
                 <span class="nav-text">Draft Penyelarasan SAT</span>
-                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in document_menus }}" aria-hidden="true"></i>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in document_menus }}"
+                    aria-hidden="true"></i>
             </button>
             <div class="nav-submenu {{ 'open' if active_menu in document_menus }}">
-                <a href="{{ url_for('owh.uploadDraft_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'upload_draft' }}">
+                <a href="{{ url_for('owh_dashboard.uploadDraft_menu') }}"
+                    class="nav-sublink {{ 'active' if active_menu == 'upload_draft' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i> Upload Draft
                 </a>
-                <a href="{{ url_for('owh.approvedDraft_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'approved_draft' }}">
+                <a href="{{ url_for('owh_dashboard.approvedDraft_menu') }}"
+                    class="nav-sublink {{ 'active' if active_menu == 'approved_draft' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i> Approved Draft
                 </a>
             </div>
         </div>
+        {% endif %}
 
-        <span class="nav-section-label">Report</span>
+        <!-- Reports -->
+        {% if 'view_reports' in user_permissions %}
+        <span class="nav-section-label">Laporan</span>
         <div class="nav-item">
-            <a href="#" 
-               class="nav-link {{ 'active' if active_menu == 'master' }}">
-                <span class="nav-icon"><i class="fas fa-database"></i></span>
+            <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in report_menus }}">
+                <span class="nav-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
                 <span class="nav-text">Monitoring</span>
-            </a>
-        </div>
-
-        <span class="nav-section-label">IT Transaction</span>
-        <div class="nav-item">
-            <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in transaction_menus }}">
-                <span class="nav-icon"><i class="fas fa-file-invoice"></i></span>
-                <span class="nav-text">IT Transaction</span>
-                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in transaction_menus }}"></i>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in report_menus }}"
+                    aria-hidden="true"></i>
             </button>
+            <div class="nav-submenu {{ 'open' if active_menu in report_menus }}">
+                <!-- sub items dapat ditambahkan nanti -->
+            </div>
+        </div>
+        {% endif %}
 
-            <div class="nav-submenu {{ 'open' if active_menu in transaction_menus }}">
-                <a href="{{ url_for('owh.createSR_menu') }}" 
-                   class="nav-sublink {{ 'active' if active_menu == 'create_sr' }}">
-                    <i class="fas fa-circle"></i> Master Aplikasi Midi
+        <!-- Admin — Role Management -->
+        {% if 'manage_roles' in user_permissions %}
+        <span class="nav-section-label">Admin</span>
+        <div class="nav-item">
+            <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in admin_menus }}">
+                <span class="nav-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+                <span class="nav-text">Role Management</span>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in admin_menus }}"
+                    aria-hidden="true"></i>
+            </button>
+            <div class="nav-submenu {{ 'open' if active_menu in admin_menus }}">
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master User
                 </a>
-                <a href="{{ url_for('owh.myWork_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
-                    <i class="fas fa-circle"></i> Master Role
-                </a>
-                <a href="{{ url_for('owh.myWork_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
-                    <i class="fas fa-circle"></i> Master User
-                </a>
-                <a href="{{ url_for('owh.myWork_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
-                    <i class="fas fa-circle"></i> Master User Dept
-                </a>
-                <a href="{{ url_for('owh.myWork_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
-                    <i class="fas fa-circle"></i> Update Status
-                </a>
-                <a href="{{ url_for('owh.updateTimetable_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'update_timetable' }}">
-                    <i class="fas fa-circle"></i> Update Timetable
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master Role
                 </a>
             </div>
         </div>
+        {% endif %}
+
     </nav>
 
+    <!-- Footer -->
     <div class="sidebar-footer">
-        <a href="{{ url_for('owh.logout') }}" style="text-decoration: none; display: block;">
-            <div class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Sign Out
-            </div>
+        <a href="{{ url_for('owh_auth.logout') }}" class="logout-btn">
+            <i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>
+            <span>Sign Out</span>
         </a>
     </div>
+
 </aside>

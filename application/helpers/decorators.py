@@ -1,15 +1,29 @@
 from functools import wraps
-from flask import session, redirect, url_for
+from flask import session, redirect, url_for, jsonify
 from common.midiconnectserver.midilog import Logger
-# from application.models.app_log_model import AppLogModel
 
 Log = Logger()
+
 
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('user') or not session.get('role'):
-            return redirect(url_for('owh.logout'))
+            return redirect(url_for('owh_auth.logout'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def super_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        role = session.get('role', {})
+        permissions = role.get('permissions', [])
+        if 'manage_roles' not in permissions:
+            return jsonify({
+                'error': 'forbidden',
+                'details': 'Akses ditolak. Diperlukan permission manage_roles.'
+            }), 403
         return f(*args, **kwargs)
     return decorated_function
 
