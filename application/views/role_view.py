@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash
 from ..transactions import role_transaction, karyawan_transaction
 from ..helpers.decorators import login_required, super_admin_required
 
@@ -6,176 +6,126 @@ role_mgmt_bp = Blueprint('role_mgmt', __name__)
 
 
 # ---------------------------------------------------------------------------
-# sr_ms_app_role — CRUD Roles
+# Master Role — Page + Form Handlers
 # ---------------------------------------------------------------------------
 
-@role_mgmt_bp.route('/roles', methods=['GET'])
+@role_mgmt_bp.route('/masterRole', methods=['GET'])
 @login_required
 @super_admin_required
-def list_roles():
-    result = role_transaction.get_all_roles_trx()
-    if not result.get('status'):
-        return jsonify({'error': 'server_error', 'details': result.get('msg')}), 500
-    return jsonify({'data': result.get('data')}), 200
+def master_role_menu():
+    roles_result = role_transaction.get_all_roles_trx()
+    perms_result = role_transaction.get_all_permissions_trx()
+    rp_result = role_transaction.get_all_role_permissions_trx()
+    roles = roles_result.get('data', []) if roles_result.get('status') else []
+    permissions = perms_result.get('data', []) if perms_result.get('status') else []
+    role_permissions = rp_result.get('data', {}) if rp_result.get('status') else {}
+
+    return render_template('page/master_role.html', active_menu='master_role', roles=roles, permissions=permissions, role_permissions=role_permissions)
 
 
-@role_mgmt_bp.route('/roles', methods=['POST'])
+@role_mgmt_bp.route('/masterRole/create', methods=['POST'])
 @login_required
 @super_admin_required
-def create_role():
-    data = request.get_json(silent=True)
-    if not data or not data.get('approle_name'):
-        return jsonify({'error': 'bad_request', 'details': 'approle_name is required'}), 400
-
-    approle_name = data['approle_name'].strip()
+def master_role_create():
+    approle_name = request.form.get('approle_name', '').strip()
     if not approle_name:
-        return jsonify({'error': 'bad_request', 'details': 'approle_name cannot be empty'}), 400
+        flash('Nama role tidak boleh kosong.', 'error')
+        return redirect(url_for('role_mgmt.master_role_menu'))
 
     result = role_transaction.create_role_trx(approle_name)
     if not result.get('status'):
-        return jsonify({'error': 'server_error', 'details': result.get('msg')}), 500
+        flash(result.get('msg', 'Gagal membuat role.'), 'error')
+        return redirect(url_for('role_mgmt.master_role_menu'))
 
-    return jsonify({'data': result.get('data'), 'message': 'Role berhasil dibuat'}), 201
+    role_id = result['data']['approle_id']
+    perm_ids = [int(x) for x in request.form.getlist('permission_ids')]
+    role_transaction.set_role_permissions_trx(role_id, perm_ids)
+
+    flash('Role berhasil dibuat.', 'success')
+    return redirect(url_for('role_mgmt.master_role_menu'))
 
 
-@role_mgmt_bp.route('/roles/<int:approle_id>', methods=['PUT'])
+@role_mgmt_bp.route('/masterRole/<int:approle_id>/edit', methods=['POST'])
 @login_required
 @super_admin_required
-def update_role(approle_id):
-    data = request.get_json(silent=True)
-    if not data or not data.get('approle_name'):
-        return jsonify({'error': 'bad_request', 'details': 'approle_name is required'}), 400
+def master_role_edit(approle_id):
+    approle_name = request.form.get('approle_name', '').strip()
+    if not approle_name:
+        flash('Nama role tidak boleh kosong.', 'error')
+        return redirect(url_for('role_mgmt.master_role_menu'))
 
-    approle_name = data['approle_name'].strip()
     result = role_transaction.update_role_trx(approle_id, approle_name)
     if not result.get('status'):
-        msg = result.get('msg', '')
-        if 'tidak ditemukan' in msg.lower():
-            return jsonify({'error': 'not_found', 'details': msg}), 404
-        return jsonify({'error': 'server_error', 'details': msg}), 500
-    return jsonify({'data': result.get('data'), 'message': 'Role berhasil diupdate'}), 200
+        flash(result.get('msg', 'Gagal mengupdate role.'), 'error')
+        return redirect(url_for('role_mgmt.master_role_menu'))
+
+    perm_ids = [int(x) for x in request.form.getlist('permission_ids')]
+    role_transaction.set_role_permissions_trx(approle_id, perm_ids)
+
+    flash('Role berhasil diupdate.', 'success')
+    return redirect(url_for('role_mgmt.master_role_menu'))
 
 
-@role_mgmt_bp.route('/roles/<int:approle_id>', methods=['DELETE'])
+@role_mgmt_bp.route('/masterRole/<int:approle_id>/delete', methods=['POST'])
 @login_required
 @super_admin_required
-def delete_role(approle_id):
+def master_role_delete(approle_id):
     result = role_transaction.delete_role_trx(approle_id)
     if not result.get('status'):
-        msg = result.get('msg', '')
-        status_code = 404 if 'tidak ditemukan' in msg.lower() else 400
-        return jsonify({'error': 'bad_request', 'details': msg}), status_code
-    return jsonify({'message': result.get('msg')}), 200
+        flash(result.get('msg', 'Gagal menghapus role.'), 'error')
+    else:
+        flash('Role berhasil dihapus.', 'success')
+    return redirect(url_for('role_mgmt.master_role_menu'))
 
 
 # ---------------------------------------------------------------------------
-# sr_ms_permission — List Permissions
+# Master User — Page + Form Handlers
 # ---------------------------------------------------------------------------
 
-@role_mgmt_bp.route('/permissions', methods=['GET'])
+@role_mgmt_bp.route('/masterUser', methods=['GET'])
 @login_required
 @super_admin_required
-def list_permissions():
-    result = role_transaction.get_all_permissions_trx()
+def master_user_menu():
+    users_result = role_transaction.get_all_assigned_roles_trx()
+    roles_result = role_transaction.get_all_roles_trx()
+    assigned_users = users_result.get('data', []) if users_result.get('status') else []
+    roles = roles_result.get('data', []) if roles_result.get('status') else []
+    return render_template('page/master_user.html', active_menu='master_user', assigned_users=assigned_users, roles=roles)
+
+
+@role_mgmt_bp.route('/masterUser/assign', methods=['POST'])
+@login_required
+@super_admin_required
+def master_user_assign():
+    nik = request.form.get('nik', '').strip()
+    approle_id = request.form.get('approle_id', '').strip()
+
+    if not nik or not approle_id:
+        flash('NIK dan role harus diisi.', 'error')
+        return redirect(url_for('role_mgmt.master_user_menu'))
+
+    result = role_transaction.assign_role_trx(nik, int(approle_id))
     if not result.get('status'):
-        return jsonify({'error': 'server_error', 'details': result.get('msg')}), 500
-    return jsonify({'data': result.get('data')}), 200
+        flash(result.get('msg', 'Gagal assign role.'), 'error')
+    else:
+        flash('Role berhasil di-assign.', 'success')
+    return redirect(url_for('role_mgmt.master_user_menu'))
 
 
-# ---------------------------------------------------------------------------
-# sr_role_permission — Role-Permission Mapping
-# ---------------------------------------------------------------------------
-
-@role_mgmt_bp.route('/roles/<int:approle_id>/permissions', methods=['GET'])
+@role_mgmt_bp.route('/masterUser/<int:user_id>/remove', methods=['POST'])
 @login_required
 @super_admin_required
-def get_role_permissions(approle_id):
-    role_result = role_transaction.get_role_by_id_trx(approle_id)
-    if not role_result.get('status'):
-        return jsonify({'error': 'not_found', 'details': 'Role tidak ditemukan'}), 404
-
-    perms_result = role_transaction.get_permissions_by_role_trx(approle_id)
-    if not perms_result.get('status'):
-        return jsonify({'error': 'server_error', 'details': perms_result.get('msg')}), 500
-
-    return jsonify({'data': {
-        'role': role_result.get('data'),
-        'permissions': perms_result.get('data')
-    }}), 200
-
-
-@role_mgmt_bp.route('/roles/<int:approle_id>/permissions', methods=['POST'])
-@login_required
-@super_admin_required
-def set_role_permissions(approle_id):
-    role_result = role_transaction.get_role_by_id_trx(approle_id)
-    if not role_result.get('status'):
-        return jsonify({'error': 'not_found', 'details': 'Role tidak ditemukan'}), 404
-
-    data = request.get_json(silent=True)
-    if not data or 'permission_ids' not in data:
-        return jsonify({'error': 'bad_request', 'details': 'permission_ids is required (array of int)'}), 400
-    if not isinstance(data['permission_ids'], list):
-        return jsonify({'error': 'bad_request', 'details': 'permission_ids must be an array'}), 400
-
-    result = role_transaction.set_role_permissions_trx(approle_id, data['permission_ids'])
-    if not result.get('status'):
-        return jsonify({'error': 'server_error', 'details': result.get('msg')}), 500
-
-    return jsonify({
-        'data': {'role': role_result.get('data'), 'permissions': result.get('data')},
-        'message': 'Permissions berhasil diupdate'
-    }), 200
-
-
-# ---------------------------------------------------------------------------
-# sr_user — Assigned Roles
-# ---------------------------------------------------------------------------
-
-@role_mgmt_bp.route('/assigned-roles', methods=['GET'])
-@login_required
-@super_admin_required
-def list_assigned_roles():
-    result = role_transaction.get_all_assigned_roles_trx()
-    if not result.get('status'):
-        return jsonify({'error': 'server_error', 'details': result.get('msg')}), 500
-    return jsonify({'data': result.get('data')}), 200
-
-
-@role_mgmt_bp.route('/assigned-roles', methods=['POST'])
-@login_required
-@super_admin_required
-def assign_role():
-    data = request.get_json(silent=True)
-    if not data or not data.get('nik') or not data.get('approle_id'):
-        return jsonify({'error': 'bad_request', 'details': 'nik and approle_id are required'}), 400
-
-    nik = str(data['nik']).strip()
-    approle_id = int(data['approle_id'])
-
-    result = role_transaction.assign_role_trx(nik, approle_id)
-    if not result.get('status'):
-        msg = result.get('msg', '')
-        status_code = 409 if 'sudah memiliki' in msg.lower() else 500
-        return jsonify({'error': 'conflict' if status_code == 409 else 'server_error', 'details': msg}), status_code
-
-    return jsonify({'data': result.get('data'), 'message': 'Role berhasil di-assign'}), 201
-
-
-@role_mgmt_bp.route('/assigned-roles/<int:user_id>', methods=['DELETE'])
-@login_required
-@super_admin_required
-def remove_assigned_role(user_id):
+def master_user_remove(user_id):
     result = role_transaction.remove_assigned_role_trx(user_id)
     if not result.get('status'):
-        msg = result.get('msg', '')
-        status_code = 404 if 'tidak ditemukan' in msg.lower() else 500
-        return jsonify({'error': 'not_found' if status_code == 404 else 'server_error', 'details': msg}), status_code
-    return jsonify({'message': result.get('msg')}), 200
+        flash(result.get('msg', 'Gagal menghapus assignment.'), 'error')
+    else:
+        flash('Assignment berhasil dihapus.', 'success')
+    return redirect(url_for('role_mgmt.master_user_menu'))
 
 
 # ---------------------------------------------------------------------------
-# Karyawan Search
+# Karyawan Search — tetap JSON untuk autocomplete JS
 # ---------------------------------------------------------------------------
 
 @role_mgmt_bp.route('/karyawan/search', methods=['GET'])

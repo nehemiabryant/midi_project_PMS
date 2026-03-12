@@ -117,12 +117,6 @@
                 <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_aplikasi' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master Aplikasi Midi
                 </a>
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role_it' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Master Role
-                </a>
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user_it' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Master User
-                </a>
                 <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user_dept' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master User Dept
                 </a>
@@ -148,10 +142,10 @@
                     aria-hidden="true"></i>
             </button>
             <div class="nav-submenu {{ 'open' if active_menu in admin_menus }}">
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
+                <a href="{{ url_for('role_mgmt.master_user_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master User
                 </a>
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
+                <a href="{{ url_for('role_mgmt.master_role_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master Role
                 </a>
             </div>

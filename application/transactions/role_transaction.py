@@ -79,6 +79,25 @@ def delete_role_trx(approle_id: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Semua role-permission mapping (untuk hindari N+1 query)
+# ---------------------------------------------------------------------------
+
+def get_all_role_permissions_trx() -> dict:
+    """Return dict {approle_id: [permission_id, ...]} dari satu query."""
+    try:
+        result = role_model.get_all_role_permissions_model()
+        rows = _to_dict_list(result) if result.get('status') else []
+        mapping = {}
+        for row in rows:
+            rid = row['approle_id']
+            mapping.setdefault(rid, []).append(row['permission_id'])
+        return {'status': True, 'data': mapping}
+    except Exception as e:
+        Log.error(f'Exception | get_all_role_permissions | Msg: {str(e)}')
+        return {'status': False, 'data': {}}
+
+
+# ---------------------------------------------------------------------------
 # Permissions
 # ---------------------------------------------------------------------------
 
