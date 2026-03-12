@@ -5,12 +5,6 @@ from . import attachment_transaction
 
 Log = Logger()
 
-SR_ATTACHMENT_MAP = {
-    'lampiran_alur_proses': 1,
-    'lampiran_desain_aplikasi': 2,
-    'lampiran_report': 3
-}
-
 def get_all_sr_trx() -> dict:
     try:
         # 1. Fetch the raw data from the model
@@ -94,11 +88,11 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
         if data.get('status'):
             new_sr_no = data['data'][0][0]
 
-            attachment_transaction.upload_and_record_files(new_sr_no, files, SR_ATTACHMENT_MAP)
+            attachment_transaction.upload_and_record_files(new_sr_no, files)
 
         return {'status': True, 'data': data}
     except Exception as e:
-        Log.error(f'Exception | Get User Info | Msg: {str(e)}')
+        Log.error(f'Exception | Create SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
 def get_edit_sr_trx(sr_no: str) -> dict:
@@ -121,7 +115,7 @@ def get_edit_sr_trx(sr_no: str) -> dict:
 
         attachments = attachment_transaction.get_attachments_for_view(sr_no)
 
-        sr_dict['attachment'] = attachments
+        sr_dict['attachments'] = attachments
 
         # We wrap the dictionary in a list so it plays nicely with your existing Route code
         return {'status': True, 'data': [sr_dict]}
@@ -129,7 +123,7 @@ def get_edit_sr_trx(sr_no: str) -> dict:
         Log.error(f'Exception | Get Edit SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-def update_sr_trx(raw_data: dict, sr_no: str) -> dict:
+def update_sr_trx(raw_data: dict, files: dict, sr_no: str) -> dict:
     try:
         db_params = {
             'sr_no': sr_no,
@@ -145,15 +139,21 @@ def update_sr_trx(raw_data: dict, sr_no: str) -> dict:
             'value': raw_data.get('values'),
             'value_det': raw_data.get('keterangan_values'),
         }
-        
+
         num_user_str = raw_data.get('number_of_user')
         if num_user_str and num_user_str.isdigit():
             db_params['num_user'] = int(num_user_str)
         else:
             db_params['num_user'] = 0
+        
+        data = sr_model.update_sr(db_params)
+        if data.get('status'):
+            new_sr_no = data['data'][0][0]
 
-        # Pass to the Update model
-        return sr_model.update_sr(db_params)
+            attachment_transaction.upload_and_record_files(new_sr_no, files)
+
+        #return sr_model.update_sr(db_params)
+        return {'status': True, 'data': data}
         
     except Exception as e:
         Log.error(f'Exception | Update SR Trx | Msg: {str(e)}')

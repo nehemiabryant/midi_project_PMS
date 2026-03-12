@@ -1,29 +1,31 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import attachment_model
-from ..helpers import pdf_upload as fu
+from ..helpers.pdf_upload import s3_client, BUCKET_NAME, PUBLIC_URL
 import os
 import uuid
 from werkzeug.utils import secure_filename
 
 Log = Logger()
 
-def upload_and_record_files(reference_no: str, files_dict: dict, category_map: dict):
+def upload_and_record_files(reference_no: str, files_dict: dict):
     """
     A modular uploader. You pass it the reference ID (sr_no), the files, 
     and a map telling it which HTML input matches which database category ID.
     """
-    bucket_name = os.environ.get('R2_BUCKET_NAME')
-    public_url_base = os.environ.get('R2_PUBLIC_URL')
+    bucket_name = BUCKET_NAME
+    public_url_base = PUBLIC_URL
 
-    for field_name, ctg_id in category_map.items():
-        file = files_dict.get(field_name)
+    for field_name, file in files_dict.items():
+        if field_name.startswith('attachment_ctg_') and file and file.filename:
+
+            ctg_id = int(field_name.split('_')[-1])
         
         if file and file.filename:
             safe_filename = secure_filename(file.filename)
             unique_filename = f"{reference_no.replace('/', '_')}/{uuid.uuid4().hex}_{safe_filename}"
             
             try:
-                fu.s3_client.upload_fileobj(
+                s3_client.upload_fileobj(
                     file, 
                     bucket_name, 
                     unique_filename,

@@ -11,10 +11,6 @@ function initFileUpload() {
       return;
     }
 
-    zone.addEventListener('click', () => {
-      input.click();
-    });
-
     input.addEventListener('click', (event) => {
       event.stopPropagation();
     });
@@ -70,3 +66,23 @@ function updateDropZone(zone, input, filenameEl) {
     filenameEl.textContent = '';
   }
 }
+
+document.querySelectorAll('.drop-zone input[type="file"]').forEach(input => {
+  input.addEventListener('change', function() {
+    // Find the span dedicated to the filename within the same drop-zone
+    const fileNameSpan = this.parentElement.querySelector('.drop-zone-filename');
+    const hintSpan = this.parentElement.querySelector('.drop-zone-hint');
+    
+    if (this.files && this.files.length > 0) {
+      // A file was selected! Show the name and hide the hint.
+      fileNameSpan.textContent = "📄 " + this.files[0].name;
+      fileNameSpan.style.color = "#0066cc"; // Make it look like an active link
+      fileNameSpan.style.fontWeight = "bold";
+      if (hintSpan) hintSpan.style.display = 'none';
+    } else {
+      // User cancelled the selection
+      fileNameSpan.textContent = '';
+      if (hintSpan) hintSpan.style.display = 'block';
+    }
+  });
+});

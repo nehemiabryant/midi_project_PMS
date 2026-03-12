@@ -111,8 +111,8 @@
 							
 							<div class="lampiran-col">
 								<div class="lampiran-title">Alur Proses</div>
-								<label class="drop-zone" data-input="lampiran_alur_proses">
-									<input type="file" name="lampiran_alur_proses" accept=".pdf" hidden />
+								<label class="drop-zone" data-input="attachment_ctg_1">
+									<input type="file" name="attachment_ctg_1" accept=".pdf" hidden />
 									<svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 									<span class="drop-zone-text">Klik atau drag file</span>
 									<span class="drop-zone-hint">PDF, maks 10MB</span>
@@ -121,12 +121,21 @@
 									{% endif %}
 									<span class="drop-zone-filename"></span>
 								</label>
+
+								{% if sr_data and sr_data.attachments and 1 in sr_data.attachments %}
+									<div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; text-align: center;">
+										<span style="font-size: 0.85em; color: #6c757d; display: block; margin-bottom: 4px;">File Saat Ini:</span>
+										<a href="{{ sr_data.attachments[1] }}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold; font-size: 0.9em;">
+											📥 Download / View PDF
+										</a>
+									</div>
+								{% endif %}
 							</div>
 
 							<div class="lampiran-col">
 								<div class="lampiran-title">Desain Aplikasi</div>
-								<label class="drop-zone" data-input="lampiran_desain_aplikasi">
-									<input type="file" name="lampiran_desain_aplikasi" accept=".pdf" hidden />
+								<label class="drop-zone" data-input="attachment_ctg_2">
+									<input type="file" name="attachment_ctg_2" accept=".pdf" hidden />
 									<svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 									<span class="drop-zone-text">Klik atau drag file</span>
 									<span class="drop-zone-hint">PDF, maks 10MB</span>
@@ -135,12 +144,21 @@
 									{% endif %}
 									<span class="drop-zone-filename"></span>
 								</label>
+
+								{% if sr_data and sr_data.attachments and 2 in sr_data.attachments %}
+									<div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; text-align: center;">
+										<span style="font-size: 0.85em; color: #6c757d; display: block; margin-bottom: 4px;">File Saat Ini:</span>
+										<a href="{{ sr_data.attachments[2] }}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold; font-size: 0.9em;">
+											📥 Download / View PDF
+										</a>
+									</div>
+								{% endif %}
 							</div>
 
 							<div class="lampiran-col">
 								<div class="lampiran-title">Report</div>
-								<label class="drop-zone" data-input="lampiran_report">
-									<input type="file" name="lampiran_report" accept=".pdf" hidden />
+								<label class="drop-zone" data-input="attachment_ctg_3">
+									<input type="file" name="attachment_ctg_3" accept=".pdf" hidden />
 									<svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 									<span class="drop-zone-text">Klik atau drag file</span>
 									<span class="drop-zone-hint">PDF, maks 10MB</span>
@@ -149,6 +167,15 @@
 									{% endif %}
 									<span class="drop-zone-filename"></span>
 								</label>
+
+								{% if sr_data and sr_data.attachments and 3 in sr_data.attachments %}
+									<div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; text-align: center;">
+										<span style="font-size: 0.85em; color: #6c757d; display: block; margin-bottom: 4px;">File Saat Ini:</span>
+										<a href="{{ sr_data.attachments[3] }}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold; font-size: 0.9em;">
+											📥 Download / View PDF
+										</a>
+									</div>
+								{% endif %}
 							</div>
 
 						</div>
@@ -158,7 +185,7 @@
 			</div>
 
 			<div class="form-actions">
-				<a href="{{ url_for('owh.dashboard_menu') }}" class="btn btn-cancel">Cancel</a>
+				<a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn btn-cancel">Cancel</a>
 				
 				<button type="submit" class="btn btn-create">{{ 'Update' if sr_data else 'Create' }}</button>
 			</div>
