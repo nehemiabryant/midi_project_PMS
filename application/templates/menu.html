@@ -6,6 +6,7 @@
 {% set document_menus = ['upload_draft', 'approved_draft'] %}
 {% set report_menus = ['monitoring'] %}
 {% set admin_menus = ['master_user', 'master_role'] %}
+{% set it_transaction_menus = ['master_aplikasi', 'master_role_it', 'master_user_it', 'master_user_dept', 'update_status', 'update_timetable'] %}
 
 <aside class="sidebar">
 
@@ -98,6 +99,40 @@
             </button>
             <div class="nav-submenu {{ 'open' if active_menu in report_menus }}">
                 <!-- sub items dapat ditambahkan nanti -->
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- IT Transaction -->
+        {% if 'manage_roles' in user_permissions %}
+        <span class="nav-section-label">IT Transaction</span>
+        <div class="nav-item">
+            <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in it_transaction_menus }}">
+                <span class="nav-icon"><i class="fas fa-file-invoice" aria-hidden="true"></i></span>
+                <span class="nav-text">IT Transaction</span>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in it_transaction_menus }}"
+                    aria-hidden="true"></i>
+            </button>
+            <div class="nav-submenu {{ 'open' if active_menu in it_transaction_menus }}">
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_aplikasi' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master Aplikasi Midi
+                </a>
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role_it' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master Role
+                </a>
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user_it' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master User
+                </a>
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user_dept' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master User Dept
+                </a>
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'update_status' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Update Status
+                </a>
+                <a href="{{ url_for('owh_dashboard.updateTimetable_menu') }}"
+                    class="nav-sublink {{ 'active' if active_menu == 'update_timetable' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Update Timetable
+                </a>
             </div>
         </div>
         {% endif %}
