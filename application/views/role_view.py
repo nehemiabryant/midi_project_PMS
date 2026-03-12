@@ -13,14 +13,15 @@ role_mgmt_bp = Blueprint('role_mgmt', __name__)
 @login_required
 @super_admin_required
 def master_role_menu():
-    roles_result = role_transaction.get_all_roles_trx()
+    rp_result = role_transaction.get_roles_with_permissions_trx()
     perms_result = role_transaction.get_all_permissions_trx()
-    rp_result = role_transaction.get_all_role_permissions_trx()
-    roles = roles_result.get('data', []) if roles_result.get('status') else []
+    roles = rp_result.get('roles', []) if rp_result.get('status') else []
+    role_permissions = rp_result.get('role_permissions', {}) if rp_result.get('status') else {}
     permissions = perms_result.get('data', []) if perms_result.get('status') else []
-    role_permissions = rp_result.get('data', {}) if rp_result.get('status') else {}
 
-    return render_template('page/master_role.html', active_menu='master_role', roles=roles, permissions=permissions, role_permissions=role_permissions)
+    return render_template('page/master_role.html', active_menu='master_role',
+                           roles=roles, permissions=permissions,
+                           role_permissions=role_permissions)
 
 
 @role_mgmt_bp.route('/masterRole/create', methods=['POST'])
