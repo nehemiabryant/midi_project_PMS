@@ -82,19 +82,33 @@ def delete_role_trx(approle_id: int) -> dict:
 # Semua role-permission mapping (untuk hindari N+1 query)
 # ---------------------------------------------------------------------------
 
-def get_all_role_permissions_trx() -> dict:
-    """Return dict {approle_id: [permission_id, ...]} dari satu query."""
+def get_roles_with_permissions_trx() -> dict:
+    """
+    Return sekaligus:
+      - 'roles': list of {approle_id, approle_name}
+      - 'role_permissions': dict {approle_id: [permission_id, ...]}
+    Hanya 1 koneksi ke DB.
+    """
     try:
-        result = role_model.get_all_role_permissions_model()
+        result = role_model.get_roles_with_permissions_model()
         rows = _to_dict_list(result) if result.get('status') else []
-        mapping = {}
+        roles_seen = {}
+        role_permissions = {}
         for row in rows:
             rid = row['approle_id']
-            mapping.setdefault(rid, []).append(row['permission_id'])
-        return {'status': True, 'data': mapping}
+            if rid not in roles_seen:
+                roles_seen[rid] = {'approle_id': rid, 'approle_name': row['approle_name']}
+                role_permissions[rid] = []
+            if row['permission_id'] is not None:
+                role_permissions[rid].append(row['permission_id'])
+        return {
+            'status': True,
+            'roles': list(roles_seen.values()),
+            'role_permissions': role_permissions
+        }
     except Exception as e:
-        Log.error(f'Exception | get_all_role_permissions | Msg: {str(e)}')
-        return {'status': False, 'data': {}}
+        Log.error(f'Exception | get_roles_with_permissions | Msg: {str(e)}')
+        return {'status': False, 'roles': [], 'role_permissions': {}}
 
 
 # ---------------------------------------------------------------------------
