@@ -82,6 +82,18 @@ def uploadDraft_menu():
 def approvedDraft_menu():
     return render_template('/page/approved_draft.html', user=session['user'], role=session['role'], active_menu='approved_draft')
 
+#MASTERROLE
+@owh_app.route('/masterRole', methods=['GET', 'POST'])
+@login_required
+def masterRole_menu():
+    return render_template('/page/master_role.html', user=session['user'], role=session['role'], active_menu='master_role')
+
+#EDITROLE
+@owh_app.route('/editRole', methods=['GET', 'POST'])
+@login_required
+def editRole_menu():
+    return render_template('/page/edit_role.html', user=session['user'], role=session['role'], active_menu='edit_role')
+
 #UPDATETIMETABLE
 @owh_app.route('/updateTimetable', methods=['GET', 'POST'])
 @login_required

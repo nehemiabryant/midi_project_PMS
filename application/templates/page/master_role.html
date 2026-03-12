@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/master_role.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% with header_title='Master Role' %}
+{% include 'components/header.html' %}
+{% endwith %}
+    <div class="table-container">
+        <div class="action-bar">
+            <a href="{{ url_for('owh.editRole_menu') }}" class="btn-add">
+                <i class="fas fa-plus"></i> Tambah Role
+            </a>
+            
+            <div class="search-box-container">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-box" placeholder="Cari Role...">
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">No</th>
+                        <th>Nama Role</th>
+                        <th style="width: 20%; text-align: center;">Update</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 500;">1</td>
+                        <td>Admin</td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; justify-content: center; gap: 8px;">
+                                <a href="{{ url_for('owh.editRole_menu') }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
+                                <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 500;">2</td>
+                        <td>User IT</td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; justify-content: center; gap: 8px;">
+                                <a href="{{ url_for('owh.editRole_menu') }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
+                                <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="font-weight: 500;">3</td>
+                        <td>Admin User</td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; justify-content: center; gap: 8px;">
+                                <a href="{{ url_for('owh.editRole_menu') }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
+                                <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
