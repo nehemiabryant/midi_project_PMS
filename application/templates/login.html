@@ -74,7 +74,7 @@
       </div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('owh.login') }}">
+      <form method="POST" action="{{ url_for('owh_auth.login') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="login-field">
           <label for="nik">NIK</label>
