@@ -1,10 +1,15 @@
 from common.midiconnectserver.midilog import Logger
-from flask import flash, jsonify, render_template, session
 from ..models import sr_model
 from ..utils import tokenization
+from . import attachment_transaction
 
 Log = Logger()
 
+SR_ATTACHMENT_MAP = {
+    'lampiran_alur_proses': 1,
+    'lampiran_desain_aplikasi': 2,
+    'lampiran_report': 3
+}
 
 def get_all_sr_trx() -> dict:
     try:
@@ -64,7 +69,7 @@ def get_my_sr_trx(nik: str) -> dict:
         Log.error(f'Exception | Get My SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-def create_sr_trx(raw_data: dict) -> dict:
+def create_sr_trx(raw_data: dict, files: dict) -> dict:
     try:
         db_params = {
             'ctg_id': raw_data.get('kategori_sr'),
@@ -86,6 +91,11 @@ def create_sr_trx(raw_data: dict) -> dict:
             db_params['num_user'] = 0
 
         data = sr_model.create_sr(db_params)
+        if data.get('status'):
+            new_sr_no = data['data'][0][0]
+
+            attachment_transaction.upload_and_record_files(new_sr_no, files, SR_ATTACHMENT_MAP)
+
         return {'status': True, 'data': data}
     except Exception as e:
         Log.error(f'Exception | Get User Info | Msg: {str(e)}')
@@ -108,6 +118,10 @@ def get_edit_sr_trx(sr_no: str) -> dict:
 
         # Zip the headers with the FIRST row (since IDs are unique, there's only one row)
         sr_dict = dict(zip(headers, rows[0]))
+
+        attachments = attachment_transaction.get_attachments_for_view(sr_no)
+
+        sr_dict['attachment'] = attachments
 
         # We wrap the dictionary in a list so it plays nicely with your existing Route code
         return {'status': True, 'data': [sr_dict]}

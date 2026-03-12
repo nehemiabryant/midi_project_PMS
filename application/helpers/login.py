@@ -53,10 +53,6 @@ def validate_user_gateway(nik, password):
                     'branch': user_data['branch']
                 }
 
-                session['role'] = {
-                    'name': "",
-                    'level': 0
-                }
 
                 # Final
                 return 'T', None
