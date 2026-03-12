@@ -35,6 +35,8 @@ def get_my_sr(nik: str) -> dict:
         WHERE req_id = %(nik)s
     """
     conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
     try:
         conn = DatabasePG("supabase")
         if conn:
@@ -73,9 +75,9 @@ def create_sr(db_params: dict) -> dict:
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
     try:
-        conn = DatabasePG("supabase")
+        conn = DatabasePG("supabase", autocommit=True)
         if conn:
-            result = conn.executeData(sql, db_params)
+            result = conn.selectData(sql, db_params)
             return result
         else:
             Log.error(f'DB Error | Msg: {result.get("msg")}')
@@ -110,23 +112,22 @@ def get_sr_by_no(sr_no: str) -> dict:
         if conn: conn.close()
 
 def update_sr(db_params: dict) -> dict:
-    # Query to UPDATE existing data based on the sr_no
     sql = """
         UPDATE public.sr_request 
         SET 
             ctg_id = %(ctg_id)s, name = %(name)s, module = %(module)s, purpose = %(purpose)s, 
             details = %(details)s, frequency = %(frequency)s, value = %(value)s, 
             value_det = %(value_det)s, num_user = %(num_user)s
-        WHERE sr_no = %(sr_no)s;
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
     """
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
     try:
-        conn = DatabasePG("supabase")
+        conn = DatabasePG("supabase", autocommit=True)
         if conn:
-            # Use executeData because it has the COMMIT command!
-            result = conn.executeData(sql, db_params)
+            result = conn.selectData(sql, db_params)
             return result
         else:
             Log.error(f'DB Error | Msg: {result.get("msg")}')
