@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% with header_title='Master Akun' %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Action Bar -->
+<div class="action-bar">
+    <button type="button" id="btnAssignRole">
+        <i class="fas fa-user-plus"></i> Assign Role
+    </button>
+</div>
+
+<!-- Tabel Assigned Users -->
+<table id="userTable">
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>NIK</th>
+            <th>Nama</th>
+            <th>Role</th>
+            <th>Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in assigned_users %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ user.nik }}</td>
+            <td>{{ user.nama if user.nama else '—' }}</td>
+            <td>{{ user.approle_name }}</td>
+            <td>
+                <button type="button" class="btn-delete"
+                    data-user-id="{{ user.user_id }}"
+                    data-nik="{{ user.nik }}">
+                    <i class="fas fa-trash-alt"></i> Hapus
+                </button>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">Belum ada akun yang ter-assign.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Modal Assign Role -->
+<div id="modalAssign" style="display:none;">
+    <div class="modal-content">
+        <h5>Assign Role ke Akun</h5>
+        <form method="POST" action="{{ url_for('role_mgmt.master_user_assign') }}">
+
+            <div class="form-group">
+                <label for="inputNik">NIK Karyawan</label>
+                <input type="text" id="inputNik" placeholder="Ketik NIK atau nama karyawan..."
+                    autocomplete="off">
+                <div id="nikSuggestions" style="display:none;"></div>
+                <input type="hidden" id="selectedNik" name="nik">
+                <span id="selectedNama" style="display:none;"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="selectRole">Role</label>
+                <select id="selectRole" name="approle_id">
+                    <option value="">-- Pilih Role --</option>
+                    {% for role in roles %}
+                    <option value="{{ role.approle_id }}">{{ role.approle_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="btnBatalAssign">Batal</button>
+                <button type="submit" id="btnSimpanAssign">Assign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div id="modalHapus" style="display:none;">
+    <div class="modal-content">
+        <h5>Hapus Assignment</h5>
+        <p>Yakin ingin menghapus role untuk NIK <strong id="hapusNik"></strong>?</p>
+        <form method="POST" id="formHapus" action="">
+            <div class="modal-actions">
+                <button type="button" id="btnBatalHapus">Batal</button>
+                <button type="submit">Hapus</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// --- Assign modal ---
+document.getElementById('btnAssignRole').addEventListener('click', () => {
+    document.getElementById('inputNik').value = '';
+    document.getElementById('selectedNik').value = '';
+    document.getElementById('selectedNama').style.display = 'none';
+    document.getElementById('selectedNama').textContent = '';
+    document.getElementById('nikSuggestions').style.display = 'none';
+    document.getElementById('selectRole').value = '';
+    document.getElementById('modalAssign').style.display = 'flex';
+});
+document.getElementById('btnBatalAssign').addEventListener('click', () => {
+    document.getElementById('modalAssign').style.display = 'none';
+});
+
+// --- Autocomplete NIK ---
+let searchTimeout;
+document.getElementById('inputNik').addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    const q = document.getElementById('inputNik').value.trim();
+    document.getElementById('selectedNik').value = '';
+    document.getElementById('selectedNama').style.display = 'none';
+
+    if (q.length < 2) {
+        document.getElementById('nikSuggestions').style.display = 'none';
+        return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+        try {
+            const res = await fetch(`/karyawan/search?q=${encodeURIComponent(q)}&limit=8`);
+            const json = await res.json();
+            renderSuggestions(json.data || []);
+        } catch {
+            document.getElementById('nikSuggestions').style.display = 'none';
+        }
+    }, 300);
+});
+
+function renderSuggestions(results) {
+    const box = document.getElementById('nikSuggestions');
+    if (!results.length) { box.style.display = 'none'; return; }
+
+    box.innerHTML = results.map(k => `
+        <div class="suggestion-item" data-nik="${k.nik}" data-nama="${k.nama}">
+            ${k.nik} — ${k.nama}
+        </div>
+    `).join('');
+
+    box.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.getElementById('inputNik').value = item.dataset.nik;
+            document.getElementById('selectedNik').value = item.dataset.nik;
+            document.getElementById('selectedNama').textContent = item.dataset.nama;
+            document.getElementById('selectedNama').style.display = 'block';
+            box.style.display = 'none';
+        });
+    });
+    box.style.display = 'block';
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#inputNik') && !e.target.closest('#nikSuggestions')) {
+        document.getElementById('nikSuggestions').style.display = 'none';
+    }
+});
+
+// Validasi sebelum submit assign
+document.getElementById('btnSimpanAssign').closest('form').addEventListener('submit', (e) => {
+    if (!document.getElementById('selectedNik').value) {
+        e.preventDefault();
+        alert('Pilih karyawan dari daftar terlebih dahulu.');
+    }
+});
+
+// --- Hapus modal ---
+document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('hapusNik').textContent = btn.dataset.nik;
+        document.getElementById('formHapus').action = `/masterUser/${btn.dataset.userId}/remove`;
+        document.getElementById('modalHapus').style.display = 'flex';
+    });
+});
+document.getElementById('btnBatalHapus').addEventListener('click', () => {
+    document.getElementById('modalHapus').style.display = 'none';
+});
+</script>
+{% endblock %}
