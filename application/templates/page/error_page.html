@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    /* Styling khusus halaman error */
+    .error-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 70vh; /* Mengisi sebagian besar tinggi layar */
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .error-code {
+        font-size: 120px;
+        font-weight: 700;
+        color: #0ea5e9; /* Warna aksen modern */
+        margin: 0;
+        line-height: 1;
+        text-shadow: 2px 4px 10px rgba(14, 165, 233, 0.2);
+    }
+    
+    .error-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #212529;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+    
+    .error-message {
+        font-size: 15px;
+        color: #6c757d;
+        max-width: 500px;
+        margin: 0 auto 30px auto;
+        line-height: 1.6;
+    }
+    
+    .btn-back-home {
+        background-color: #0ea5e9;
+        color: white;
+        padding: 12px 28px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);
+    }
+    
+    .btn-back-home:hover {
+        background-color: #0284c7;
+        box-shadow: 0 6px 12px rgba(14, 165, 233, 0.3);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <h1 class="error-code">{{ error_code | default('Oops!') }}</h1>
+    <h2 class="error-title">{{ error_title | default('Terjadi Kesalahan') }}</h2>
+    <p class="error-message">
+        {{ error_message | default('Sepertinya ada sesuatu yang salah. Halaman yang Anda cari tidak ditemukan atau server sedang mengalami gangguan.') }}
+    </p>
+    
+    <a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn-back-home">
+        <i class="fas fa-home"></i> Kembali ke Dashboard
+    </a>
+</div>
+{% endblock %}

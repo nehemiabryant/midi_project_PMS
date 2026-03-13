@@ -27,11 +27,11 @@ def listSR_menu():
 
     return render_template('/page/list_sr.html', user=session['user'], role=session['role'], active_menu='list_sr', sr_data=sr_data)
 
-
 @sr_bp.route('/mySR', methods=['GET'])
 @login_required
 def mySR_menu():
-    current_user = session.get('user').get('nik', '')
+    # Tambahkan {} sebagai default fallback
+    current_user = session.get('user', {}).get('nik', '') 
     my_sr_list = sr_transaction.get_my_sr_trx(current_user)
 
     if not my_sr_list.get('status'):
@@ -40,7 +40,7 @@ def mySR_menu():
     else:
         sr_data = my_sr_list.get('data', [])
 
-    return render_template('/page/my_sr.html', user=session['user'], role=session['role'], active_menu='my_sr', sr_data=sr_data)
+    return render_template('/page/my_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
 
 @sr_bp.route('/createSR', methods=['GET', 'POST'])
@@ -60,7 +60,7 @@ def createSR_menu():
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session['user'], role=session['role'], active_menu='create_sr')
+    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr')
 
 
 @sr_bp.route('/editSR/<token>', methods=['GET', 'POST'])
@@ -72,7 +72,8 @@ def editSR_menu(token):
         flash("Invalid or corrupted edit link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
 
-    current_user = session.get('user').get('nik', '')
+    # Tambahkan {} sebagai default fallback
+    current_user = session.get('user', {}).get('nik', '')
 
     existing_sr_response = sr_transaction.get_edit_sr_trx(sr_no)
 
@@ -88,6 +89,7 @@ def editSR_menu(token):
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
+        # Ini sudah benar
         raw_form_data['requester'] = session.get('user', {}).get('nik', '')
         raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
 
@@ -100,4 +102,4 @@ def editSR_menu(token):
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session['user'], role=session['role'], sr_data=sr_data)
+    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
