@@ -4,10 +4,8 @@ from common.midiconnectserver.midilog import Logger
 Log = Logger()
 
 SUPER_ADMIN_ROLE_ID = 1
-# ---------------------------------------------------------------------------
-# sr_ms_app_role
-# ---------------------------------------------------------------------------
 
+# sr_ms_app_role
 def get_all_roles_model() -> dict:
     sql = "SELECT approle_id, approle_name FROM sr_ms_app_role ORDER BY approle_id"
     conn = None
@@ -102,17 +100,23 @@ def delete_role_model(approle_id: int) -> dict:
         if conn: conn.close()
 
 
-# ---------------------------------------------------------------------------
 # sr_role_permission — semua mapping dalam satu query
-# ---------------------------------------------------------------------------
 
-def get_all_role_permissions_model() -> dict:
-    """Ambil semua permission_id per approle_id dalam satu query JOIN."""
+def get_roles_with_permissions_model() -> dict:
+    """
+    Ambil semua role beserta nama permission-nya dalam SATU query JOIN.
+    Menggantikan query terpisah get_all_roles + get_all_role_permissions.
+    """
     sql = """
-        SELECT rp.approle_id, p.permission_id
-        FROM sr_role_permission rp
-        JOIN sr_ms_permission p ON rp.permission_id = p.permission_id
-        ORDER BY rp.approle_id, p.permission_id
+        SELECT
+            r.approle_id,
+            r.approle_name,
+            p.permission_id,
+            p.permission_detail
+        FROM sr_ms_app_role r
+        LEFT JOIN sr_role_permission rp ON r.approle_id = rp.approle_id
+        LEFT JOIN sr_ms_permission p ON rp.permission_id = p.permission_id
+        ORDER BY r.approle_id, p.permission_id
     """
     conn = None
     try:
@@ -121,15 +125,11 @@ def get_all_role_permissions_model() -> dict:
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
         return conn.selectHeader(sql)
     except Exception as e:
-        Log.error(f'DB Exception | get_all_role_permissions | Msg: {str(e)}')
+        Log.error(f'DB Exception | get_roles_with_permissions | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
 
-
-# ---------------------------------------------------------------------------
-# sr_ms_permission
-# ---------------------------------------------------------------------------
 
 def get_all_permissions_model() -> dict:
     sql = "SELECT permission_id, permission_detail FROM sr_ms_permission ORDER BY permission_id"
@@ -145,11 +145,7 @@ def get_all_permissions_model() -> dict:
     finally:
         if conn: conn.close()
 
-
-# ---------------------------------------------------------------------------
 # sr_role_permission
-# ---------------------------------------------------------------------------
-
 def get_permissions_by_role_model(approle_id: int) -> dict:
     sql = """
         SELECT p.permission_id, p.permission_detail
@@ -206,11 +202,7 @@ def set_role_permissions_model(approle_id: int, permission_ids: list) -> dict:
     finally:
         if conn: conn.close()
 
-
-# ---------------------------------------------------------------------------
 # sr_user
-# ---------------------------------------------------------------------------
-
 def get_all_assigned_roles_model() -> dict:
     sql = """
         SELECT su.user_id, su.nik, su.approle_id,

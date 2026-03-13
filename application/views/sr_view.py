@@ -51,7 +51,9 @@ def createSR_menu():
         raw_form_data['requester'] = session.get('user', {}).get('nik', '')
         raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
 
-        trx_result = sr_transaction.create_sr_trx(raw_form_data)
+        files = request.files
+
+        trx_result = sr_transaction.create_sr_trx(raw_form_data, files)
 
         if trx_result.get('status'):
             flash("Service Request created successfully!", "success")
@@ -93,7 +95,9 @@ def editSR_menu(token):
         raw_form_data['requester'] = session.get('user', {}).get('nik', '')
         raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
 
-        trx_result = sr_transaction.update_sr_trx(raw_form_data, sr_no)
+        files = request.files
+
+        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
 
         if trx_result.get('status'):
             flash("Service Request updated successfully!", "success")
