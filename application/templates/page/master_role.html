@@ -10,7 +10,7 @@
 {% endwith %}
     <div class="table-container">
         <div class="action-bar">
-            <a href="{{ url_for('owh.newRole_menu') }}" class="btn-add">
+            <a href="{{ url_for('role_mgmt.new_role_menu') }}" class="btn-add">
                 <i class="fas fa-plus"></i> Tambah Role
             </a>
             
@@ -35,7 +35,7 @@
                         <td>Admin</td>
                         <td style="text-align: center;">
                             <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('owh.editRole_menu') }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
+                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=1) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
                                 <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
                             </div>
                         </td>
@@ -46,7 +46,7 @@
                         <td>User IT</td>
                         <td style="text-align: center;">
                             <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('owh.editRole_menu') }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
+                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=2) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
                                 <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
                             </div>
                         </td>
@@ -57,7 +57,7 @@
                         <td>Admin User</td>
                         <td style="text-align: center;">
                             <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('owh.editRole_menu') }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
+                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=3) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
                                 <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
                             </div>
                         </td>
