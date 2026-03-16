@@ -60,6 +60,10 @@
                     class="nav-sublink {{ 'active' if active_menu == 'my_work' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i> My Work
                 </a>
+                <a href="{{ url_for('owh_sr.mySR_menu') }}"
+                    class="nav-sublink {{ 'active' if active_menu == 'my_sr' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i> My SR
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -119,14 +123,12 @@
                     <i class="fas fa-circle"></i> Master Aplikasi Midi
                 </a>
 
-                <a href="{{ url_for('role_mgmt.master_role_menu') }}"
-                class="nav-sublink {{ 'active' if active_menu == 'master_role_it' }}">
-                    <i class="fas fa-circle"></i> Master Role
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master User
                 </a>
 
-                <a href="{{ url_for('role_mgmt.master_user_menu') }}"
-                class="nav-sublink {{ 'active' if active_menu == 'master_user_it' }}">
-                    <i class="fas fa-circle"></i> Master User
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
+                    <i class="fas fa-circle" aria-hidden="true"></i> Master Role
                 </a>
 
                 <a href="{{ url_for('owh_dashboard.updateTimetable_menu') }}"
