@@ -2,6 +2,7 @@ from common.midiconnectserver.midilog import Logger
 from ..models import sr_model
 from ..utils import tokenization
 from . import attachment_transaction
+from utils import converters
 
 Log = Logger()
 
@@ -25,7 +26,8 @@ def get_all_sr_trx() -> dict:
         # This turns [['id', 'name'], [(1, 'Budi')]] into [{'id': 1, 'name': 'Budi'}]
         formatted_list = []
         for row in rows:
-            formatted_list.append(dict(zip(headers, row)))
+            #formatted_list.append(dict(zip(headers, row)))
+            formatted_list.append(converters.convert_to_dicts([row], headers)[0]) # Convert single row to dict
 
         return {'status': True, 'data': formatted_list}
     except Exception as e:
@@ -111,7 +113,8 @@ def get_edit_sr_trx(sr_no: str) -> dict:
             return {'status': False, 'data': [], 'msg': 'Service Request not found.'}
 
         # Zip the headers with the FIRST row (since IDs are unique, there's only one row)
-        sr_dict = dict(zip(headers, rows[0]))
+        #sr_dict = dict(zip(headers, rows[0]))
+        sr_dict = converters.convert_to_dicts(rows, headers)
 
         attachments = attachment_transaction.get_attachments_for_view(sr_no)
 
