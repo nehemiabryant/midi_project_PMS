@@ -1,69 +1,271 @@
-.master-user-container{
-    padding: 20px;
-    background: #f5f6f8;
-}
-
-.page-title h2{
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 15px;
-}
-
+/* ===== Layout Content ===== */
 .action-bar{
-    margin-bottom: 20px;
+    margin: 20px 0;
 }
 
-.btn-add{
-    background-color: #28a745;
-    border: none;
+/* ===== Button Tambah User ===== */
+#btnAssignRole{
+    background: #28a745;
     color: white;
+    border: none;
     padding: 10px 18px;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-weight: 500;
     cursor: pointer;
+    transition: 0.2s;
 }
 
-.btn-add:hover{
-    background-color: #218838;
+#btnAssignRole:hover{
+    background: #218838;
 }
 
-.table-container{
-    background: white;
-    border-radius: 4px;
-    padding: 10px 0;
-}
-
-.user-table{
+/* ===== Table Style ===== */
+#userTable{
     width: 100%;
     border-collapse: collapse;
+
+    background: white;
+    table-layout: fixed;
 }
 
-.user-table thead th{
+#userTable thead{
+    background: #f5f5f5;
+}
+
+#userTable th{
     text-align: left;
-    font-weight: 600;
-    padding: 12px 20px;
-    border-bottom: 1px solid #ddd;
+    padding: 12px;
+    font-size: 14px;
+    border-bottom: 2px solid #ddd;
 }
 
-.user-table tbody td{
-    padding: 14px 20px;
+#userTable td{
+    padding: 12px;
     border-bottom: 1px solid #eee;
     font-size: 14px;
 }
 
-.user-table tbody tr:hover{
-    background: #f9f9f9;
+#userTable tbody tr:hover{
+    background: #fafafa;
 }
 
+/* ===== Proporsi Kolom ===== */
+#userTable th:nth-child(1),
+#userTable td:nth-child(1){
+    width: 8%;
+}
+
+#userTable th:nth-child(2),
+#userTable td:nth-child(2){
+    width: 18%;
+}
+
+#userTable th:nth-child(3),
+#userTable td:nth-child(3){
+    width: 40%;
+}
+
+#userTable th:nth-child(4),
+#userTable td:nth-child(4){
+    width: 20%;
+}
+
+/* Kolom Aksi */
+#userTable th:nth-child(5),
+#userTable td:nth-child(5){
+    width: 14%;
+    text-align: center;
+}
+
+/* tombol aksi rata tengah */
+#userTable td:nth-child(10){
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* EDIT */
 .btn-edit{
-    background-color: #ffc107;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
+    background:#17a2b8;
+    color:white;
+    border:none;
+    padding:6px 12px;
+    border-radius:5px;
+    cursor:pointer;
+    margin-right:5px;
 }
 
 .btn-edit:hover{
-    background-color: #e0a800;
+    background:#138496;
+}
+
+/* pop up edit */
+.modal-overlay{
+    position: fixed;
+    top:0;
+    left:0;
+
+    width:100%;
+    height:100%;
+
+    background: rgba(0,0,0,0.45);
+
+    display:none;
+
+    justify-content:center;
+    align-items:center;
+
+    z-index:999;
+}
+
+/* Modal box */
+.modal-content{
+    background:white;
+    width:420px;
+    border-radius:8px;
+    padding:25px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+
+    animation: popupFade .2s ease;
+}
+
+/* Animasi muncul */
+@keyframes popupFade{
+    from{
+        transform:translateY(-20px);
+        opacity:0;
+    }
+    to{
+        transform:translateY(0);
+        opacity:1;
+    }
+}
+
+/* ===== Delete Button ===== */
+.btn-delete{
+    background: #ffc107;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-delete:hover{
+    background: #e0a800;
+}
+
+/* ===== Modal Background ===== */
+#modalAssign,
+#modalHapus{
+    position: fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.45);
+
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+
+/* ===== Modal Box ===== */
+.modal-content{
+    background:white;
+    width:420px;
+    border-radius:8px;
+    padding:25px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+    animation: popupFade .2s ease;
+}
+
+@keyframes popupFade{
+    from{
+        transform:translateY(-20px);
+        opacity:0;
+    }
+    to{
+        transform:translateY(0);
+        opacity:1;
+    }
+}
+
+/* ===== Modal Title ===== */
+.modal-content h5{
+    margin-bottom:20px;
+    font-size:18px;
+}
+
+/* ===== Form Group ===== */
+.form-group{
+    margin-bottom:15px;
+}
+
+.form-group label{
+    display:block;
+    margin-bottom:6px;
+    font-size:13px;
+}
+
+.form-group input,
+.form-group select{
+    width:100%;
+    padding:8px;
+    border-radius:5px;
+    border:1px solid #ccc;
+}
+
+/* ===== Suggestion Box ===== */
+#nikSuggestions{
+    background:white;
+    border:1px solid #ddd;
+    max-height:160px;
+    overflow-y:auto;
+    border-radius:4px;
+    margin-top:4px;
+}
+
+.suggestion-item{
+    padding:8px;
+    cursor:pointer;
+}
+
+.suggestion-item:hover{
+    background:#f1f1f1;
+}
+
+/* ===== Modal Action Buttons ===== */
+.modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:20px;
+}
+
+.modal-actions button{
+    padding:8px 14px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+#btnBatalAssign,
+#btnBatalHapus{
+    background:#6c757d;
+    color:white;
+}
+
+#btnSimpanAssign{
+    background:#28a745;
+    color:white;
+}
+
+.modal-actions button[type="submit"]{
+    background:#dc3545;
+    color:white;
 }
