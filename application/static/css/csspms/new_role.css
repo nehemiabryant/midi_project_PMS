@@ -1,0 +1,158 @@
+/* Card Container Utama */
+.card-container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    padding: 24px 32px;
+    margin-top: 10px;
+}
+
+/* Tombol Kembali */
+.top-action {
+    margin-bottom: 24px;
+}
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #495057;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.btn-back:hover {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+/* Container Checklist Semua */
+.check-all-container {
+    padding-bottom: 16px;
+    border-bottom: 2px dashed #e9ecef;
+    margin-bottom: 24px;
+}
+.font-semibold .checkbox-label {
+    font-weight: 600;
+    color: #212529;
+}
+
+/* Kategori Section */
+.role-section {
+    margin-bottom: 30px;
+}
+.section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 16px;
+    position: relative;
+    padding-left: 12px;
+}
+/* Aksen garis kecil di sebelah judul kategori */
+.section-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 4px;
+    background-color: #0ea5e9; /* Warna aksen biru modern */
+    border-radius: 4px;
+}
+
+/* Grid Checkbox */
+.checkbox-grid {
+    display: grid;
+    /* Membuat kolom otomatis sejajar. Minimal lebar 220px per item */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding-left: 12px;
+}
+
+/* --- Kustomisasi Checkbox Modern --- */
+.custom-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    gap: 10px;
+}
+/* Sembunyikan checkbox asli bawaan browser */
+.custom-checkbox-wrapper input {
+    display: none;
+}
+/* Buat kotak custom pengganti */
+.checkmark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #adb5bd;
+    border-radius: 4px;
+    background-color: transparent;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+/* Teks label */
+.checkbox-label {
+    font-size: 14px;
+    color: #495057;
+    transition: color 0.2s;
+}
+/* Hover effect kotak */
+.custom-checkbox-wrapper:hover .checkmark {
+    border-color: #0ea5e9;
+}
+/* State: Ketika Dicentang */
+.custom-checkbox-wrapper input:checked + .checkmark {
+    background-color: #0ea5e9;
+    border-color: #0ea5e9;
+}
+/* Icon centang (menggunakan border css murni) */
+.checkmark::after {
+    content: "";
+    display: none;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+.custom-checkbox-wrapper input:checked + .checkmark::after {
+    display: block;
+}
+.custom-checkbox-wrapper input:checked ~ .checkbox-label {
+    color: #212529;
+    font-weight: 500;
+}
+
+/* Tombol Simpan */
+.bottom-action {
+    margin-top: 40px;
+    display: flex;
+    justify-content: flex-start; /* Ubah ke center/flex-end jika ingin posisi di tengah/kanan */
+}
+.btn-save {
+    background-color: #0ea5e9; /* Teal/Blue modern */
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+.btn-save:hover {
+    background-color: #0284c7;
+    box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
+}

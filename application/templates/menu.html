@@ -108,25 +108,32 @@
         <span class="nav-section-label">IT Transaction</span>
         <div class="nav-item">
             <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in it_transaction_menus }}">
-                <span class="nav-icon"><i class="fas fa-file-invoice" aria-hidden="true"></i></span>
+                <span class="nav-icon"><i class="fas fa-file-invoice"></i></span>
                 <span class="nav-text">IT Transaction</span>
-                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in it_transaction_menus }}"
-                    aria-hidden="true"></i>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in it_transaction_menus }}"></i>
             </button>
+
             <div class="nav-submenu {{ 'open' if active_menu in it_transaction_menus }}">
+
                 <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_aplikasi' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Master Aplikasi Midi
+                    <i class="fas fa-circle"></i> Master Aplikasi Midi
                 </a>
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user_dept' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Master User Dept
+
+                <a href="{{ url_for('role_mgmt.master_role_menu') }}"
+                class="nav-sublink {{ 'active' if active_menu == 'master_role_it' }}">
+                    <i class="fas fa-circle"></i> Master Role
                 </a>
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'update_status' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Update Status
+
+                <a href="{{ url_for('role_mgmt.master_user_menu') }}"
+                class="nav-sublink {{ 'active' if active_menu == 'master_user_it' }}">
+                    <i class="fas fa-circle"></i> Master User
                 </a>
+
                 <a href="{{ url_for('owh_dashboard.updateTimetable_menu') }}"
-                    class="nav-sublink {{ 'active' if active_menu == 'update_timetable' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Update Timetable
+                class="nav-sublink {{ 'active' if active_menu == 'update_timetable' }}">
+                    <i class="fas fa-circle"></i> Update Timetable
                 </a>
+
             </div>
         </div>
         {% endif %}
@@ -142,10 +149,10 @@
                     aria-hidden="true"></i>
             </button>
             <div class="nav-submenu {{ 'open' if active_menu in admin_menus }}">
-                <a href="{{ url_for('role_mgmt.master_user_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master User
                 </a>
-                <a href="{{ url_for('role_mgmt.master_role_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
+                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master Role
                 </a>
             </div>

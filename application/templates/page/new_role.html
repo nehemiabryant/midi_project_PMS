@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/edit_role.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% with header_title='New Role' %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+    <div class="card-container">
+        <div class="top-action">
+            <a href="{{ url_for('role_mgmt.master_role_menu') }}" class="btn-back">
+                <i class="fas fa-chevron-left"></i> Kembali
+            </a>
+        </div>
+
+        <div class="form-row">
+			<div class="form-label">Nama Role</div>
+			<div class="form-field">
+				<input type="text" class="form-input" id="nama_role" name="approle_name" />
+			</div>
+		</div>
+
+        <div class="form-content">
+            <div class="check-all-container">
+                <label class="custom-checkbox-wrapper font-semibold">
+                    <input type="checkbox" id="checkAll">
+                    <span class="checkmark"></span>
+                    <span class="checkbox-label">Checklist Semua Menu</span>
+                </label>
+            </div>
+
+            <div class="role-section">
+                <h3 class="section-title">Transaksi IT</h3>
+                <div class="checkbox-grid">
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Master User Dept</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Master Aplikasi Midi</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Master Role</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Update Status</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Update Timetable</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Master User</span></label>
+                </div>
+            </div>
+
+            <div class="role-section">
+                <h3 class="section-title">Monitoring</h3>
+                <div class="checkbox-grid">
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Rekap</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">by PIC</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Timetable</span></label>
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Dash PIC IT</span></label>
+                </div>
+            </div>
+
+            <div class="role-section">
+                <h3 class="section-title">Draft Penyamaan SAT</h3>
+                <div class="checkbox-grid">
+                    <label class="custom-checkbox-wrapper"><input type="checkbox" class="menu-checkbox" checked> <span class="checkmark"></span> <span class="checkbox-label">Buat Draft</span></label>
+                </div>
+            </div>
+
+            <div class="bottom-action">
+                <button type="button" class="btn-save">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkAllBtn = document.getElementById('checkAll');
+            const menuCheckboxes = document.querySelectorAll('.menu-checkbox');
+
+            checkAllBtn.addEventListener('change', function() {
+                menuCheckboxes.forEach(function(checkbox) {
+                    checkbox.checked = checkAllBtn.checked;
+                });
+            });
+
+            // Update status "Check All" jika ada checkbox satuan yang di-uncheck
+            menuCheckboxes.forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    if (!this.checked) {
+                        checkAllBtn.checked = false;
+                    } else {
+                        const allChecked = Array.from(menuCheckboxes).every(c => c.checked);
+                        checkAllBtn.checked = allChecked;
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}
