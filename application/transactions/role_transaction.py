@@ -77,30 +77,36 @@ def delete_role_trx(approle_id: int) -> dict:
         Log.error(f'Exception | delete_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
-# ---------------------------------------------------------------------------
 # Semua role-permission mapping (untuk hindari N+1 query)
-# ---------------------------------------------------------------------------
-
-def get_all_role_permissions_trx() -> dict:
-    """Return dict {approle_id: [permission_id, ...]} dari satu query."""
+def get_roles_with_permissions_trx() -> dict:
+    """
+    Return sekaligus:
+      - 'roles': list of {approle_id, approle_name}
+      - 'role_permissions': dict {approle_id: [permission_id, ...]}
+    Hanya 1 koneksi ke DB.
+    """
     try:
-        result = role_model.get_all_role_permissions_model()
+        result = role_model.get_roles_with_permissions_model()
         rows = _to_dict_list(result) if result.get('status') else []
-        mapping = {}
+        roles_seen = {}
+        role_permissions = {}
         for row in rows:
             rid = row['approle_id']
-            mapping.setdefault(rid, []).append(row['permission_id'])
-        return {'status': True, 'data': mapping}
+            if rid not in roles_seen:
+                roles_seen[rid] = {'approle_id': rid, 'approle_name': row['approle_name']}
+                role_permissions[rid] = []
+            if row['permission_id'] is not None:
+                role_permissions[rid].append(row['permission_id'])
+        return {
+            'status': True,
+            'roles': list(roles_seen.values()),
+            'role_permissions': role_permissions
+        }
     except Exception as e:
-        Log.error(f'Exception | get_all_role_permissions | Msg: {str(e)}')
-        return {'status': False, 'data': {}}
+        Log.error(f'Exception | get_roles_with_permissions | Msg: {str(e)}')
+        return {'status': False, 'roles': [], 'role_permissions': {}}
 
-
-# ---------------------------------------------------------------------------
 # Permissions
-# ---------------------------------------------------------------------------
-
 def get_all_permissions_trx() -> dict:
     try:
         result = role_model.get_all_permissions_model()
@@ -134,11 +140,7 @@ def set_role_permissions_trx(approle_id: int, permission_ids: list) -> dict:
         Log.error(f'Exception | set_role_permissions | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
-# ---------------------------------------------------------------------------
 # Assigned Roles (sr_user)
-# ---------------------------------------------------------------------------
-
 def get_all_assigned_roles_trx() -> dict:
     try:
         result = role_model.get_all_assigned_roles_model()
@@ -180,11 +182,7 @@ def remove_assigned_role_trx(user_id: int) -> dict:
         Log.error(f'Exception | remove_assigned_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
-# ---------------------------------------------------------------------------
 # Permission checks (helper untuk decorator)
-# ---------------------------------------------------------------------------
-
 def get_user_permissions_trx(nik: str) -> list:
     """Return list of permission_detail strings untuk nik."""
     try:

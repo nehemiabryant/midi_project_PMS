@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/create_sr.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/my_work.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/update_timetable.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/master_role.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/master_user.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/edit_role.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/page-header.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -25,7 +28,10 @@
             background-color: #f5f8fa; /* Warna background abu-abu terang */
             font-family: 'Poppins', Arial, sans-serif;
         }
-
+        button, input, select, textarea {
+            font-family: inherit;
+        }
+        
         .main-wrapper {
             /* Dorong konten ke kanan sejauh lebar sidebar (260px) */
             margin-left: 260px; 

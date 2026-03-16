@@ -13,14 +13,15 @@ role_mgmt_bp = Blueprint('role_mgmt', __name__)
 @login_required
 @super_admin_required
 def master_role_menu():
-    roles_result = role_transaction.get_all_roles_trx()
+    rp_result = role_transaction.get_roles_with_permissions_trx()
     perms_result = role_transaction.get_all_permissions_trx()
-    rp_result = role_transaction.get_all_role_permissions_trx()
-    roles = roles_result.get('data', []) if roles_result.get('status') else []
+    roles = rp_result.get('roles', []) if rp_result.get('status') else []
+    role_permissions = rp_result.get('role_permissions', {}) if rp_result.get('status') else {}
     permissions = perms_result.get('data', []) if perms_result.get('status') else []
-    role_permissions = rp_result.get('data', {}) if rp_result.get('status') else {}
 
-    return render_template('page/master_role.html', active_menu='master_role', roles=roles, permissions=permissions, role_permissions=role_permissions)
+    return render_template('page/master_role.html', active_menu='master_role',
+                           roles=roles, permissions=permissions,
+                           role_permissions=role_permissions)
 
 
 @role_mgmt_bp.route('/masterRole/create', methods=['POST'])
@@ -44,26 +45,37 @@ def master_role_create():
     flash('Role berhasil dibuat.', 'success')
     return redirect(url_for('role_mgmt.master_role_menu'))
 
-
-@role_mgmt_bp.route('/masterRole/<int:approle_id>/edit', methods=['POST'])
+@role_mgmt_bp.route('/masterRole/new', methods=['GET'])
 @login_required
 @super_admin_required
-def master_role_edit(approle_id):
-    approle_name = request.form.get('approle_name', '').strip()
-    if not approle_name:
-        flash('Nama role tidak boleh kosong.', 'error')
-        return redirect(url_for('role_mgmt.master_role_menu'))
+def new_role_menu():
+    perms_result = role_transaction.get_all_permissions_trx()
+    permissions = perms_result.get('data', []) if perms_result.get('status') else []
 
-    result = role_transaction.update_role_trx(approle_id, approle_name)
+    return render_template(
+        'page/new_role.html',
+        active_menu='master_role',
+        permissions=permissions
+    )
+
+@role_mgmt_bp.route('/masterRole/<int:approle_id>/edit', methods=['GET'])
+@login_required
+@super_admin_required
+def edit_role_menu(approle_id):
+
+    result = role_transaction.get_role_by_id_trx(approle_id)
+
     if not result.get('status'):
-        flash(result.get('msg', 'Gagal mengupdate role.'), 'error')
+        flash('Role tidak ditemukan.', 'error')
         return redirect(url_for('role_mgmt.master_role_menu'))
 
-    perm_ids = [int(x) for x in request.form.getlist('permission_ids')]
-    role_transaction.set_role_permissions_trx(approle_id, perm_ids)
+    role = result.get('data')
 
-    flash('Role berhasil diupdate.', 'success')
-    return redirect(url_for('role_mgmt.master_role_menu'))
+    return render_template(
+        'page/edit_role.html',
+        active_menu='master_role',
+        role=role
+    )
 
 
 @role_mgmt_bp.route('/masterRole/<int:approle_id>/delete', methods=['POST'])
