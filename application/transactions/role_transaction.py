@@ -77,11 +77,7 @@ def delete_role_trx(approle_id: int) -> dict:
         Log.error(f'Exception | delete_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
-# ---------------------------------------------------------------------------
 # Semua role-permission mapping (untuk hindari N+1 query)
-# ---------------------------------------------------------------------------
-
 def get_roles_with_permissions_trx() -> dict:
     """
     Return sekaligus:
@@ -110,11 +106,7 @@ def get_roles_with_permissions_trx() -> dict:
         Log.error(f'Exception | get_roles_with_permissions | Msg: {str(e)}')
         return {'status': False, 'roles': [], 'role_permissions': {}}
 
-
-# ---------------------------------------------------------------------------
 # Permissions
-# ---------------------------------------------------------------------------
-
 def get_all_permissions_trx() -> dict:
     try:
         result = role_model.get_all_permissions_model()
@@ -148,11 +140,7 @@ def set_role_permissions_trx(approle_id: int, permission_ids: list) -> dict:
         Log.error(f'Exception | set_role_permissions | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
-# ---------------------------------------------------------------------------
 # Assigned Roles (sr_user)
-# ---------------------------------------------------------------------------
-
 def get_all_assigned_roles_trx() -> dict:
     try:
         result = role_model.get_all_assigned_roles_model()
@@ -194,11 +182,7 @@ def remove_assigned_role_trx(user_id: int) -> dict:
         Log.error(f'Exception | remove_assigned_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
-# ---------------------------------------------------------------------------
 # Permission checks (helper untuk decorator)
-# ---------------------------------------------------------------------------
-
 def get_user_permissions_trx(nik: str) -> list:
     """Return list of permission_detail strings untuk nik."""
     try:

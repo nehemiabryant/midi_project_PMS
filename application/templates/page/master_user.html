@@ -17,7 +17,7 @@
 <!-- Action Bar -->
 <div class="action-bar">
     <button type="button" id="btnAssignRole">
-        <i class="fas fa-user-plus"></i> Assign Role
+        <i class="fas fa-user-plus"></i> Tambah User
     </button>
 </div>
 
@@ -40,10 +40,19 @@
             <td>{{ user.nama if user.nama else '—' }}</td>
             <td>{{ user.approle_name }}</td>
             <td>
+                 <button type="button" class="btn-edit"
+                    data-user-id="{{ user.user_id }}"
+                    data-nik="{{ user.nik }}"
+                    data-nama="{{ user.nama }}"
+                    data-role-id="{{ user.approle_id }}"
+                    data-role-name="{{ user.approle_name }}">
+                    <i class="fas fa-edit"></i>
+                </button>
+
                 <button type="button" class="btn-delete"
                     data-user-id="{{ user.user_id }}"
                     data-nik="{{ user.nik }}">
-                    <i class="fas fa-trash-alt"></i> Hapus
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </td>
         </tr>
@@ -84,6 +93,44 @@
                 <button type="button" id="btnBatalAssign">Batal</button>
                 <button type="submit" id="btnSimpanAssign">Assign</button>
             </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Edit Role -->
+<!-- Modal Edit Role -->
+<div id="modalEdit" class="modal-overlay">
+    <div class="modal-content">
+        <h5>Edit Role User</h5>
+
+        <form method="POST" id="formEditRole">
+
+            <div class="form-group">
+                <label>NIK</label>
+                <input type="text" id="editNik" disabled>
+            </div>
+
+            <div class="form-group">
+                <label>Nama</label>
+                <input type="text" id="editNama" disabled>
+            </div>
+
+            <div class="form-group">
+                <label>Role</label>
+                <select id="editRole" name="approle_id">
+                    {% for role in roles %}
+                    <option value="{{ role.approle_id }}">
+                        {{ role.approle_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="btnBatalEdit">Batal</button>
+                <button type="submit">Update</button>
+            </div>
+
         </form>
     </div>
 </div>
@@ -179,6 +226,29 @@ document.getElementById('btnSimpanAssign').closest('form').addEventListener('sub
         alert('Pilih karyawan dari daftar terlebih dahulu.');
     }
 });
+
+// ===== EDIT ROLE =====
+document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+
+        const userId = btn.dataset.userId
+        const nik = btn.dataset.nik
+        const nama = btn.dataset.nama
+        const roleId = btn.dataset.roleId
+
+        document.getElementById('editNik').value = nik
+        document.getElementById('editNama').value = nama
+        document.getElementById('editRole').value = roleId
+
+        document.getElementById('formEditRole').action = `/masterUser/${userId}/update`
+
+        document.getElementById('modalEdit').style.display = 'flex'
+    })
+})
+
+document.getElementById('btnBatalEdit').addEventListener('click', () => {
+    document.getElementById('modalEdit').style.display = 'none'
+})
 
 // --- Hapus modal ---
 document.querySelectorAll('.btn-delete').forEach(btn => {
