@@ -123,11 +123,11 @@
                     <i class="fas fa-circle"></i> Master Aplikasi Midi
                 </a>
 
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
+                <a href="{{ url_for('role_mgmt.master_user_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master User
                 </a>
 
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
+                <a href="{{ url_for('role_mgmt.master_role_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
                     <i class="fas fa-circle" aria-hidden="true"></i> Master Role
                 </a>
 
@@ -136,27 +136,6 @@
                     <i class="fas fa-circle"></i> Update Timetable
                 </a>
 
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Admin — Role Management -->
-        {% if 'manage_roles' in user_permissions %}
-        <span class="nav-section-label">Admin</span>
-        <div class="nav-item">
-            <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in admin_menus }}">
-                <span class="nav-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
-                <span class="nav-text">Role Management</span>
-                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in admin_menus }}"
-                    aria-hidden="true"></i>
-            </button>
-            <div class="nav-submenu {{ 'open' if active_menu in admin_menus }}">
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Master User
-                </a>
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_role' }}" id="navMasterRole">
-                    <i class="fas fa-circle" aria-hidden="true"></i> Master Role
-                </a>
             </div>
         </div>
         {% endif %}
