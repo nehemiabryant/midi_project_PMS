@@ -6,7 +6,7 @@ Log = Logger()
 
 def get_sr() -> dict:
     sql = """
-        SELECT sr_no,ctg_id, req_id, division, name, module, purpose, details, 
+        SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
             frequency, value, value_det, num_user
         FROM public.sr_request
     """
@@ -29,7 +29,7 @@ def get_sr() -> dict:
 
 def get_my_sr(nik: str) -> dict:
     sql = """
-        SELECT sr_no,ctg_id, req_id, division, name, module, purpose, details, 
+        SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
             frequency, value, value_det, num_user
         FROM public.sr_request
         WHERE req_id = %(nik)s
@@ -54,7 +54,7 @@ def get_my_sr(nik: str) -> dict:
 def create_sr(db_params: dict) -> dict:
     sql = """
         INSERT INTO public.sr_request (
-            sr_no, ctg_id, req_id, division, name, module, purpose, 
+            sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, 
             details, frequency, value, value_det, num_user, created_at
         )
         VALUES (
@@ -65,7 +65,7 @@ def create_sr(db_params: dict) -> dict:
                 FROM public.sr_request
                 WHERE sr_no LIKE '%%/SR/MUI-IT/SZ01/' || TO_CHAR(NOW(), 'YYYY')
             ),
-            %(ctg_id)s, %(req_id)s, %(division)s, %(name)s, %(module)s, %(purpose)s, 
+            %(smk_id)s, %(ctg_id)s, %(maker_id)s, %(req_id)s, %(division)s, %(name)s, %(module)s, %(purpose)s, 
             %(details)s, %(frequency)s, %(value)s, %(value_det)s, %(num_user)s, NOW()
         )
         RETURNING sr_no;
@@ -86,12 +86,11 @@ def create_sr(db_params: dict) -> dict:
         Log.error(f'DB Exception | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': 'Gagal Koneksi Database!'}
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 def get_sr_by_no(sr_no: str) -> dict:
     sql = """
-        SELECT sr_no, ctg_id, req_id, division, name, module, purpose, details, 
+        SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
             frequency, value, value_det, num_user
         FROM public.sr_request WHERE sr_no = %(sr_no)s"""
     conn = None
@@ -134,6 +133,29 @@ def update_sr(db_params: dict) -> dict:
             return {'status': False, 'data': [], 'msg': result.get('msg')}
     except Exception as e:
         Log.error(f'DB Exception | update_sr | Msg: {str(e)}')
+        return {'status': False, 'msg': 'Failed to update SR'}
+    finally:
+        if conn: conn.close()
+
+def update_sr_prog(db_params: dict) -> dict:
+    sql = """
+        UPDATE sr_request 
+        SET smk_id = %(smk_id)s
+        WHERE sr_no = %(sr_no)s"""
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.executeData(sql, db_params)
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_prog | Msg: {str(e)}')
         return {'status': False, 'msg': 'Failed to update SR'}
     finally:
         if conn: conn.close()

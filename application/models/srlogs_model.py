@@ -65,7 +65,7 @@ def create_sr_log(db_params: dict) -> dict:
     result = {'status': False, 'msg': 'Invalid parameters.'}
 
     try:
-        conn = DatabasePG("supabase")
+        conn = DatabasePG("supabase", autocommit=True)
         if conn:
             result = conn.executeData(sql, db_params)
             return result

@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from ..transactions import sr_transaction
+from ..transactions import sr_transaction, srlogs_transaction
 from ..helpers.decorators import login_required
 from ..utils import tokenization
 
@@ -42,21 +42,41 @@ def mySR_menu():
 
     return render_template('/page/my_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
-
 @sr_bp.route('/createSR', methods=['GET', 'POST'])
 @login_required
 def createSR_menu():
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
-        raw_form_data['requester'] = session.get('user', {}).get('nik', '')
-        raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
+
+        maker_id = session.get('user', {}).get('nik', '')
+        raw_form_data['maker_id'] = maker_id
 
         files = request.files
 
         trx_result = sr_transaction.create_sr_trx(raw_form_data, files)
 
         if trx_result.get('status'):
-            flash("Service Request created successfully!", "success")
+            new_sr_no = trx_result['data'][0][0]
+
+            # 2. Pack the data for the very first log
+            genesis_log_data = {
+                'sr_no': new_sr_no,
+                'smk_id': 101,             # Born straight into Phase 1!
+                'action_by': maker_id    
+            }
+
+            log_result = srlogs_transaction.create_sr_log_trx(genesis_log_data)
+
+            print(f"\n--- DEBUG: WORKFLOW ENGINE RESULT ---")
+            print(log_result)
+            print("-------------------------------------\n")
+
+            if log_result.get('status'):
+                flash("Service Request created successfully!", "success")
+            else:
+                # Catches if they forgot a mandatory document right at submission!
+                flash(f"SR Saved, but workflow error: {log_result.get('msg')}", "warning")
+
             return redirect(url_for('owh_dashboard.dashboard_menu'))
         else:
             flash(f"Error: {trx_result.get('msg')}", "error")
@@ -91,7 +111,6 @@ def editSR_menu(token):
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
-        # Ini sudah benar
         raw_form_data['requester'] = session.get('user', {}).get('nik', '')
         raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
 

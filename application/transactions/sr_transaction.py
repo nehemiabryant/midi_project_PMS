@@ -1,8 +1,7 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import sr_model
-from ..utils import tokenization
+from ..utils import tokenization, converters
 from . import attachment_transaction
-from utils import converters
 
 Log = Logger()
 
@@ -69,8 +68,10 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
     try:
         db_params = {
             'ctg_id': raw_data.get('kategori_sr'),
-            'req_id': raw_data.get('requester'),
-            'division': raw_data.get('divisi'),
+            'smk_id': 101,
+            'maker_id': raw_data.get('maker_id'),
+            'req_id': raw_data.get('req_id'),
+            'division': raw_data.get('division'),
             'name': raw_data.get('nama_aplikasi'),
             'module': raw_data.get('modul'),
             'purpose': raw_data.get('tujuan'),
@@ -92,7 +93,7 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
 
             attachment_transaction.upload_and_record_files(new_sr_no, files)
 
-        return {'status': True, 'data': data}
+        return data
     except Exception as e:
         Log.error(f'Exception | Create SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}

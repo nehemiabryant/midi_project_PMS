@@ -35,16 +35,23 @@
 				</div>
 
 				<div class="form-row">
+					<div class="form-label">Maker</div>
+					<div class="form-field">
+						<input type="text" class="form-input" value="{{ sr_data.maker_id if sr_data else user.nik }} - {{ sr_data.maker_name if sr_data else user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
+					</div>
+				</div>
+
+				<div class="form-row">
 					<div class="form-label">Requester</div>
 					<div class="form-field">
-						<input type="text" class="form-input" value="{{ user.nik }} - {{ user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
+						<input type="text" class="form-input" id="req_id" name="req_id" value="{{ sr_data.req_id if sr_data else '' }}"/>
 					</div>
 				</div>
 
 				<div class="form-row">
 					<div class="form-label">Divisi</div>
 					<div class="form-field">
-						<input type="text" class="form-input" value="{{ user.divisi }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
+						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" /> <!-- style="background-color: #f3f4f6; cursor: not-allowed;" disabled -->
 					</div>
 				</div>
 
@@ -197,4 +204,57 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/components/ckeditor-init.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/file-upload.js') }}"></script>
+<script>
+// --- Autocomplete NIK ---
+let searchTimeout;
+document.getElementById('inputNik').addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    const q = document.getElementById('inputNik').value.trim();
+    document.getElementById('selectedNik').value = '';
+    document.getElementById('selectedNama').style.display = 'none';
+
+    if (q.length < 2) {
+        document.getElementById('nikSuggestions').style.display = 'none';
+        return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+        try {
+            const res = await fetch(`/karyawan/search?q=${encodeURIComponent(q)}&limit=8`);
+            const json = await res.json();
+            renderSuggestions(json.data || []);
+        } catch {
+            document.getElementById('nikSuggestions').style.display = 'none';
+        }
+    }, 300);
+});
+
+function renderSuggestions(results) {
+    const box = document.getElementById('nikSuggestions');
+    if (!results.length) { box.style.display = 'none'; return; }
+
+    box.innerHTML = results.map(k => `
+        <div class="suggestion-item" data-nik="${k.nik}" data-nama="${k.nama}">
+            ${k.nik} — ${k.nama}
+        </div>
+    `).join('');
+
+    box.querySelectorAll('.suggestion-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.getElementById('inputNik').value = item.dataset.nik;
+            document.getElementById('selectedNik').value = item.dataset.nik;
+            document.getElementById('selectedNama').textContent = item.dataset.nama;
+            document.getElementById('selectedNama').style.display = 'block';
+            box.style.display = 'none';
+        });
+    });
+    box.style.display = 'block';
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#inputNik') && !e.target.closest('#nikSuggestions')) {
+        document.getElementById('nikSuggestions').style.display = 'none';
+    }
+});
+</script>
 {% endblock %}
