@@ -21,7 +21,7 @@
     margin-bottom: 20px;
 }
 .btn-add {
-    background-color: #d41f26; /* Merah Alfamidi */
+    background-color: #218838; 
     color: #ffffff;
     border: none;
     padding: 9px 18px;
@@ -36,7 +36,7 @@
     gap: 8px;
 }
 .btn-add:hover {
-    background-color: #b31a20;
+    background-color: #1e7e34;
     color: #ffffff;
 }
 .search-box-container {

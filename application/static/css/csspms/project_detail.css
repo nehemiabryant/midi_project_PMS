@@ -1,0 +1,163 @@
+/* Wrapper Utama */
+.project-details-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Card Modern */
+.modern-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    margin-top: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Header Info */
+.card-header-info {
+    padding: 24px 30px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.project-id {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.status-badge-orange {
+    background-color: #ffedd5;
+    color: #ea580c;
+    border: 1px solid #fdba74;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Custom Tabs */
+.custom-tabs {
+    display: flex;
+    padding: 0 30px;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 16px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #0ea5e9;
+}
+
+.tab-btn.active {
+    color: #0ea5e9;
+    border-bottom-color: #0ea5e9;
+    font-weight: 600;
+    background-color: #ffffff;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+}
+
+/* Card Body Content */
+.card-body-content {
+    padding: 30px;
+}
+
+/* Styling Tabel Umum (Target & Actual Date) */
+.table-section {
+    margin-bottom: 30px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-section-title {
+    background-color: #e2e8f0;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    border-bottom: 1px solid #cbd5e1;
+    margin: 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.detail-table, .timetable {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+    background-color: #ffffff;
+}
+
+.detail-table th, .detail-table td,
+.timetable th, .timetable td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    border-right: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.detail-table th:last-child, .detail-table td:last-child,
+.timetable th:last-child, .timetable td:last-child {
+    border-right: none;
+}
+
+.detail-table tr:last-child td, .timetable tr:last-child td {
+    border-bottom: none;
+}
+
+.detail-table th, .timetable th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* Styling Khusus Timetable (Gantt Chart) */
+.timetable th, .timetable td {
+    padding: 10px;
+}
+
+.timetable .week-row th {
+    text-align: center;
+    font-size: 12px;
+    padding: 8px;
+    color: #64748b;
+}
+
+.bar-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 30px; /* Memastikan kolom kotak tidak terlalu sempit */
+}
+
+.bar {
+    background-color: #3b82f6; /* Warna biru indikator timeline */
+    height: 14px;
+    width: 90%;
+    border-radius: 4px;
+}

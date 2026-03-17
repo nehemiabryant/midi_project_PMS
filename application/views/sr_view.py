@@ -107,3 +107,11 @@ def editSR_menu(token):
             return redirect(request.url)
 
     return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
+
+@sr_bp.route('/projectDetails', methods=['GET'])
+@login_required
+def project_details_menu():
+    return render_template('page/project_detail.html', 
+                           user=session.get('user', {}), 
+                           role=session.get('role'), 
+                           active_menu='project_details')
