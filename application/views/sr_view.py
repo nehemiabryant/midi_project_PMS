@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from ..transactions import sr_transaction
+from ..transactions import sr_transaction, srlogs_transaction
 from ..helpers.decorators import login_required
 from ..utils import tokenization
 
@@ -30,7 +30,6 @@ def listSR_menu():
 @sr_bp.route('/mySR', methods=['GET'])
 @login_required
 def mySR_menu():
-    # Tambahkan {} sebagai default fallback
     current_user = session.get('user', {}).get('nik', '') 
     my_sr_list = sr_transaction.get_my_sr_trx(current_user)
 
@@ -42,21 +41,36 @@ def mySR_menu():
 
     return render_template('/page/my_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
-
 @sr_bp.route('/createSR', methods=['GET', 'POST'])
 @login_required
 def createSR_menu():
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
-        raw_form_data['requester'] = session.get('user', {}).get('nik', '')
-        raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
+
+        maker_id = session.get('user', {}).get('nik', '')
+        raw_form_data['maker_id'] = maker_id
 
         files = request.files
 
         trx_result = sr_transaction.create_sr_trx(raw_form_data, files)
 
         if trx_result.get('status'):
-            flash("Service Request created successfully!", "success")
+            new_sr_no = trx_result['data'][0][0]
+
+            # 2. Pack the data for the very first log
+            genesis_log_data = {
+                'sr_no': new_sr_no,
+                'smk_id': 101,             # Born straight into Phase 1!
+                'action_by': maker_id    
+            }
+
+            log_result = srlogs_transaction.create_sr_log_trx(genesis_log_data)
+
+            if log_result.get('status'):
+                flash("Service Request created successfully!", "success")
+            else:
+                flash(f"SR Saved, but workflow error: {log_result.get('msg')}", "warning")
+
             return redirect(url_for('owh_dashboard.dashboard_menu'))
         else:
             flash(f"Error: {trx_result.get('msg')}", "error")
@@ -74,16 +88,15 @@ def editSR_menu(token):
         flash("Invalid or corrupted edit link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
 
-    # Tambahkan {} sebagai default fallback
     current_user = session.get('user', {}).get('nik', '')
 
-    existing_sr_response = sr_transaction.get_edit_sr_trx(sr_no)
+    eligibility_result = sr_transaction.validate_sr_action_eligibility(
+        sr_no=sr_no, 
+        user_nik=current_user, 
+        max_allowed_smk_id=1
+    )
 
-    if not existing_sr_response.get('status') or not existing_sr_response.get('data'):
-        flash("Service Request not found.", "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
-
-    sr_data = existing_sr_response['data'][0]
+    sr_data = eligibility_result['data'][0]
 
     if sr_data.get('req_id') != current_user:
         flash("Unauthorized: You can only edit your own Service Requests.", "error")
@@ -91,9 +104,6 @@ def editSR_menu(token):
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
-        # Ini sudah benar
-        raw_form_data['requester'] = session.get('user', {}).get('nik', '')
-        raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
 
         files = request.files
 
