@@ -30,7 +30,6 @@ def listSR_menu():
 @sr_bp.route('/mySR', methods=['GET'])
 @login_required
 def mySR_menu():
-    # Tambahkan {} sebagai default fallback
     current_user = session.get('user', {}).get('nik', '') 
     my_sr_list = sr_transaction.get_my_sr_trx(current_user)
 
@@ -67,14 +66,9 @@ def createSR_menu():
 
             log_result = srlogs_transaction.create_sr_log_trx(genesis_log_data)
 
-            print(f"\n--- DEBUG: WORKFLOW ENGINE RESULT ---")
-            print(log_result)
-            print("-------------------------------------\n")
-
             if log_result.get('status'):
                 flash("Service Request created successfully!", "success")
             else:
-                # Catches if they forgot a mandatory document right at submission!
                 flash(f"SR Saved, but workflow error: {log_result.get('msg')}", "warning")
 
             return redirect(url_for('owh_dashboard.dashboard_menu'))
@@ -94,16 +88,15 @@ def editSR_menu(token):
         flash("Invalid or corrupted edit link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
 
-    # Tambahkan {} sebagai default fallback
     current_user = session.get('user', {}).get('nik', '')
 
-    existing_sr_response = sr_transaction.get_edit_sr_trx(sr_no)
+    eligibility_result = sr_transaction.validate_sr_action_eligibility(
+        sr_no=sr_no, 
+        user_nik=current_user, 
+        max_allowed_smk_id=1
+    )
 
-    if not existing_sr_response.get('status') or not existing_sr_response.get('data'):
-        flash("Service Request not found.", "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
-
-    sr_data = existing_sr_response['data'][0]
+    sr_data = eligibility_result['data'][0]
 
     if sr_data.get('req_id') != current_user:
         flash("Unauthorized: You can only edit your own Service Requests.", "error")
@@ -111,8 +104,6 @@ def editSR_menu(token):
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
-        raw_form_data['requester'] = session.get('user', {}).get('nik', '')
-        raw_form_data['divisi'] = session.get('user', {}).get('divisi', '')
 
         files = request.files
 

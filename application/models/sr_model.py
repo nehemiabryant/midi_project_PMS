@@ -159,3 +159,24 @@ def update_sr_prog(db_params: dict) -> dict:
         return {'status': False, 'msg': 'Failed to update SR'}
     finally:
         if conn: conn.close()
+
+def get_sr_requester(sr_no: str) -> str:
+    """Gets the original requester's NIK so we can find their manager."""
+    sql = "SELECT req_id FROM public.sr_request WHERE sr_no = %(sr_no)s"
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectData(sql, {'sr_no': sr_no})
+            if result.get('status') and result.get('data'):
+                return result['data'][0][0]  # Return the req_id
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+    except Exception as e:
+        Log.error(f'DB Exception | get_sr_requester | Msg: {str(e)}')
+    finally:
+        if conn: conn.close()
+
+    return None  # Return None if requester not found or error occurred

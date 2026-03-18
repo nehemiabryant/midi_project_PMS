@@ -102,27 +102,25 @@ def get_edit_sr_trx(sr_no: str) -> dict:
     try:
         db_result = sr_model.get_sr_by_no(sr_no)
         
-        # If the query failed or returned no data structure, send it back
         if not db_result.get('status') or not db_result.get('data') or len(db_result['data']) < 2:
             return db_result
 
         headers = db_result['data'][0]
         rows = db_result['data'][1]
 
-        # If the SR number doesn't exist in the database
         if not rows:
             return {'status': False, 'data': [], 'msg': 'Service Request not found.'}
 
-        # Zip the headers with the FIRST row (since IDs are unique, there's only one row)
-        #sr_dict = dict(zip(headers, rows[0]))
-        sr_dict = converters.convert_to_dicts(rows, headers)
+        sr_list = converters.convert_to_dicts(rows, headers)
+        
+        sr_dict = sr_list[0] 
 
         attachments = attachment_transaction.get_attachments_for_view(sr_no)
 
         sr_dict['attachments'] = attachments
 
-        # We wrap the dictionary in a list so it plays nicely with your existing Route code
         return {'status': True, 'data': [sr_dict]}
+        
     except Exception as e:
         Log.error(f'Exception | Get Edit SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -131,8 +129,8 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str) -> dict:
     try:
         db_params = {
             'sr_no': sr_no,
-            'req_id': raw_data.get('requester'),
-            'division': raw_data.get('divisi'),
+            'req_id': raw_data.get('req_id'),
+            'division': raw_data.get('division'),
             'ctg_id': raw_data.get('kategori_sr'),
             'division': raw_data.get('divisi'),
             'name': raw_data.get('nama_aplikasi'),
