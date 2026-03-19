@@ -53,7 +53,7 @@
                 <td>{{ item.created_at }}</td>
                 <td>{{ item.updated_at }}</td>
                 <td>
-                  <button type="button" class="my-work-detail-btn">Details</button>
+                  <a href="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
                 </td>
               </tr>
             {% endfor %}
