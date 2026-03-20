@@ -1,5 +1,5 @@
 from common.midiconnectserver.midilog import Logger
-from ..models import my_work_model, assignment_model
+from ..models import my_work_model, assignment_model, task_model
 
 Log = Logger()
 
@@ -161,6 +161,26 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 'current_assignments': pic_assignments,
             }
 
+        # 7. Jika PIC, ambil tasks — hanya role yang teritorinya match smk_id SR saat ini
+        current_smk_id = sr_detail.get('smk_id')
+        territory_map = my_work_model.IT_ROLE_TERRITORY
+        pic_roles = [
+            r for r in user_roles
+            if r['it_role_id'] in [4, 5, 6, 7]
+            and current_smk_id in territory_map.get(r['it_role_id'], [])
+        ]
+        pic_sections = []
+        for pr in pic_roles:
+            role_id = pr['it_role_id']
+            tasks_result = task_model.get_tasks_by_sr_and_role_model(sr_no, role_id)
+            tasks = _parse_rows(tasks_result)
+            pic_sections.append({
+                'it_role_id': role_id,
+                'it_role_detail': pr['it_role_detail'],
+                'assign_id': pr['assign_id'],
+                'tasks': tasks,
+            })
+
         return {
             'status': True,
             'data': {
@@ -171,6 +191,8 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 'is_sm': is_sm,
                 'can_assign': can_assign,
                 'assignment_data': assignment_data,
+                'is_pic': len(pic_roles) > 0,
+                'pic_sections': pic_sections,
             }
         }
     except Exception as e:

@@ -3,11 +3,21 @@ from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
 
+# Mapping it_role_id -> smk_id territory
+# SR hanya muncul di My Work jika status SR masuk teritori role user
+IT_ROLE_TERRITORY = {
+    3: [105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116],  # IT SM → semua fase setelah BACKLOG SCRUM
+    4: [105, 106, 107],          # IT SCM → BACKLOG SCRUM, SD ON PROGRESS, REVIEW SD
+    5: [108, 109],               # IT DEV → BACKLOG DEV, DEV ON PROGRESS
+    6: [110, 111],               # IT QA  → BACKLOG QA, QA ON PROGRESS
+    7: [114, 115, 116],          # IT RO  → BACKLOG TO, TO, ROLLOUT
+}
+
 
 def get_my_work_items_model(nik: str) -> dict:
     """
     Ambil semua SR yang di-assign ke user ini beserta role-nya.
-    Satu query untuk semua role — hasilnya di-group di transaction layer.
+    Filter: SR hanya muncul jika smk_id masuk teritori role user pada SR tersebut.
     """
     sql = """
         SELECT r.sr_no, r.name, r.module, r.division,
@@ -19,6 +29,13 @@ def get_my_work_items_model(nik: str) -> dict:
         LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.assigned_user = %(nik)s
+          AND (
+              (sa.it_role_id = 3 AND r.smk_id IN (105,106,107,108,109,110,111,112,113,114,115,116))
+              OR (sa.it_role_id = 4 AND r.smk_id IN (105,106,107))
+              OR (sa.it_role_id = 5 AND r.smk_id IN (108,109))
+              OR (sa.it_role_id = 6 AND r.smk_id IN (110,111))
+              OR (sa.it_role_id = 7 AND r.smk_id IN (114,115,116))
+          )
         ORDER BY r.created_at DESC
     """
     conn = None

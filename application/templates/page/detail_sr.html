@@ -87,49 +87,59 @@
     {% if can_assign %}
     <!-- MODE FORM: SM bisa assign PIC (status masih 105) -->
     <h3>Assign PIC</h3>
-    <p>Pilih minimal 1 user untuk setiap PIC role.</p>
+    <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
 
     <form method="POST" action="{{ url_for('owh_dashboard.submit_assignment', sr_no=sr_detail.sr_no) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        {% for role in assignment_data.picroles %}
-        <div>
-            <h4>{{ role.it_role_detail }} (Role ID: {{ role.it_role_id }})</h4>
+        <table id="assign-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <select name="assign_user[]" required>
+                            <option value="">-- Pilih User --</option>
+                            {% for u in assignment_data.it_users %}
+                            <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="assign_role[]" required>
+                            <option value="">-- Pilih Role --</option>
+                            {% for role in assignment_data.picroles %}
+                            <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
 
-            <div id="role-{{ role.it_role_id }}-container">
-                <div>
-                    <select name="picrole_{{ role.it_role_id }}">
-                        <option value="">-- Pilih User --</option>
-                        {% for u in assignment_data.it_users %}
-                        <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+        <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
 
-            <button type="button" onclick="addUserRow({{ role.it_role_id }})">+ Tambah User</button>
-        </div>
-        <hr>
-        {% endfor %}
-
+        <br><br>
         <button type="submit" onclick="return confirm('Apakah Anda yakin? Assignment tidak dapat diubah setelah dikonfirmasi.')">
             Konfirmasi Assignment
         </button>
     </form>
 
     <script>
-    function addUserRow(roleId) {
-        const container = document.getElementById('role-' + roleId + '-container');
-        const firstSelect = container.querySelector('select');
-        const newDiv = document.createElement('div');
-        newDiv.innerHTML = firstSelect.parentElement.innerHTML;
-        newDiv.querySelector('select').value = '';
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.textContent = 'Hapus';
-        removeBtn.onclick = function() { newDiv.remove(); };
-        newDiv.appendChild(removeBtn);
-        container.appendChild(newDiv);
+    function addAssignRow() {
+        const tbody = document.querySelector('#assign-table tbody');
+        const firstRow = tbody.querySelector('tr');
+        const newRow = firstRow.cloneNode(true);
+        newRow.querySelectorAll('select').forEach(s => s.value = '');
+        const lastTd = newRow.querySelector('td:last-child');
+        lastTd.innerHTML = '<button type="button" onclick="this.closest(\'tr\').remove()">Hapus</button>';
+        tbody.appendChild(newRow);
     }
     </script>
 

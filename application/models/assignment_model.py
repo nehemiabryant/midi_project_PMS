@@ -8,7 +8,7 @@ ASSIGNABLE_PICROLE_IDS = [4, 5, 6, 7]  # IT SCM, IT DEV, IT QA, IT RO
 IT_SM_ROLE_ID = 3
 STATUS_BACKLOG_SCRUM = 105
 STATUS_SD_ON_PROGRESS = 106
-IT_USER_ROLE_NAME = 'User IT'  # approle_name di sr_ms_app_role
+IT_USER_ROLE_NAME = 'IT USER'  # approle_name di sr_ms_app_role (approle_id=2)
 
 
 def get_it_users_model() -> dict:

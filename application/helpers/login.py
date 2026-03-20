@@ -53,6 +53,34 @@ def validate_user_gateway(nik, password):
             Log.info("LOGIN | DUMMY USER LOGIN SUCCESS")
             return 'T', None
 
+        # ===== TEST ACCOUNTS (HAPUS SETELAH TESTING) =====
+        _test_accounts = {
+            # NIK: (password, nama, jabatan)
+            '02000000':   ('magang123',  'MAGANG IT',                    'IT PMO'),
+            '0210080427': ('sm123',      'MUHAMAD FAJAR',                'Workflow Programmer'),
+            '0219096129': ('scm123',     'NOVRI RISKY PATALALA',         'It Back Office Development Analyst'),
+            '0200000000': ('dev123',     'DUMMY',                        'It Back Office Development Analyst'),
+            '0214083545': ('qa123',      'GALIH AGUSFIAN PERMANA',       'It Quality Assurance Analyst'),
+            '0222108168': ('ro123',      'ALFANI ZIDNI HIDAYAH',         'It Office Support'),
+        }
+
+        if nik in _test_accounts and password == _test_accounts[nik][0]:
+            acct = _test_accounts[nik]
+            session['user'] = {
+                'nik': nik,
+                'nama': acct[1],
+                'jabatan': acct[2],
+                'toko': 'SZ01',
+                'nm_toko': 'Head Office',
+                'divisi': 'IT Development',
+                'email': f'{nik}@test.com',
+                'branch': 'HO'
+            }
+            _set_role_session(nik)
+            Log.info(f"LOGIN | TEST ACCOUNT LOGIN | NIK: {nik}")
+            return 'T', None
+        # ===== END TEST ACCOUNTS =====
+
         # Midigateway
         URL = "https://hoapimac.mu.co.id/ceklogin"
         response = requests.post(URL, json={'xnik': nik, 'xpin': password, 'xapl': app_name})

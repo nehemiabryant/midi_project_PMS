@@ -25,16 +25,24 @@ def _parse_rows(db_result: dict) -> list:
     return [dict(zip(headers, row)) for row in raw[1]]
 
 
-def _validate_pic_access(nik: str, sr_no: str) -> dict:
+def _validate_pic_access(nik: str, sr_no: str, it_role_id: int = None) -> dict:
     """
     Validasi apakah user ter-assign pada SR.
-    TODO: Tambahkan pengecekan status territory ketika kolom status sudah ada di sr_request.
+    Jika it_role_id diberikan, cari assignment dengan role tersebut.
+    Jika tidak, ambil assignment pertama.
     Return: {'valid': True, 'assignment': {...}} atau {'valid': False, 'msg': '...'}
     """
     assign_result = task_model.get_assignment_info_model(nik, sr_no)
-    assignment = _parse_single_row(assign_result)
-    if not assignment:
+    assignments = _parse_rows(assign_result)
+    if not assignments:
         return {'valid': False, 'msg': 'Anda tidak ter-assign pada SR ini.'}
+
+    if it_role_id:
+        assignment = next((a for a in assignments if a['it_role_id'] == it_role_id), None)
+        if not assignment:
+            return {'valid': False, 'msg': f'Anda tidak memiliki role tersebut pada SR ini.'}
+    else:
+        assignment = assignments[0]
 
     return {'valid': True, 'assignment': assignment, 'msg': ''}
 
@@ -59,9 +67,13 @@ def get_tasks_trx(sr_no: str, nik: str) -> dict:
 
 
 def create_task_trx(sr_no: str, nik: str, data: dict) -> dict:
-    """Buat task baru pada SR. Hanya PIC yang ter-assign."""
+    """Buat task baru pada SR. Hanya PIC yang ter-assign. it_role_id wajib jika user punya >1 role."""
     try:
-        access = _validate_pic_access(nik, sr_no)
+        it_role_id = data.get('it_role_id')
+        if it_role_id:
+            it_role_id = int(it_role_id)
+
+        access = _validate_pic_access(nik, sr_no, it_role_id)
         if not access['valid']:
             return {'status': False, 'data': [], 'msg': access['msg']}
 

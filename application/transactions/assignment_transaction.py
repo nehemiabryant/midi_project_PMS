@@ -91,15 +91,13 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
     Validasi:
     1. User harus IT SM pada SR ini
     2. SR harus masih status BACKLOG SCRUM (105)
-    3. Minimal 1 user per role (SCM, DEV, QA, RO) = minimal 4 assignment
+    3. Minimal 1 user per role (SCM, DEV, QA, RO)
     4. Semua NIK yang di-assign harus valid (ada di daftar IT users)
 
     form_data format dari HTML form:
     {
-        'picrole_4': ['nik1', 'nik2'],  # IT SCM
-        'picrole_5': ['nik3'],           # IT DEV
-        'picrole_6': ['nik4'],           # IT QA
-        'picrole_7': ['nik5', 'nik6']    # IT RO
+        'assign_user[]': ['nik1', 'nik2', 'nik3', ...],
+        'assign_role[]': ['4', '5', '6', ...]
     }
     """
     try:
@@ -117,26 +115,37 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
         if sr_detail.get('smk_id') != STATUS_BACKLOG_SCRUM:
             return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status Backlog Scrum.'}
 
-        # 3. Parse dan validasi: minimal 1 user per role
+        # 3. Parse form: assign_user[] dan assign_role[] (paired by index)
+        user_list = form_data.getlist('assign_user[]') if hasattr(form_data, 'getlist') else form_data.get('assign_user[]', [])
+        role_list = form_data.getlist('assign_role[]') if hasattr(form_data, 'getlist') else form_data.get('assign_role[]', [])
+
+        if isinstance(user_list, str):
+            user_list = [user_list]
+        if isinstance(role_list, str):
+            role_list = [role_list]
+
         assignments = []
+        for user_nik, role_id_str in zip(user_list, role_list):
+            user_nik = user_nik.strip() if user_nik else ''
+            role_id_str = role_id_str.strip() if role_id_str else ''
+            if not user_nik or not role_id_str:
+                continue
+            assignments.append({'nik': user_nik, 'it_role_id': int(role_id_str)})
+
+        if not assignments:
+            return {'status': False, 'data': [], 'msg': 'Tidak ada assignment yang diisi.'}
+
+        # 4. Validasi: minimal 1 user per role (SCM=4, DEV=5, QA=6, RO=7)
+        role_names = {4: 'IT SCM', 5: 'IT DEV', 6: 'IT QA', 7: 'IT RO'}
+        assigned_roles = {a['it_role_id'] for a in assignments}
         for it_role_id in ASSIGNABLE_PICROLE_IDS:
-            key = f'picrole_{it_role_id}'
-            niks = form_data.getlist(key) if hasattr(form_data, 'getlist') else form_data.get(key, [])
-            if isinstance(niks, str):
-                niks = [niks]
-            # Filter NIK kosong
-            niks = [n.strip() for n in niks if n and n.strip()]
-            if not niks:
-                # Ambil nama role untuk pesan error
-                role_names = {4: 'IT SCM', 5: 'IT DEV', 6: 'IT QA', 7: 'IT RO'}
+            if it_role_id not in assigned_roles:
                 return {
                     'status': False, 'data': [],
                     'msg': f'Minimal 1 user harus di-assign untuk role {role_names.get(it_role_id, it_role_id)}.'
                 }
-            for user_nik in niks:
-                assignments.append({'nik': user_nik, 'it_role_id': it_role_id})
 
-        # 4. Validasi: semua NIK harus ada di daftar IT users
+        # 5. Validasi: semua NIK harus ada di daftar IT users
         users_result = assignment_model.get_it_users_model()
         it_users = _parse_rows(users_result)
         valid_niks = {u['nik'] for u in it_users}
@@ -147,7 +156,7 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                     'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."
                 }
 
-        # 5. Insert assignments + update status (atomic)
+        # 6. Insert assignments + update status (atomic)
         result = assignment_model.insert_assignments_and_update_status_model(sr_no, assignments, nik)
         return result
 
