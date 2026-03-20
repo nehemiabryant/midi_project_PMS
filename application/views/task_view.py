@@ -20,7 +20,6 @@ def get_tasks(sr_no):
 
     return jsonify({'status': 'T', 'data': result.get('data', [])}), 200
 
-
 @task_bp.route('/create/<path:sr_no>', methods=['POST'])
 @login_required
 def create_task(sr_no):
@@ -34,7 +33,6 @@ def create_task(sr_no):
         return jsonify({'status': 'F', 'data': [], 'msg': result.get('msg')}), 400
 
     return jsonify({'status': 'T', 'data': result.get('data', []), 'msg': result.get('msg')}), 201
-
 
 @task_bp.route('/<int:task_id>', methods=['PUT'])
 @login_required
