@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from ..transactions import sr_transaction, srlogs_transaction
+from ..transactions import sr_transaction, srlogs_transaction, workflow_transaction
 from ..helpers.decorators import login_required
 from ..utils import tokenization
 
@@ -60,7 +60,7 @@ def createSR_menu():
             # 2. Pack the data for the very first log
             genesis_log_data = {
                 'sr_no': new_sr_no,
-                'smk_id': 101,             # Born straight into Phase 1!
+                'smk_id': 101,
                 'action_by': maker_id    
             }
 
@@ -90,10 +90,10 @@ def editSR_menu(token):
 
     current_user = session.get('user', {}).get('nik', '')
 
-    eligibility_result = sr_transaction.validate_sr_action_eligibility(
+    eligibility_result = workflow_transaction.authorize_sr_access(
         sr_no=sr_no, 
-        user_nik=current_user, 
-        max_allowed_smk_id=1
+        user_nik=current_user,
+        intent='EDIT'
     )
 
     sr_data = eligibility_result['data'][0]
@@ -117,3 +117,70 @@ def editSR_menu(token):
             return redirect(request.url)
 
     return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
+
+@sr_bp.route('/approval/<token>', methods=['GET', 'POST'])
+@login_required
+def approveSR_menu(token):
+    sr_no = tokenization.decrypt_token(token)
+
+    if not sr_no:
+        flash("Invalid or corrupted approval link.", "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    current_user = session.get('user', {}).get('nik', '')
+
+    # 1. Eligibility Check (Reused perfectly!)
+    eligibility_result = workflow_transaction.authorize_sr_access(
+        sr_no=sr_no, 
+        user_nik=current_user,
+        intent='APPROVE'
+    )
+
+    if not eligibility_result.get('status'):
+        flash(eligibility_result.get('msg'), "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    sr_data = eligibility_result['data'][0]
+
+    if request.method == 'POST':
+        raw_form_data = request.form.to_dict()
+        files = request.files
+
+        # ==========================================
+        # PART A: UPDATE THE EDITABLE DATA
+        # ==========================================
+        # (Optional: Add the whitelist sanitize function here if you built it!)
+        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
+
+        if not trx_result.get('status'):
+            flash(f"Error saving data: {trx_result.get('msg')}", "error")
+            return redirect(request.url)
+        
+        # ==========================================
+        # PART B: FIGURE OUT THE WORKFLOW STATE
+        # ==========================================
+        current_smk_id = sr_data.get('smk_id') 
+        next_smk_id = int(request.form.get('intended_next_smk_id'))
+        
+        current_logs_id = srlogs_transaction.get_active_log_id_trx(sr_no)
+
+        # ==========================================
+        # PART C: ADVANCE THE PHASE
+        # ==========================================
+        advance_result = workflow_transaction.advance_sr_phase(
+            sr_no=sr_no,
+            current_logs_id=current_logs_id,
+            current_smk_id=current_smk_id,
+            next_smk_id=next_smk_id,
+            action_by=current_user
+        )
+
+        if advance_result.get('status'):
+            flash("Service Request updated and approved successfully!", "success")
+            return redirect(url_for('owh_dashboard.dashboard_menu'))
+        else:
+            flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
+            return redirect(request.url)
+
+    # If it's a GET request, load the specific Approval Page template
+    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)

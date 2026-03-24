@@ -4,12 +4,17 @@ from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
 
-def get_sr() -> dict:
+def get_sr(shared_conn=None) -> dict:
     sql = """
         SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
             frequency, value, value_det, num_user
         FROM public.sr_request
     """
+
+    if shared_conn:
+        result = shared_conn.selectHeader(sql)
+        return result
+
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
@@ -27,13 +32,18 @@ def get_sr() -> dict:
     finally:
         if conn: conn.close()
 
-def get_my_sr(nik: str) -> dict:
+def get_my_sr(nik: str, shared_conn=None) -> dict:
     sql = """
         SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
             frequency, value, value_det, num_user
         FROM public.sr_request
         WHERE req_id = %(nik)s
     """
+
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {'nik': nik})
+        return result
+
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
@@ -51,7 +61,7 @@ def get_my_sr(nik: str) -> dict:
     finally:
         if conn: conn.close()
 
-def create_sr(db_params: dict) -> dict:
+def create_sr(db_params: dict, shared_conn=None) -> dict:
     sql = """
         INSERT INTO public.sr_request (
             sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, 
@@ -71,6 +81,10 @@ def create_sr(db_params: dict) -> dict:
         RETURNING sr_no;
     """
 
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
@@ -88,11 +102,16 @@ def create_sr(db_params: dict) -> dict:
     finally:
         if conn: conn.close()
 
-def get_sr_by_no(sr_no: str) -> dict:
+def get_sr_by_no(sr_no: str, shared_conn=None) -> dict:
     sql = """
         SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
             frequency, value, value_det, num_user
         FROM public.sr_request WHERE sr_no = %(sr_no)s"""
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
+        return result
+
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
@@ -110,7 +129,7 @@ def get_sr_by_no(sr_no: str) -> dict:
     finally:
         if conn: conn.close()
 
-def update_sr(db_params: dict) -> dict:
+def update_sr(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE public.sr_request 
         SET 
@@ -120,6 +139,11 @@ def update_sr(db_params: dict) -> dict:
         WHERE sr_no = %(sr_no)s
         RETURNING sr_no;
     """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 
@@ -137,11 +161,15 @@ def update_sr(db_params: dict) -> dict:
     finally:
         if conn: conn.close()
 
-def update_sr_prog(db_params: dict) -> dict:
+def update_sr_prog(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE sr_request 
         SET smk_id = %(smk_id)s
         WHERE sr_no = %(sr_no)s"""
+    
+    if shared_conn:
+        result = shared_conn.executeDataNoCommit(sql, db_params)
+        return result
     
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
@@ -160,9 +188,15 @@ def update_sr_prog(db_params: dict) -> dict:
     finally:
         if conn: conn.close()
 
-def get_sr_requester(sr_no: str) -> str:
+def get_sr_requester(sr_no: str, shared_conn=None) -> str:
     """Gets the original requester's NIK so we can find their manager."""
     sql = "SELECT req_id FROM public.sr_request WHERE sr_no = %(sr_no)s"
+    
+    if shared_conn:
+        result = shared_conn.selectData(sql, {'sr_no': sr_no})
+        if result.get('status') and result.get('data'):
+            return result['data'][0][0]
+
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
 

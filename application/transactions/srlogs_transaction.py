@@ -27,8 +27,18 @@ def get_sr_logs_trx(sr_no: str) -> dict:
         Log.error(f"Exception | Get SR Logs Trx | Msg: {str(e)}")
         return {'status': False, 'data': [], 'msg': str(e)}
 
+def get_active_log_id_trx(sr_no: str) -> int:
+    """
+    Fetches the active log ID for a given SR. This is used to know which log entry to update when closing a phase.
+    """
+    try:
+        return srlogs_model.get_active_log_id(sr_no)
+        
+    except Exception as e:
+        Log.error(f"Exception | Get Active Log ID Trx | Msg: {str(e)}")
+        return -1  # Return an invalid ID to signify failure
 
-def create_sr_log_trx(raw_data: dict) -> dict:
+def create_sr_log_trx(raw_data: dict, shared_conn=None) -> dict:
     """
     Starts a new phase. Automatically calculates the correct iteration 
     and sets the start time.
@@ -38,7 +48,7 @@ def create_sr_log_trx(raw_data: dict) -> dict:
         smk_id = int(raw_data.get('smk_id'))
         
         # 1. Automatically calculate the next iteration for this specific phase
-        next_iter = srlogs_model.get_next_iteration(sr_no, smk_id)
+        next_iter = srlogs_model.get_next_iteration(sr_no, smk_id, shared_conn)
         
         # 2. Build the exact parameters the model expects
         db_params = {
@@ -48,19 +58,19 @@ def create_sr_log_trx(raw_data: dict) -> dict:
             'iteration': next_iter
         }
         
-        return srlogs_model.create_sr_log(db_params)
+        return srlogs_model.create_sr_log(db_params, shared_conn)
         
     except Exception as e:
         Log.error(f"Exception | Create SR Log Trx | Msg: {str(e)}")
         return {'status': False, 'msg': str(e)}
 
 
-def update_sr_log_trx(logs_id: int) -> dict:
+def update_sr_log_trx(logs_id: int, shared_conn=None) -> dict:
     """
     Finishes a phase by capping off the finished_at timestamp.
     """
     try:
-        return srlogs_model.update_sr_log(logs_id)
+        return srlogs_model.update_sr_log(logs_id, shared_conn)
         
     except Exception as e:
         Log.error(f"Exception | Update SR Log Trx | Msg: {str(e)}")
