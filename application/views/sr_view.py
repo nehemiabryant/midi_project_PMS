@@ -161,15 +161,12 @@ def approveSR_menu(token):
         # ==========================================
         current_smk_id = sr_data.get('smk_id') 
         next_smk_id = int(request.form.get('intended_next_smk_id'))
-        
-        current_logs_id = srlogs_transaction.get_active_log_id_trx(sr_no)
 
         # ==========================================
         # PART C: ADVANCE THE PHASE
         # ==========================================
         advance_result = workflow_transaction.advance_sr_phase(
             sr_no=sr_no,
-            current_logs_id=current_logs_id,
             current_smk_id=current_smk_id,
             next_smk_id=next_smk_id,
             action_by=current_user

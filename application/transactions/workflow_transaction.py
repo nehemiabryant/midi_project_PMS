@@ -14,7 +14,7 @@ IT_SM_DW_NIK = "0201080008"
 IT_SM_BS_NIK = "0208010095"
 IT_SM_OPS_NIK = "0208080011"
 
-def advance_sr_phase(sr_no: str, current_logs_id: int, current_smk_id: int, next_smk_id: int, action_by: str) -> dict:
+def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_by: str) -> dict:
     try:
         # 1. Get the rule from your newly simplified table
         rule_res = workflow_model.get_workflow_rule(current_smk_id, next_smk_id)
@@ -88,8 +88,43 @@ def advance_sr_phase(sr_no: str, current_logs_id: int, current_smk_id: int, next
 
         try:
 
-            if current_logs_id > 1:
-                close_result = srlogs_transaction.update_sr_log_trx(current_logs_id, shared_conn)
+            latest_log = srlogs_transaction.get_active_log_id_trx(sr_no, shared_conn)
+            db_logs_id = 0
+            db_log_smk_id = 0
+
+            if latest_log.get('status') and latest_log.get('data'):
+                log_dict = latest_log['data'][0] # Grab the first (and only) dictionary in the list
+                
+                db_logs_id = log_dict.get('logs_id', 0)
+                db_log_smk_id = log_dict.get('smk_id', 0)
+
+            # B. THE DRIFT DETECTOR
+            # If the main table (current_smk_id) doesn't match the latest log, 
+            # someone manually edited the database! We must heal it.
+            if db_logs_id > 0 and db_log_smk_id != current_smk_id:
+                
+                # Heal Step 1: Force close the hanging log from the manual edit
+                # (We pass a special flag or system ID so auditors know the system did this)
+                drift_close_res = srlogs_transaction.update_sr_log_trx(
+                    logs_id=db_logs_id, 
+                    shared_conn=shared_conn
+                )
+                
+                if not drift_close_res.get('status'):
+                    return {'status': False, 'msg': 'Failed to heal database drift.'}
+                
+                # Heal Step 2: Since we just closed the old log, we tell the engine 
+                # there is no active log left to close in the normal flow.
+                db_logs_id = 0 
+                
+                Log.info(f"SYSTEM NOTICE: Healed database drift on SR {sr_no}. Closed dangling log {db_log_smk_id}.")
+
+            # C. THE NORMAL FLOW
+            # Now the timeline is completely clean and safe to proceed!
+            
+            # Step 5a: Close the current valid log (if it exists)
+            if db_logs_id > 0:
+                close_result = srlogs_transaction.update_sr_log_trx(db_logs_id, shared_conn)
                 if not close_result.get('status'):
                     return {'status': False, 'msg': f"Failed to close current log: {close_result.get('msg')}"}
 

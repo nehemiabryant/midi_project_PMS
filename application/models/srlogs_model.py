@@ -96,9 +96,9 @@ def create_sr_log(db_params: dict, shared_conn=None) -> dict:
 
 def update_sr_log(logs_id: int, shared_conn=None) -> dict:
     sql = """
-        UPDATE public.sr_logs
+        UPDATE public.sr_logs 
         SET finished_at = NOW()
-        WHERE logs_id = %(logs_id)s
+        WHERE logs_id = %(logs_id)s;
     """
 
     if shared_conn:
@@ -159,17 +159,22 @@ def get_sr_documentation_logs(sr_no: str, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
-def get_active_log_id(sr_no: str, shared_conn=None) -> int:
-    """Finds the log row that hasn't been closed yet."""
-    sql = "SELECT logs_id FROM public.sr_logs WHERE sr_no = %(sr_no)s AND finished_at IS NULL;"
+def get_active_log_id(sr_no: str, shared_conn=None) -> dict:
+    """
+    Fetches the chronologically latest log.
+    Returns both the logs_id and the smk_id so we can detect database drift.
+    """
+    sql = """
+        SELECT logs_id, smk_id 
+        FROM public.sr_logs 
+        WHERE sr_no = %(sr_no)s 
+        ORDER BY logs_id DESC 
+        LIMIT 1;
+    """
     
     if shared_conn:
-        result = shared_conn.selectData(sql, {'sr_no': sr_no})
-        if result.get('status') and result.get('data'):
-            return result['data'][0][0]
-        else:
-            Log.error(f'DB Error | Msg: {result.get("msg")}')
-            return None
+        result = shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
+        return result
         
     conn = None
     result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
@@ -177,12 +182,8 @@ def get_active_log_id(sr_no: str, shared_conn=None) -> int:
     try:
         conn = DatabasePG("supabase")
         if conn:
-            result = conn.selectData(sql, {'sr_no': sr_no})
-            if result.get('status') and result.get('data'):
-                return result['data'][0][0]  # Return the logs_id
-            else:
-                Log.error(f'DB Error | Msg: {result.get("msg")}')
-                return None
+            result = conn.selectDataHeader(sql, {'sr_no': sr_no})
+            return result
         else:
             Log.error(f'DB Error | Msg: {result.get("msg")}')
             return None

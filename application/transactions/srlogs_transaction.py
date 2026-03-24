@@ -27,12 +27,22 @@ def get_sr_logs_trx(sr_no: str) -> dict:
         Log.error(f"Exception | Get SR Logs Trx | Msg: {str(e)}")
         return {'status': False, 'data': [], 'msg': str(e)}
 
-def get_active_log_id_trx(sr_no: str) -> int:
+def get_active_log_id_trx(sr_no: str, shared_conn=None) -> int:
     """
     Fetches the active log ID for a given SR. This is used to know which log entry to update when closing a phase.
     """
     try:
-        return srlogs_model.get_active_log_id(sr_no)
+        db_result = srlogs_model.get_active_log_id(sr_no, shared_conn)
+        
+        if not db_result.get('status') or not db_result.get('data') or len(db_result['data']) < 2:
+            return db_result
+        
+        headers = db_result['data'][0]
+        rows = db_result['data'][1]
+            
+        formatted_data = converters.convert_to_dicts(rows, headers)
+            
+        return {'status': True, 'data': formatted_data}
         
     except Exception as e:
         Log.error(f"Exception | Get Active Log ID Trx | Msg: {str(e)}")
