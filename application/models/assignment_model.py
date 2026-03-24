@@ -106,6 +106,30 @@ def get_sm_on_sr_model(sr_no: str, nik: str) -> dict:
     finally:
         if conn: conn.close()
 
+def get_it_role_on_sr_model(sr_no: str, nik: str) -> dict:
+    """Cek apakah it_role pada nik yang ter-assign pada SR ini. Return role_id jika ada."""
+    sql = """
+        SELECT it_role_id
+        FROM sr_assignments
+        WHERE sr_no = %(sr_no)s
+          AND assigned_user = %(nik)s
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        result = conn.selectData(sql, {'sr_no': sr_no, 'nik': nik})
+        if result.get('status') and result.get('data'):
+            return result['data'][0][0]  # Return it_role_id
+        else:
+            return None  # No IT role found for this user on this SR
+    except Exception as e:
+        Log.error(f'DB Exception | get_it_role_on_sr | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
 
 def get_sr_detail_with_status_model(sr_no: str) -> dict:
     """Ambil detail SR beserta status untuk halaman assignment."""
