@@ -161,3 +161,39 @@
     width: 90%;
     border-radius: 4px;
 }
+
+/* Layout Umum */
+.project-details-wrapper { max-width: 1200px; margin: 20px auto; }
+.modern-card { background: #fff; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+.card-header-info { padding: 24px 30px; display: flex; align-items: center; gap: 24px; border-bottom: 1px solid #e2e8f0; }
+.project-id { font-size: 18px; font-weight: 600; color: #1e293b; margin: 0; }
+.status-badge-orange { background: #ffedd5; color: #ea580c; border: 1px solid #fdba74; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+/* Custom Tabs untuk tag <a> */
+.custom-tabs { display: flex; padding: 0 30px; border-bottom: 1px solid #e2e8f0; background-color: #f8fafc; }
+.tab-btn { display: inline-block; padding: 16px 24px; font-size: 14px; font-weight: 500; color: #64748b; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all 0.2s; }
+.tab-btn:hover { color: #0ea5e9; }
+.tab-btn.active { color: #0ea5e9; border-bottom-color: #0ea5e9; font-weight: 600; background-color: #ffffff; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; }
+
+.card-body-content { padding: 30px; }
+
+/* Grid Info Detail */
+.data-fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.data-field-group { margin-bottom: 10px; }
+.full-width { grid-column: span 2; }
+.data-label { display: block; font-size: 12px; font-weight: 600; color: #adb5bd; margin-bottom: 6px; }
+.data-content { font-size: 14px; font-weight: 600; color: #212529; }
+.data-text { font-weight: 400; color: #495057; line-height: 1.6; }
+
+/* Avatar & Tag */
+.tag-gray { background: #f1f3f5; color: #adb5bd; font-size: 12px; padding: 4px 12px; border-radius: 12px; }
+.requester-info { display: flex; align-items: center; gap: 12px; }
+.avatar-purple { width: 28px; height: 28px; border-radius: 50%; background: #8d49f7; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: 600; }
+
+/* Tabel Timeline */
+.table-section { margin-bottom: 30px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+.table-section-title { background: #e2e8f0; padding: 12px 20px; font-size: 14px; font-weight: 600; margin: 0; }
+.table-responsive { overflow-x: auto; }
+.detail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.detail-table th, .detail-table td { padding: 12px 20px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; text-align: left; }
+.detail-table th { background: #f8fafc; font-weight: 600; }

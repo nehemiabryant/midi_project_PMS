@@ -8,59 +8,72 @@
 {% with header_title='Master Role' %}
 {% include 'components/header.html' %}
 {% endwith %}
-    <div class="table-container">
-        <div class="action-bar">
-            <a href="{{ url_for('role_mgmt.new_role_menu') }}" class="btn-add">
-                <i class="fas fa-plus"></i> Tambah Role
-            </a>
-            
-            <div class="search-box-container">
-                <i class="fas fa-search"></i>
-                <input type="text" class="search-box" placeholder="Cari Role...">
-            </div>
-        </div>
 
-        <div style="overflow-x: auto;">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th style="width: 10%;">No</th>
-                        <th>Nama Role</th>
-                        <th style="width: 20%; text-align: center;">Update</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="font-weight: 500;">1</td>
-                        <td>Admin</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=1) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <td style="font-weight: 500;">2</td>
-                        <td>User IT</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=2) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
-                            </div>
-                        </td>
-                    </tr>
+<div class="table-container">
 
-                    <tr>
-                        <td style="font-weight: 500;">3</td>
-                        <td>Admin User</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=3) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+        <a href="{{ url_for('role_mgmt.new_role_menu') }}" class="btn-add">
+            <i class="fas fa-plus"></i> Tambah Role
+        </a>
+
+        <div class="search-box-container">
+            <i class="fas fa-search"></i>
+            <input type="text" class="search-box" placeholder="Cari Role...">
         </div>
     </div>
+
+    <!-- TABLE -->
+    <div style="overflow-x: auto;">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">No</th>
+                    <th>Nama Role</th>
+                    <th style="width: 25%; text-align: center;">Aksi</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for role in roles %}
+                <tr>
+                    <td style="font-weight: 500;">{{ loop.index }}</td>
+                    <td>{{ role.approle_name }}</td>
+
+                    <td style="text-align: center;">
+                        <div style="display: flex; justify-content: center; gap: 8px;">
+
+                            <!-- EDIT -->
+                            <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=role.approle_id) }}"
+                               class="btn-rect btn-rect-edit"
+                               style="text-decoration: none;">
+                                Edit
+                            </a>
+
+                            <!-- DELETE -->
+                            <form method="POST"
+                                  action="{{ url_for('role_mgmt.master_role_delete', approle_id=role.approle_id) }}"
+                                  onsubmit="return confirm('Yakin ingin menghapus role ini?');">
+                                <button type="submit" class="btn-rect btn-rect-delete">
+                                    Delete
+                                </button>
+                            </form>
+
+                        </div>
+                    </td>
+                </tr>
+
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align:center;">
+                        Belum ada data role
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
 {% endblock %}
