@@ -57,3 +57,25 @@ def get_uploaded_docs(sr_no: str) -> dict:
         return {'status': False, 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def get_required_role_for_phase(current_smk_id: int) -> int:
+    """Finds which role owns the current phase."""
+    sql = """
+        SELECT allowed_picrole 
+        FROM public.sr_ms_workflow_rules 
+        WHERE current_smk_id = %(current_smk_id)s 
+        LIMIT 1;
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectData(sql, {'current_smk_id': current_smk_id})
+            if result.get('status') and result.get('data'):
+                return result['data'][0][0]  # Return allowed_picrole
+        return None
+    except Exception as e:
+        Log.error(f'Exception | get_required_role_for_phase | Msg: {str(e)}')
+        return None
+    finally:
+        if conn: conn.close()

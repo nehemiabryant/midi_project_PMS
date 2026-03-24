@@ -34,6 +34,7 @@ def get_my_work_items_model(nik: str) -> dict:
               OR (sa.it_role_id = 5 AND r.smk_id IN (108,109))
               OR (sa.it_role_id = 6 AND r.smk_id IN (110,111))
               OR (sa.it_role_id = 7 AND r.smk_id IN (114,115,116))
+              OR (sa.it_role_id = 8 AND r.smk_id IN (102))
           )
         ORDER BY r.created_at DESC
     """

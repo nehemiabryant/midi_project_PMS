@@ -1,3 +1,4 @@
+from application.utils import tokenization
 from common.midiconnectserver.midilog import Logger
 from ..models import my_work_model, assignment_model, task_model
 
@@ -72,6 +73,7 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
                     'created_at': row.get('created_at', ''),
                     'roles': [],
                     'role_ids': [],
+                    'token': tokenization.encrypt_id(sr_no),
                 }
             role_id = row.get('it_role_id')
             if role_id and role_id not in sr_map[sr_no]['role_ids']:
