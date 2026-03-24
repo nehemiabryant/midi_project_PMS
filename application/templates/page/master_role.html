@@ -2,68 +2,178 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/master_role.css') }}" />
+<style>
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+        background: #fff;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 420px;
+        padding: 28px 32px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .modal-header h3 { margin: 0; font-size: 18px; color: #212529; }
+    .modal-close {
+        background: none; border: none; font-size: 22px;
+        cursor: pointer; color: #6c757d; padding: 4px 8px; border-radius: 4px;
+    }
+    .modal-close:hover { background: #f1f3f5; color: #212529; }
+    .modal-body label {
+        display: block; font-size: 13px; font-weight: 600;
+        color: #495057; margin-bottom: 6px;
+    }
+    .modal-body input[type="text"] {
+        width: 100%; padding: 10px 12px; border: 1px solid #ced4da;
+        border-radius: 6px; font-size: 14px; outline: none; box-sizing: border-box;
+    }
+    .modal-body input[type="text"]:focus { border-color: #d41f26; }
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;
+    }
+    .btn-modal-cancel {
+        padding: 9px 20px; border-radius: 6px; font-size: 13.5px; font-weight: 500;
+        cursor: pointer; background: #f8f9fa; color: #495057; border: 1px solid #dee2e6;
+    }
+    .btn-modal-cancel:hover { background: #e9ecef; }
+    .btn-modal-submit {
+        padding: 9px 20px; border-radius: 6px; font-size: 13.5px; font-weight: 500;
+        cursor: pointer; background: #d41f26; color: #fff; border: none;
+    }
+    .btn-modal-submit:hover { background: #b31a20; }
+</style>
 {% endblock %}
 
 {% block content %}
 {% with header_title='Master Role' %}
 {% include 'components/header.html' %}
 {% endwith %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+
     <div class="table-container">
         <div class="action-bar">
-            <a href="{{ url_for('role_mgmt.new_role_menu') }}" class="btn-add">
+            <button type="button" class="btn-add" onclick="openCreateModal()">
                 <i class="fas fa-plus"></i> Tambah Role
-            </a>
-            
+            </button>
+
             <div class="search-box-container">
                 <i class="fas fa-search"></i>
-                <input type="text" class="search-box" placeholder="Cari Role...">
+                <input type="text" class="search-box" id="searchRole" placeholder="Cari Role...">
             </div>
         </div>
 
         <div style="overflow-x: auto;">
-            <table class="custom-table">
+            <table class="custom-table" id="roleTable">
                 <thead>
                     <tr>
-                        <th style="width: 10%;">No</th>
+                        <th style="width: 8%;">No</th>
                         <th>Nama Role</th>
-                        <th style="width: 20%; text-align: center;">Update</th>
+                        <th style="width: 35%; text-align: center;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for role in roles %}
                     <tr>
-                        <td style="font-weight: 500;">1</td>
-                        <td>Admin</td>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ role.approle_name }}</td>
                         <td style="text-align: center;">
                             <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=1) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
-                                <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
+                                <button type="button" class="btn-rect btn-rect-edit"
+                                        onclick="openEditModal({{ role.approle_id }}, '{{ role.approle_name }}')">Edit</button>
+                                <a href="{{ url_for('role_mgmt.master_role_permissions', approle_id=role.approle_id) }}" class="btn-rect btn-rect-detail" style="text-decoration: none;">Permissions</a>
+                                <form action="{{ url_for('role_mgmt.master_role_delete', approle_id=role.approle_id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus role {{ role.approle_name }}?');" style="display:inline;">
+                                    <button type="submit" class="btn-rect btn-rect-delete">Hapus</button>
+                                </form>
                             </div>
                         </td>
                     </tr>
-                    
-                    <tr>
-                        <td style="font-weight: 500;">2</td>
-                        <td>User IT</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=2) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
-                                <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
-                            </div>
-                        </td>
-                    </tr>
+                    {% endfor %}
 
+                    {% if not roles %}
                     <tr>
-                        <td style="font-weight: 500;">3</td>
-                        <td>Admin User</td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; justify-content: center; gap: 8px;">
-                                <a href="{{ url_for('role_mgmt.edit_role_menu', approle_id=3) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Edit</a>
-                                <a href="#" class="btn-rect btn-rect-detail" style="text-decoration: none;">Detail</a>
-                            </div>
-                        </td>
+                        <td colspan="3" style="text-align: center; color: #6c757d;">Belum ada data role.</td>
                     </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- Modal: Create / Edit Role -->
+    <div class="modal-overlay" id="roleModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="roleModalTitle">Tambah Role Baru</h3>
+                <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="roleForm" method="POST">
+                <div class="modal-body">
+                    <label for="inputRoleName">Nama Role</label>
+                    <input type="text" id="inputRoleName" name="approle_name" placeholder="Masukkan nama role" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-modal-cancel" onclick="closeModal()">Batal</button>
+                    <button type="submit" class="btn-modal-submit" id="roleSubmitBtn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCreateModal() {
+            document.getElementById('roleModalTitle').textContent = 'Tambah Role Baru';
+            document.getElementById('roleForm').action = "{{ url_for('role_mgmt.master_role_create') }}";
+            document.getElementById('inputRoleName').value = '';
+            document.getElementById('roleSubmitBtn').textContent = 'Simpan';
+            document.getElementById('roleModal').classList.add('active');
+            document.getElementById('inputRoleName').focus();
+        }
+
+        function openEditModal(approleId, approleName) {
+            document.getElementById('roleModalTitle').textContent = 'Edit Role';
+            document.getElementById('roleForm').action = '/masterRole/' + approleId + '/update';
+            document.getElementById('inputRoleName').value = approleName;
+            document.getElementById('roleSubmitBtn').textContent = 'Update';
+            document.getElementById('roleModal').classList.add('active');
+            document.getElementById('inputRoleName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('roleModal').classList.remove('active');
+        }
+
+        document.getElementById('roleModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        document.getElementById('searchRole').addEventListener('input', function() {
+            var q = this.value.toLowerCase();
+            var rows = document.querySelectorAll('#roleTable tbody tr');
+            rows.forEach(function(row) {
+                var name = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
+                row.style.display = name.includes(q) ? '' : 'none';
+            });
+        });
+    </script>
 {% endblock %}

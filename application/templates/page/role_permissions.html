@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/edit_role.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% with header_title='Permissions: ' + role.approle_name %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="card-container">
+        <div class="top-action">
+            <a href="{{ url_for('role_mgmt.master_role_menu') }}" class="btn-back">
+                <i class="fas fa-chevron-left"></i> Kembali
+            </a>
+        </div>
+
+        <form action="{{ url_for('role_mgmt.master_role_permissions', approle_id=role.approle_id) }}" method="POST">
+
+            <div class="form-content">
+                <div class="check-all-container">
+                    <label class="custom-checkbox-wrapper font-semibold">
+                        <input type="checkbox" id="checkAll">
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">Checklist Semua Permission</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-grid">
+                    {% for perm in permissions %}
+                    <label class="custom-checkbox-wrapper">
+                        <input type="checkbox" class="menu-checkbox" name="permission_ids" value="{{ perm.permission_id }}"
+                               {% if perm.permission_id in current_perm_ids %}checked{% endif %}>
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">{{ perm.permission_detail }}</span>
+                    </label>
+                    {% endfor %}
+
+                    {% if not permissions %}
+                    <p style="color: #6c757d;">Belum ada data permission.</p>
+                    {% endif %}
+                </div>
+
+                <div class="bottom-action">
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i> Simpan Permissions
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var checkAllBtn = document.getElementById('checkAll');
+            var menuCheckboxes = document.querySelectorAll('.menu-checkbox');
+
+            if (menuCheckboxes.length > 0) {
+                checkAllBtn.checked = Array.from(menuCheckboxes).every(function(c) { return c.checked; });
+            }
+
+            checkAllBtn.addEventListener('change', function() {
+                menuCheckboxes.forEach(function(cb) {
+                    cb.checked = checkAllBtn.checked;
+                });
+            });
+
+            menuCheckboxes.forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    checkAllBtn.checked = Array.from(menuCheckboxes).every(function(c) { return c.checked; });
+                });
+            });
+        });
+    </script>
+{% endblock %}

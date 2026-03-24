@@ -10,7 +10,6 @@ STATUS_BACKLOG_SCRUM = 105
 STATUS_SD_ON_PROGRESS = 106
 IT_USER_ROLE_NAME = 'IT USER'  # approle_name di sr_ms_app_role (approle_id=2)
 
-
 def get_it_users_model() -> dict:
     """Ambil semua user dari sr_user yang punya role 'User IT', JOIN karyawan_all untuk nama."""
     sql = """
@@ -33,7 +32,6 @@ def get_it_users_model() -> dict:
     finally:
         if conn: conn.close()
 
-
 def get_assignable_picroles_model() -> dict:
     """Ambil PIC roles yang bisa di-assign oleh SM: SCM(4), DEV(5), QA(6), RO(7)."""
     sql = """
@@ -53,7 +51,6 @@ def get_assignable_picroles_model() -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
-
 
 def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
     """Ambil assignment pada SR. Jika it_role_ids diberikan, filter hanya role tersebut."""
@@ -83,7 +80,6 @@ def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
-
 
 def get_sm_on_sr_model(sr_no: str, nik: str) -> dict:
     """Cek apakah NIK adalah IT SM (it_role_id=3) yang ter-assign pada SR ini."""
@@ -153,7 +149,6 @@ def get_sr_detail_with_status_model(sr_no: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
-
 
 def insert_assignments_and_update_status_model(sr_no: str, assignments: list, assigned_by: str) -> dict:
     """
