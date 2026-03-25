@@ -6,6 +6,8 @@ from application.views.auth_view import auth_bp
 from application.views.dashboard_view import dashboard_bp
 from application.views.sr_view import sr_bp
 from application.views.role_view import role_mgmt_bp
+from application.views.task_view import task_bp
+from application.views.assignment_view import assignment_bp
 
 csrf = CSRFProtect()
 
@@ -25,9 +27,12 @@ def create_app(config_filename=None):
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(sr_bp)
     app.register_blueprint(role_mgmt_bp)
+    app.register_blueprint(task_bp)
+    app.register_blueprint(assignment_bp)
 
     csrf.init_app(app)
     csrf.exempt(role_mgmt_bp)  # API JSON tidak memerlukan CSRF form token
+    csrf.exempt(task_bp)       # Task API endpoint (JSON)
 
     # Error Handlers
     @app.errorhandler(400)

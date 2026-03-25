@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Detail Project - {{ sr_detail.sr_no }}{% endblock %}
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <p class="{{ category }}">{{ message }}</p>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<a href="{{ url_for('owh_dashboard.myWork_menu') }}">&larr; Kembali ke My Work</a>
+
+<!-- Informasi Project -->
+<div>
+    <h3>Informasi Project</h3>
+    <table>
+        <tr><td><strong>No SR</strong></td><td>{{ sr_detail.sr_no }}</td></tr>
+        <tr><td><strong>Nama Aplikasi</strong></td><td>{{ sr_detail.name }}</td></tr>
+        <tr><td><strong>Modul</strong></td><td>{{ sr_detail.module }}</td></tr>
+        <tr><td><strong>Status</strong></td><td>{{ sr_detail.smk_ket }}</td></tr>
+        <tr><td><strong>Created</strong></td><td>{{ sr_detail.created_at }}</td></tr>
+        <tr><td><strong>Role Anda</strong></td><td>{% for sec in pic_sections %}{{ sec.it_role_detail }}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+    </table>
+</div>
+
+<!-- Task List per Role -->
+{% for section in pic_sections %}
+<div>
+    <h3>Task List — {{ section.it_role_detail }} ({{ section.tasks|length }})</h3>
+
+    <button type="button" onclick="showAddTaskForm('{{ section.it_role_id }}')">+ Tambah Task</button>
+
+    <!-- Form Tambah Task -->
+    <div id="add-task-form-{{ section.it_role_id }}" style="display:none;">
+        <input type="text" id="new-task-detail-{{ section.it_role_id }}" placeholder="Detail task...">
+        <input type="date" id="new-task-target-{{ section.it_role_id }}">
+        <button type="button" onclick="createTask('{{ section.it_role_id }}')">Simpan</button>
+        <button type="button" onclick="hideAddTaskForm('{{ section.it_role_id }}')">Batal</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nama Task</th>
+                <th>Target</th>
+                <th>Realisasi</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if section.tasks %}
+            {% for task in section.tasks %}
+            <tr class="task-row" data-task-id="{{ task.task_id }}">
+                <td>{{ loop.index }}</td>
+                <td>
+                    <span class="task-name-display">{{ task.task_detail }}</span>
+                    <input class="task-name-edit" type="text" value="{{ task.task_detail }}" style="display:none;">
+                </td>
+                <td>
+                    <span class="task-target-display">{{ task.target_date if task.target_date else '-' }}</span>
+                    <input class="task-target-edit" type="date" value="{{ task.target_date if task.target_date else '' }}" style="display:none;">
+                </td>
+                <td>
+                    <span class="task-actual-display">{{ task.actual_date if task.actual_date else '-' }}</span>
+                    <input class="task-actual-edit" type="date" value="{{ task.actual_date if task.actual_date else '' }}" style="display:none;">
+                </td>
+                <td>
+                    <button class="btn-edit" onclick="toggleEdit(this)">Edit</button>
+                    <button class="btn-save" onclick="saveTask(this)" style="display:none;">Simpan</button>
+                    <button class="btn-cancel" onclick="cancelEdit(this)" style="display:none;">Batal</button>
+                    <button onclick="deleteTask({{ task.task_id }})">Hapus</button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr><td colspan="5">Belum ada task.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SR_NO = "{{ sr_detail.sr_no }}";
+
+function showAddTaskForm(roleId) {
+    document.getElementById('add-task-form-' + roleId).style.display = '';
+    document.getElementById('new-task-detail-' + roleId).focus();
+}
+
+function hideAddTaskForm(roleId) {
+    document.getElementById('add-task-form-' + roleId).style.display = 'none';
+    document.getElementById('new-task-detail-' + roleId).value = '';
+    document.getElementById('new-task-target-' + roleId).value = '';
+}
+
+function createTask(roleId) {
+    const detail = document.getElementById('new-task-detail-' + roleId).value.trim();
+    const target = document.getElementById('new-task-target-' + roleId).value;
+    if (!detail) { alert('Task detail tidak boleh kosong.'); return; }
+
+    fetch('/task/create/' + SR_NO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: null, it_role_id: parseInt(roleId) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'T') location.reload();
+        else alert(data.msg || 'Gagal membuat task.');
+    })
+    .catch(() => alert('Terjadi kesalahan.'));
+}
+
+function toggleEdit(btn) {
+    const row = btn.closest('.task-row');
+    row.querySelectorAll('.task-name-display, .task-target-display, .task-actual-display').forEach(el => el.style.display = 'none');
+    row.querySelectorAll('.task-name-edit, .task-target-edit, .task-actual-edit').forEach(el => el.style.display = '');
+    row.querySelector('.btn-edit').style.display = 'none';
+    row.querySelector('.btn-save').style.display = '';
+    row.querySelector('.btn-cancel').style.display = '';
+}
+
+function cancelEdit(btn) {
+    const row = btn.closest('.task-row');
+    row.querySelectorAll('.task-name-display, .task-target-display, .task-actual-display').forEach(el => el.style.display = '');
+    row.querySelectorAll('.task-name-edit, .task-target-edit, .task-actual-edit').forEach(el => el.style.display = 'none');
+    row.querySelector('.btn-edit').style.display = '';
+    row.querySelector('.btn-save').style.display = 'none';
+    row.querySelector('.btn-cancel').style.display = 'none';
+}
+
+function saveTask(btn) {
+    const row = btn.closest('.task-row');
+    const taskId = row.dataset.taskId;
+    const detail = row.querySelector('.task-name-edit').value.trim();
+    const target = row.querySelector('.task-target-edit').value;
+    const actual = row.querySelector('.task-actual-edit').value;
+    if (!detail) { alert('Task detail tidak boleh kosong.'); return; }
+
+    fetch('/task/' + taskId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: actual || null })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'T') location.reload();
+        else alert(data.msg || 'Gagal update task.');
+    })
+    .catch(() => alert('Terjadi kesalahan.'));
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Hapus task ini?')) return;
+    fetch('/task/' + taskId, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'T') location.reload();
+        else alert(data.msg || 'Gagal menghapus task.');
+    })
+    .catch(() => alert('Terjadi kesalahan.'));
+}
+</script>
+{% endblock %}

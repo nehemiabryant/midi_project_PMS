@@ -7,6 +7,21 @@
 {% endwith %}
 
 <div class="page-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flash-container" style="margin-bottom: 20px;">
+      {% for category, message in messages %}
+        
+        <div class="custom-alert custom-alert-{{ category }}">
+            <span>{{ message }}</span>
+            
+            <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
+        </div>
+        
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 	<div class="form-card">
 		<form id="srForm" method="POST" enctype="multipart/form-data" action="">
 
@@ -51,7 +66,7 @@
 				<div class="form-row">
 					<div class="form-label">Divisi</div>
 					<div class="form-field">
-						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" /> <!-- style="background-color: #f3f4f6; cursor: not-allowed;" disabled -->
+						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled /> <!-- style="background-color: #f3f4f6; cursor: not-allowed;" disabled -->
 					</div>
 				</div>
 
@@ -192,9 +207,12 @@
 			</div>
 
 			<div class="form-actions">
-				<a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Cancel</a>
-				
-				<button type="submit" class="btn btn-create">{{ 'Update' if sr_data else 'Create' }}</button>
+				<a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn btn-cancel">Cancel</a>
+
+                <button type="submit" name="intended_next_smk_id" value="103" class="btn-success">
+                    Approve & Advance
+                </button>
+                <!-- CHANGE INTO A DROPDOWN TO CHOOSE THE OPTION AND SUBMIT (103 to continue, 109 to reject) -->
 			</div>
 		</form>
 	</div>
