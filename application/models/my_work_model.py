@@ -13,7 +13,6 @@ IT_ROLE_TERRITORY = {
     7: [114, 115, 116],          # IT RO  → BACKLOG TO, TO, ROLLOUT
 }
 
-
 def get_my_work_items_model(nik: str) -> dict:
     """
     Ambil semua SR yang di-assign ke user ini beserta role-nya.
@@ -51,7 +50,6 @@ def get_my_work_items_model(nik: str) -> dict:
     finally:
         if conn: conn.close()
 
-
 def get_sr_detail_full_model(sr_no: str) -> dict:
     """Ambil detail SR lengkap untuk halaman detail."""
     sql = """
@@ -77,7 +75,6 @@ def get_sr_detail_full_model(sr_no: str) -> dict:
     finally:
         if conn: conn.close()
 
-
 def get_all_sr_assignments_model(sr_no: str) -> dict:
     """Ambil semua assignment pada SR (semua role)."""
     sql = """
@@ -102,7 +99,6 @@ def get_all_sr_assignments_model(sr_no: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
-
 
 def get_user_role_on_sr_model(sr_no: str, nik: str) -> dict:
     """Ambil role user pada SR tertentu (bisa punya multiple role)."""

@@ -117,3 +117,32 @@ def editSR_menu(token):
             return redirect(request.url)
 
     return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
+
+# @sr_bp.route('/projectDetails/<token>', methods=['GET'])
+# @login_required
+# def project_details_menu(token):
+#     # Jika token dari sidebar (biasanya string 'token' atau kosong), BYPASS pencarian DB
+#     if token == 'token' or not token:
+#         # Langsung render HTML tanpa mencari ke database
+#         return render_template('page/project_detail.html', 
+#                                user=session.get('user', {}), 
+#                                role=session.get('role'), 
+#                                active_menu='project_details',
+#                                sr_no='SR-TESTING-001') # Data dummy
+
+#     # Logika asli Anda untuk mendekripsi token dan mencari ke database...
+#     sr_no = tokenization.decrypt_token(token)
+    
+#     # ... (Kode pencarian API/Database Anda) ...
+#     # Pastikan jika API gagal, jangan `return jsonify(api_response)`. 
+#     # Tapi gunakan `flash` dan `redirect` seperti ini:
+    
+#     # if not response.get('status'):
+#     #     flash("Data tidak ditemukan", "error")
+#     #     return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+#     return render_template('page/project_detail.html', 
+#                            user=session.get('user', {}), 
+#                            role=session.get('role'), 
+#                            active_menu='project_details',
+#                            sr_no=sr_no)

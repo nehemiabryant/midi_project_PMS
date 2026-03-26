@@ -52,8 +52,7 @@ def validate_user_gateway(nik, password):
             _set_role_session('00000')
             Log.info("LOGIN | DUMMY USER LOGIN SUCCESS")
             return 'T', None
-
-        # ===== TEST ACCOUNTS (HAPUS SETELAH TESTING) =====
+            
         _test_accounts = {
             # NIK: (password, nama, jabatan)
             '02000000':   ('magang123',  'MAGANG IT',                    'IT PMO'),
@@ -79,7 +78,6 @@ def validate_user_gateway(nik, password):
             _set_role_session(nik)
             Log.info(f"LOGIN | TEST ACCOUNT LOGIN | NIK: {nik}")
             return 'T', None
-        # ===== END TEST ACCOUNTS =====
 
         # Midigateway
         URL = "https://hoapimac.mu.co.id/ceklogin"
