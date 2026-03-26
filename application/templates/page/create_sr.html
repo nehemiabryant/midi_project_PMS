@@ -6,6 +6,27 @@
 {% include 'components/header.html' %}
 {% endwith %}
 
+<style>
+	#nikSuggestions {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.suggestion-item:hover {
+    background-color: #f3f4f6;
+}
+</style>
+
 <div class="page-content">
 	<div class="form-card">
 		<form id="srForm" method="POST" enctype="multipart/form-data" action="">
@@ -37,14 +58,23 @@
 				<div class="form-row">
 					<div class="form-label">Maker</div>
 					<div class="form-field">
-						<input type="text" class="form-input" value="{{ sr_data.maker_id if sr_data else user.nik }} - {{ sr_data.maker_name if sr_data else user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
+						<input type="text" class="form-input" value="{{ sr_data.user_info.maker.nik if sr_data else user.nik }} - {{ sr_data.user_info.maker.name if sr_data else user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
 					</div>
 				</div>
 
 				<div class="form-row">
 					<div class="form-label">Requester</div>
-					<div class="form-field">
-						<input type="text" class="form-input" id="req_id" name="req_id" value="{{ sr_data.req_id if sr_data else '' }}" {% if sr_data %}style="background-color: #f3f4f6; cursor: not-allowed;" disabled {% endif %}/>
+					<div class="form-field" style="position: relative;">
+						<!--<input type="text" class="form-input" id="req_id" name="req_id" value="{{ sr_data.req_id if sr_data else '' }}" {% if sr_data %}style="background-color: #f3f4f6; cursor: not-allowed;" disabled {% endif %}/>-->
+
+						<input type="text" class="form-input" id="req_display" autocomplete="off" placeholder="Type NIK or Name..."
+							value="{% if sr_data %}{{ sr_data.user_info.requester.nik }} - {{ sr_data.user_info.requester.name }}{% endif %}" 
+							{% if sr_data %} style="background-color: #f3f4f6; cursor: not-allowed;" disabled {% endif %} />
+
+						<input type="hidden" id="req_id" name="req_id" 
+							value="{% if sr_data %}{{ sr_data.user_info.requester.nik }}{% endif %}">
+
+						<ul id="req_suggestions" class="suggestion-dropdown" style="display: none; position: absolute; background: white; border: 1px solid #ccc; width: 100%; max-height: 200px; overflow-y: auto; list-style: none; padding: 0; margin: 0; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
 					</div>
 				</div>
 
@@ -204,4 +234,77 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/components/ckeditor-init.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/file-upload.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const displayInput = document.getElementById('req_display');
+    const hiddenInput = document.getElementById('req_id');
+    const suggestionBox = document.getElementById('req_suggestions');
+
+    function debounce(func, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    const fetchSuggestions = debounce(async (query) => {
+        if (query.length < 2) {
+            suggestionBox.style.display = 'none';
+            return;
+        }
+
+        try {
+            // Pointing to YOUR new wrapper route
+            const response = await fetch(`/karyawan/search?q=${encodeURIComponent(query)}`);
+            const json = await response.json(); 
+            const results = json.data || []; 
+
+            suggestionBox.innerHTML = ''; 
+
+            if (results.length > 0) {
+                results.forEach(item => {
+                    const li = document.createElement('li');
+                    li.style.padding = "8px 12px";
+                    li.style.cursor = "pointer";
+                    li.style.borderBottom = "1px solid #eee";
+                    
+                    // Pulling exactly from your team's dictionary keys!
+                    li.innerHTML = `<strong>${item.nik}</strong> - ${item.nama} <br><small style="color:gray;">${item.jabatan}</small>`; 
+                    
+                    li.onmouseover = () => li.style.backgroundColor = "#f3f4f6";
+                    li.onmouseout = () => li.style.backgroundColor = "white";
+
+                    li.onclick = () => {
+                        displayInput.value = `${item.nik} - ${item.nama}`;
+                        hiddenInput.value = item.nik; 
+                        suggestionBox.style.display = 'none';
+                    };
+                    suggestionBox.appendChild(li);
+                });
+                suggestionBox.style.display = 'block';
+            } else {
+                suggestionBox.style.display = 'none';
+            }
+        } catch (error) {
+            console.error("Error fetching suggestions:", error);
+            suggestionBox.style.display = 'none';
+        }
+    }, 300); 
+
+    if (displayInput) {
+        displayInput.addEventListener('input', (e) => {
+            if (e.target.value === '') hiddenInput.value = ''; 
+            fetchSuggestions(e.target.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== displayInput && e.target !== suggestionBox) {
+                suggestionBox.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

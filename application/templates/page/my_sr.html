@@ -40,29 +40,6 @@
                             <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
                         </td>
                     </tr>
-                    
-                    <tr>
-                        <td style="font-weight: 500;">{{row.sr_no}}</td>
-                        <td>{{row.name}}</td>
-                        <td><span class="status-badge status-active">{{row.status}}</span></td>
-                        <td>
-                            <a href="{{ url_for('owh_sr.editSR_menu', token=row.token) }}" class="btn-action btn-edit" title="Edit Data" style="text-decoration: none;">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="font-weight: 500;">{{row.sr_no}}</td>
-                        <td>{{row.name}}</td>
-                        <td><span class="status-badge status-inactive">{{row.status}}</span></td>
-                        <td>
-                           <a href="{{ url_for('owh_sr.editSR_menu', token=row.token) }}" class="btn-action btn-edit" title="Edit Data" style="text-decoration: none;">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

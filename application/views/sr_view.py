@@ -71,7 +71,7 @@ def createSR_menu():
             else:
                 flash(f"SR Saved, but workflow error: {log_result.get('msg')}", "warning")
 
-            return redirect(url_for('owh_dashboard.dashboard_menu'))
+            return redirect(url_for('owh_sr.mySR_menu'))
         else:
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
@@ -96,6 +96,13 @@ def editSR_menu(token):
         intent='EDIT'
     )
 
+    if not eligibility_result.get('status'):
+        #error_msg = eligibility_result.get('msg', 'Access denied.')
+        #flash(error_msg, 'error') 
+        flash(eligibility_result.get('msg'), "error")
+        
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
     sr_data = eligibility_result['data'][0]
 
     if sr_data.get('req_id') != current_user:
@@ -118,31 +125,98 @@ def editSR_menu(token):
 
     return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
 
-# @sr_bp.route('/projectDetails/<token>', methods=['GET'])
-# @login_required
-# def project_details_menu(token):
-#     # Jika token dari sidebar (biasanya string 'token' atau kosong), BYPASS pencarian DB
-#     if token == 'token' or not token:
-#         # Langsung render HTML tanpa mencari ke database
-#         return render_template('page/project_detail.html', 
-#                                user=session.get('user', {}), 
-#                                role=session.get('role'), 
-#                                active_menu='project_details',
-#                                sr_no='SR-TESTING-001') # Data dummy
+@sr_bp.route('/approval/<token>', methods=['GET', 'POST'])
+@login_required
+def approveSR_menu(token):
+    sr_no = tokenization.decrypt_token(token)
 
-#     # Logika asli Anda untuk mendekripsi token dan mencari ke database...
-#     sr_no = tokenization.decrypt_token(token)
-    
-#     # ... (Kode pencarian API/Database Anda) ...
-#     # Pastikan jika API gagal, jangan `return jsonify(api_response)`. 
-#     # Tapi gunakan `flash` dan `redirect` seperti ini:
-    
-#     # if not response.get('status'):
-#     #     flash("Data tidak ditemukan", "error")
-#     #     return redirect(url_for('owh_dashboard.dashboard_menu'))
+    if not sr_no:
+        flash("Invalid or corrupted approval link.", "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
 
-#     return render_template('page/project_detail.html', 
-#                            user=session.get('user', {}), 
-#                            role=session.get('role'), 
-#                            active_menu='project_details',
-#                            sr_no=sr_no)
+    current_user = session.get('user', {}).get('nik', '')
+
+    # 1. Eligibility Check (Reused perfectly!)
+    eligibility_result = workflow_transaction.authorize_sr_access(
+        sr_no=sr_no, 
+        user_nik=current_user,
+        intent='APPROVE'
+    )
+
+    if not eligibility_result.get('status'):
+        flash(eligibility_result.get('msg'), "error")
+        return redirect(url_for('owh_dashboard.myWork_menu'))
+
+    sr_data = eligibility_result['data'][0]
+
+    current_smk_id = sr_data.get('smk_id') 
+
+    options = workflow_transaction.get_dropdown_options(current_smk_id)
+    
+
+    if request.method == 'POST':
+        raw_form_data = request.form.to_dict()
+        files = request.files
+
+        # ==========================================
+        # PART A: UPDATE THE EDITABLE DATA
+        # ==========================================
+        # (Optional: Add the whitelist sanitize function here if you built it!)
+        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
+
+        if not trx_result.get('status'):
+            flash(f"Error saving data: {trx_result.get('msg')}", "error")
+            return redirect(request.url)
+        
+        # ==========================================
+        # PART B: FIGURE OUT THE WORKFLOW STATE
+        # ==========================================
+        next_smk_id = int(request.form.get('intended_next_smk_id'))
+        
+        # ==========================================
+        # PART C: ADVANCE THE PHASE
+        # ==========================================
+        advance_result = workflow_transaction.advance_sr_phase(
+            sr_no=sr_no,
+            current_smk_id=current_smk_id,
+            next_smk_id=next_smk_id,
+            action_by=current_user
+        )
+
+        if advance_result.get('status'):
+            flash("Service Request updated and approved successfully!", "success")
+            return redirect(url_for('owh_dashboard.dashboard_menu'))
+        else:
+            flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
+            return redirect(request.url)
+
+    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data, options=options)
+
+@sr_bp.route('/projectDetails/<token>', methods=['GET'])
+@login_required
+def project_details_menu(token):
+    # Jika token dari sidebar (biasanya string 'token' atau kosong), BYPASS pencarian DB
+    if token == 'token' or not token:
+        # Langsung render HTML tanpa mencari ke database
+        return render_template('page/project_detail.html', 
+                               user=session.get('user', {}), 
+                               role=session.get('role'), 
+                               active_menu='project_details',
+                               sr_no='SR-TESTING-001') # Data dummy
+
+    # Logika asli Anda untuk mendekripsi token dan mencari ke database...
+    sr_no = tokenization.decrypt_token(token)
+    
+    # ... (Kode pencarian API/Database Anda) ...
+    # Pastikan jika API gagal, jangan `return jsonify(api_response)`. 
+    # Tapi gunakan `flash` dan `redirect` seperti ini:
+    
+    # if not response.get('status'):
+    #     flash("Data tidak ditemukan", "error")
+    #     return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    return render_template('page/project_detail.html', 
+                           user=session.get('user', {}), 
+                           role=session.get('role'), 
+                           active_menu='project_details',
+                           sr_no=sr_no)
