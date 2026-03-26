@@ -155,20 +155,3 @@ def master_user_remove(user_id):
         flash('Assignment berhasil dihapus.', 'success')
     return redirect(url_for('role_mgmt.master_user_menu'))
 
-
-# ---------------------------------------------------------------------------
-# Karyawan Search — tetap JSON untuk autocomplete JS
-# ---------------------------------------------------------------------------
-
-@role_mgmt_bp.route('/karyawan/search', methods=['GET'])
-@login_required
-@super_admin_required
-def search_karyawan():
-    query = request.args.get('q', '').strip()
-    limit = request.args.get('limit', 5, type=int)
-    offset = request.args.get('offset', 0, type=int)
-
-    result = karyawan_transaction.search_karyawan_trx(query, limit, offset)
-    if not result.get('status'):
-        return jsonify({'error': 'server_error', 'details': result.get('msg')}), 500
-    return jsonify({'data': result.get('data')}), 200

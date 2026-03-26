@@ -1,23 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>List Service Requests</title>
-</head>
-<body>
-    {% for row in sr_data %}
-    <tr>
-        <td>{{ row.sr_no }}</td>
-        <td>{{ row.name }}</td>
-        <td>{{ row.status }}</td>
-        <td>
-            <a href="{{ url_for('owh_sr.editSR_menu', token=row.token) }}" class="btn btn-primary">
-                Edit
-            </a>
-        </td>
-    </tr>
-    <br>
-    {% endfor %}
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/my_sr.css') }}" />
+{% endblock %}
+
+{% block content %}
+{% with header_title='My Sr' %}
+{% include 'components/header.html' %}
+{% endwith %}
+    <div class="table-container">
+        <div class="action-bar">
+            <div class="search-box-container">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-box" placeholder="Cari ID atau Nama SR...">
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>ID SR</th>
+                        <th>Nama SR</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in sr_data %}
+                    <tr>
+                        <td style="font-weight: 500;">{{row.sr_no}}</td>
+                        <td>{{row.name}}</td>
+                        <td><span class="status-badge status-active">{{row.status}}</span></td>
+                       <td>
+                            <a href="{{ url_for('owh_sr.editSR_menu', token=row.token) }}" class="btn-action btn-edit" title="Edit Data" style="text-decoration: none;">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            
+                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

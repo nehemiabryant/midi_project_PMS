@@ -71,7 +71,7 @@ def createSR_menu():
             else:
                 flash(f"SR Saved, but workflow error: {log_result.get('msg')}", "warning")
 
-            return redirect(url_for('owh_dashboard.dashboard_menu'))
+            return redirect(url_for('owh_sr.mySR_menu'))
         else:
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
@@ -95,6 +95,13 @@ def editSR_menu(token):
         user_nik=current_user,
         intent='EDIT'
     )
+
+    if not eligibility_result.get('status'):
+        #error_msg = eligibility_result.get('msg', 'Access denied.')
+        #flash(error_msg, 'error') 
+        flash(eligibility_result.get('msg'), "error")
+        
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
 
     sr_data = eligibility_result['data'][0]
 
@@ -138,9 +145,14 @@ def approveSR_menu(token):
 
     if not eligibility_result.get('status'):
         flash(eligibility_result.get('msg'), "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
+        return redirect(url_for('owh_dashboard.myWork_menu'))
 
     sr_data = eligibility_result['data'][0]
+
+    current_smk_id = sr_data.get('smk_id') 
+
+    options = workflow_transaction.get_dropdown_options(current_smk_id)
+    
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
@@ -158,9 +170,8 @@ def approveSR_menu(token):
         # ==========================================
         # PART B: FIGURE OUT THE WORKFLOW STATE
         # ==========================================
-        current_smk_id = sr_data.get('smk_id')
         next_smk_id = int(request.form.get('intended_next_smk_id'))
-
+        
         # ==========================================
         # PART C: ADVANCE THE PHASE
         # ==========================================
@@ -178,5 +189,33 @@ def approveSR_menu(token):
             flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
             return redirect(request.url)
 
-    # If it's a GET request, load the specific Approval Page template
-    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
+    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data, options=options)
+
+@sr_bp.route('/projectDetails/<token>', methods=['GET'])
+@login_required
+def project_details_menu(token):
+    # Jika token dari sidebar (biasanya string 'token' atau kosong), BYPASS pencarian DB
+    if token == 'token' or not token:
+        # Langsung render HTML tanpa mencari ke database
+        return render_template('page/project_detail.html', 
+                               user=session.get('user', {}), 
+                               role=session.get('role'), 
+                               active_menu='project_details',
+                               sr_no='SR-TESTING-001') # Data dummy
+
+    # Logika asli Anda untuk mendekripsi token dan mencari ke database...
+    sr_no = tokenization.decrypt_token(token)
+    
+    # ... (Kode pencarian API/Database Anda) ...
+    # Pastikan jika API gagal, jangan `return jsonify(api_response)`. 
+    # Tapi gunakan `flash` dan `redirect` seperti ini:
+    
+    # if not response.get('status'):
+    #     flash("Data tidak ditemukan", "error")
+    #     return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    return render_template('page/project_detail.html', 
+                           user=session.get('user', {}), 
+                           role=session.get('role'), 
+                           active_menu='project_details',
+                           sr_no=sr_no)

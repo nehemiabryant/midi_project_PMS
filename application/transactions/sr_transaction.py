@@ -1,7 +1,6 @@
 from common.midiconnectserver.midilog import Logger
-from ..models import sr_model
-from ..utils import tokenization
-from ..utils.converters import parse_rows, parse_single_row
+from ..models import sr_model, karyawan
+from ..utils import tokenization, converters
 from . import attachment_transaction
 
 Log = Logger()
@@ -72,7 +71,40 @@ def get_edit_sr_trx(sr_no: str) -> dict:
         if not sr_dict:
             return {'status': False, 'data': [], 'msg': 'Service Request not found.'}
 
-        sr_dict['attachments'] = attachment_transaction.get_attachments_for_view(sr_no)
+        sr_list = converters.convert_to_dicts(rows, headers)
+        
+        sr_dict = sr_list[0] 
+
+        req_nik = sr_dict.get('req_id', '')
+        maker_nik = sr_dict.get('maker_id', '')
+        req_name = ''
+        maker_name = ''
+
+
+        if req_nik:
+            req_result = karyawan.get_karyawan_nama_by_nik(req_nik)
+            if isinstance(req_result, str):
+                req_name = req_result
+
+        if maker_nik:
+            maker_result = karyawan.get_karyawan_nama_by_nik(maker_nik)
+            if isinstance(maker_result, str):
+                maker_name = maker_result
+
+        sr_dict['user_info'] = {
+            'maker': {
+                'nik': maker_nik,
+                'name': maker_name
+            },
+            'requester': {
+                'nik': req_nik,
+                'name': req_name
+            }
+        }
+
+        attachments = attachment_transaction.get_attachments_for_view(sr_no)
+
+        sr_dict['attachments'] = attachments
 
         return {'status': True, 'data': [sr_dict]}
     except Exception as e:
