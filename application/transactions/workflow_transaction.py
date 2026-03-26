@@ -238,3 +238,18 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
     except Exception as e:
         Log.error(f"Exception | Validate SR Action | Msg: {str(e)}")
         return {'status': False, 'msg': 'An error occurred while verifying permissions.', 'data': []}
+    
+def get_dropdown_options(current_smk_id: int) -> list:
+    """Fetches valid transitions and converts them to a list of dicts for Jinja."""
+    try:
+        db_result = workflow_model.get_next_allowed_phases(current_smk_id)
+        
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            return converters.convert_to_dicts(rows, headers)
+            
+        return []
+    except Exception as e:
+        Log.error(f"Exception | Get Dropdown Options | Msg: {str(e)}")
+        return {'status': False, 'msg': 'An error occurred while retrieving dropdown options.', 'data': []}
