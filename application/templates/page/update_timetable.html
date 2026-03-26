@@ -5,72 +5,119 @@
 {% endblock %}
 
 {% block content %}
-{% with header_title='Update Table' %}
+{% with header_title='Update Timetable' %}
 {% include 'components/header.html' %}
 {% endwith %}
-    <div class="table-container">
-        <div class="action-bar">
-            <a href="#" class="btn-add">
-                <i class="fas fa-plus"></i> Tambah Data
-            </a>
-            
-            <div class="search-box-container">
-                <i class="fas fa-search"></i>
-                <input type="text" class="search-box" placeholder="Cari ID atau Nama...">
+
+    <div class="timetable-wrapper">
+        
+        <div class="modern-card">
+            <h3 class="card-title">Penugasan & Dokumen</h3>
+            <div class="assignment-grid">
+                
+                <div class="form-group">
+                    <label class="form-label">Assign To</label>
+                    <div class="input-group-flex">
+                        <select class="form-control select-user">
+                            <option value="" disabled selected>Pilih user...</option>
+                            <option value="user1">Budi Santoso (IT Support)</option>
+                            <option value="user2">Siti Aminah (IT Dev)</option>
+                        </select>
+                        <button type="button" class="btn btn-primary">Tugaskan</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Dokumen Perubahan Sistem (Formulir)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="formSystemChange" class="file-input-hidden">
+                        <label for="formSystemChange" class="file-upload-box">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <span class="upload-text">Klik atau seret dokumen ke sini...</span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <div style="overflow-x: auto;">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>ID Proyek</th>
-                        <th>Nama Proyek</th>
-                        <th>PIC</th>
-                        <th>Departemen</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="font-weight: 500;">PRJ-001</td>
-                        <td>Pembaruan Sistem Gudang</td>
-                        <td>Budi Santoso</td>
-                        <td>IT Support</td>
-                        <td><span class="status-badge status-active">Aktif</span></td>
-                        <td>
-                            <button class="btn-action btn-edit" title="Edit Data"><i class="fas fa-edit"></i></button>
-                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <td style="font-weight: 500;">PRJ-002</td>
-                        <td>Integrasi API Eksternal</td>
-                        <td>Siti Aminah</td>
-                        <td>IT Development</td>
-                        <td><span class="status-badge status-active">Aktif</span></td>
-                        <td>
-                            <button class="btn-action btn-edit" title="Edit Data"><i class="fas fa-edit"></i></button>
-                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
+        <div class="modern-card">
+            <h3 class="card-title">Detail Modul & Jadwal</h3>
+            
+            <div class="module-header-grid">
+                <div class="header-label">Nama Modul</div>
+                <div class="header-label">Tanggal Target</div>
+                <div class="header-label">Tanggal Realisasi</div>
+                <div class="header-label" style="text-align: center;">Aksi</div>
+            </div>
 
-                    <tr>
-                        <td style="font-weight: 500;">PRJ-003</td>
-                        <td>Audit Keamanan Server</td>
-                        <td>Ahmad Fauzi</td>
-                        <td>IT Security</td>
-                        <td><span class="status-badge status-inactive">Pending</span></td>
-                        <td>
-                            <button class="btn-action btn-edit" title="Edit Data"><i class="fas fa-edit"></i></button>
-                            <button class="btn-action btn-delete" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="module-container">
+                <div class="module-row">
+                    <div class="input-box">
+                        <input type="text" class="form-control" placeholder="Masukkan nama modul..." value="Deploy and Test Run in Server (Staging)">
+                    </div>
+                    <div class="input-box">
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="input-box">
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="action-box">
+                        <button type="button" class="btn-icon btn-delete-row" title="Hapus Modul" disabled>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" id="btnAddModule" class="btn btn-outline-primary btn-full-width">
+                <i class="fas fa-plus"></i> Tambah Modul Baru
+            </button>
+        </div>
+
+        <div class="bottom-action-bar">
+            <button type="button" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Simpan Timetable
+            </button>
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('module-container');
+            const btnAdd = document.getElementById('btnAddModule');
+
+            // Fungsi Tambah Baris
+            btnAdd.addEventListener('click', function() {
+                // Buat elemen baris baru
+                const newRow = document.createElement('div');
+                newRow.className = 'module-row';
+                newRow.innerHTML = `
+                    <div class="input-box">
+                        <input type="text" class="form-control" placeholder="Masukkan nama modul...">
+                    </div>
+                    <div class="input-box">
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="input-box">
+                        <input type="date" class="form-control">
+                    </div>
+                    <div class="action-box">
+                        <button type="button" class="btn-icon btn-delete-row" title="Hapus Modul">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Tambahkan event listener untuk tombol hapus di baris baru
+                newRow.querySelector('.btn-delete-row').addEventListener('click', function() {
+                    newRow.remove();
+                });
+
+                // Masukkan ke container
+                container.appendChild(newRow);
+            });
+        });
+    </script>
 {% endblock %}
