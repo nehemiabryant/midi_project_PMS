@@ -21,7 +21,7 @@
     margin-bottom: 20px;
 }
 .btn-add {
-    background-color: #218838; 
+    background-color: #d41f26; /* Merah Alfamidi */
     color: #ffffff;
     border: none;
     padding: 9px 18px;
@@ -36,7 +36,7 @@
     gap: 8px;
 }
 .btn-add:hover {
-    background-color: #1e7e34;
+    background-color: #b31a20;
     color: #ffffff;
 }
 .search-box-container {
@@ -101,39 +101,15 @@
     background-color: #fce8e6;
     color: #d93025;
 }
-/* Styling Tombol Aksi Modern (Persegi Panjang) */
-.btn-rect {
-    padding: 6px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
+/* Tombol Aksi (Edit/Hapus) */
+.btn-action {
+    background: none;
+    border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    font-size: 15px;
+    color: #adb5bd;
+    margin-right: 12px;
+    transition: color 0.2s;
 }
-
-/* Varian Edit - Soft Blue / Primary */
-.btn-rect-edit {
-    background-color: #e8f0fe;
-    color: #1a73e8;
-}
-
-.btn-rect-edit:hover {
-    background-color: #1a73e8;
-    color: #ffffff;
-    box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
-}
-
-/* Varian Detail - Soft Gray / Neutral */
-.btn-rect-detail {
-    background-color: #f8f9fa;
-    color: #495057;
-    border-color: #ced4da; /* Sedikit garis pinggir agar tegas */
-}
-
-.btn-rect-detail:hover {
-    background-color: #e9ecef;
-    color: #212529;
-    border-color: #adb5bd;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
+.btn-edit:hover { color: #1a73e8; }
+.btn-delete:hover { color: #d93025; }
