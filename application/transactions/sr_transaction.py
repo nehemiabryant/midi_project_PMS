@@ -1,6 +1,7 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import sr_model, karyawan
-from ..utils import tokenization, converters
+from ..utils import tokenization
+from ..utils.converters import parse_rows, parse_single_row
 from . import attachment_transaction
 
 Log = Logger()
@@ -70,10 +71,6 @@ def get_edit_sr_trx(sr_no: str) -> dict:
         sr_dict = parse_single_row(db_result)
         if not sr_dict:
             return {'status': False, 'data': [], 'msg': 'Service Request not found.'}
-
-        sr_list = converters.convert_to_dicts(rows, headers)
-        
-        sr_dict = sr_list[0] 
 
         req_nik = sr_dict.get('req_id', '')
         maker_nik = sr_dict.get('maker_id', '')

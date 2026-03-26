@@ -9,7 +9,6 @@ STATUS_BACKLOG_SCRUM = 105
 STATUS_SD_ON_PROGRESS = 106
 STATUS_IT_GM_REVIEW = 104
 
-
 def get_it_users_model() -> dict:
     """Ambil semua user dari sr_user yang punya role 'IT USER', JOIN karyawan_all untuk nama."""
     it_user_role_name = 'IT USER'  # approle_name di sr_ms_app_role (approle_id=2)
