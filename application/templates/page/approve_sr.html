@@ -52,14 +52,23 @@
 				<div class="form-row">
 					<div class="form-label">Maker</div>
 					<div class="form-field">
-						<input type="text" class="form-input" value="{{ sr_data.maker_id if sr_data else user.nik }} - {{ sr_data.maker_name if sr_data else user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
+						<input type="text" class="form-input" value="{{ sr_data.user_info.maker.nik if sr_data else user.nik }} - {{ sr_data.user_info.maker.name if sr_data else user.nama }}" style="background-color: #f3f4f6; cursor: not-allowed;" disabled />
 					</div>
 				</div>
 
 				<div class="form-row">
 					<div class="form-label">Requester</div>
-					<div class="form-field">
-						<input type="text" class="form-input" id="req_id" name="req_id" value="{{ sr_data.req_id if sr_data else '' }}" {% if sr_data %}style="background-color: #f3f4f6; cursor: not-allowed;" disabled {% endif %}/>
+					<div class="form-field" style="position: relative;">
+						<!--<input type="text" class="form-input" id="req_id" name="req_id" value="{{ sr_data.req_id if sr_data else '' }}" {% if sr_data %}style="background-color: #f3f4f6; cursor: not-allowed;" disabled {% endif %}/>-->
+
+						<input type="text" class="form-input" id="req_display" autocomplete="off" placeholder="Type NIK or Name..."
+							value="{% if sr_data %}{{ sr_data.user_info.requester.nik }} - {{ sr_data.user_info.requester.name }}{% endif %}" 
+							{% if sr_data %} style="background-color: #f3f4f6; cursor: not-allowed;" disabled {% endif %} />
+
+						<input type="hidden" id="req_id" name="req_id" 
+							value="{% if sr_data %}{{ sr_data.user_info.requester.nik }}{% endif %}">
+
+						<ul id="req_suggestions" class="suggestion-dropdown" style="display: none; position: absolute; background: white; border: 1px solid #ccc; width: 100%; max-height: 200px; overflow-y: auto; list-style: none; padding: 0; margin: 0; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></ul>
 					</div>
 				</div>
 
