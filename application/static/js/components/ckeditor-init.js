@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   initCKEditors();
+  initCKEditorFormSync();
 });
 
 function initCKEditors() {
@@ -34,6 +35,17 @@ function initCKEditors() {
         { name: 'tools', items: ['Maximize', 'Source'] },
         { name: 'about', items: ['About'] },
       ],
+    });
+  });
+}
+
+function initCKEditorFormSync() {
+  document.querySelectorAll('[type="submit"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (typeof CKEDITOR === 'undefined') return;
+      for (var name in CKEDITOR.instances) {
+        CKEDITOR.instances[name].updateElement();
+      }
     });
   });
 }

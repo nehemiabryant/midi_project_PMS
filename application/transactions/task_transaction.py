@@ -1,28 +1,8 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import task_model
+from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
-
-
-def _parse_single_row(db_result: dict) -> dict | None:
-    """Helper: parse selectDataHeader result ke single dict. Return None jika kosong."""
-    if not db_result.get('status'):
-        return None
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return None
-    return dict(zip(raw[0], raw[1][0]))
-
-
-def _parse_rows(db_result: dict) -> list:
-    """Helper: parse selectDataHeader result ke list of dicts."""
-    if not db_result.get('status'):
-        return []
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return []
-    headers = raw[0]
-    return [dict(zip(headers, row)) for row in raw[1]]
 
 
 def _validate_pic_access(nik: str, sr_no: str, it_role_id: int = None) -> dict:
@@ -33,7 +13,7 @@ def _validate_pic_access(nik: str, sr_no: str, it_role_id: int = None) -> dict:
     Return: {'valid': True, 'assignment': {...}} atau {'valid': False, 'msg': '...'}
     """
     assign_result = task_model.get_assignment_info_model(nik, sr_no)
-    assignments = _parse_rows(assign_result)
+    assignments = parse_rows(assign_result)
     if not assignments:
         return {'valid': False, 'msg': 'Anda tidak ter-assign pada SR ini.'}
 
@@ -46,7 +26,6 @@ def _validate_pic_access(nik: str, sr_no: str, it_role_id: int = None) -> dict:
 
     return {'valid': True, 'assignment': assignment, 'msg': ''}
 
-
 def get_tasks_trx(sr_no: str, nik: str) -> dict:
     """Ambil semua task pada SR untuk picrole user yang login."""
     try:
@@ -58,7 +37,7 @@ def get_tasks_trx(sr_no: str, nik: str) -> dict:
         it_role_id = assignment['it_role_id']
 
         result = task_model.get_tasks_by_sr_and_role_model(sr_no, it_role_id)
-        tasks = _parse_rows(result)
+        tasks = parse_rows(result)
 
         return {'status': True, 'data': tasks}
     except Exception as e:
@@ -102,7 +81,7 @@ def update_task_trx(task_id: int, nik: str, data: dict) -> dict:
     try:
         # 1. Ambil info task yang mau diupdate
         task_result = task_model.get_task_by_id_model(task_id)
-        task_row = _parse_single_row(task_result)
+        task_row = parse_single_row(task_result)
         if not task_row:
             return {'status': False, 'data': [], 'msg': 'Task tidak ditemukan.'}
 
@@ -141,7 +120,7 @@ def delete_task_trx(task_id: int, nik: str) -> dict:
     try:
         # 1. Ambil info task
         task_result = task_model.get_task_by_id_model(task_id)
-        task_row = _parse_single_row(task_result)
+        task_row = parse_single_row(task_result)
         if not task_row:
             return {'status': False, 'data': [], 'msg': 'Task tidak ditemukan.'}
 

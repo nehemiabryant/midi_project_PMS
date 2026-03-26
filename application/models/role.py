@@ -265,6 +265,21 @@ def assign_role_model(nik: str, approle_id: int) -> dict:
         if conn: conn.close()
 
 
+def update_assigned_role_model(user_id: int, approle_id: int) -> dict:
+    sql = "UPDATE sr_user SET approle_id = %(approle_id)s WHERE user_id = %(user_id)s"
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.executeData(sql, {'user_id': user_id, 'approle_id': approle_id})
+    except Exception as e:
+        Log.error(f'DB Exception | update_assigned_role | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
 def remove_assigned_role_model(user_id: int) -> dict:
     sql = "DELETE FROM sr_user WHERE user_id = %(user_id)s"
     conn = None

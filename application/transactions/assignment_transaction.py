@@ -1,32 +1,10 @@
 from common.midiconnectserver.midilog import Logger
+from common.midiconnectserver import DatabasePG
 from ..models import assignment_model
+from ..transactions import workflow_transaction
+from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
-
-# Constants dari model
-ASSIGNABLE_PICROLE_IDS = assignment_model.ASSIGNABLE_PICROLE_IDS
-STATUS_BACKLOG_SCRUM = assignment_model.STATUS_BACKLOG_SCRUM
-
-
-def _parse_single_row(db_result: dict) -> dict | None:
-    """Helper: parse selectDataHeader result ke single dict."""
-    if not db_result.get('status'):
-        return None
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return None
-    return dict(zip(raw[0], raw[1][0]))
-
-
-def _parse_rows(db_result: dict) -> list:
-    """Helper: parse selectDataHeader/selectHeader result ke list of dicts."""
-    if not db_result.get('status'):
-        return []
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return []
-    headers = raw[0]
-    return [dict(zip(headers, row)) for row in raw[1]]
 
 
 def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
@@ -36,38 +14,39 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
 
     Return:
     - sr_detail: detail SR
-    - picroles: list PIC roles yang bisa di-assign (SCM, DEV, QA, RO)
+    - picroles: list PIC roles yang bisa di-assign (dari DB)
     - it_users: list user IT yang bisa di-assign
     - current_assignments: assignment yang sudah ada
     - is_locked: True jika assignment sudah di-submit (status != 105)
     """
     try:
         # 1. Validasi: user harus IT SM pada SR ini
-        sm_result = assignment_model.get_sm_on_sr_model(sr_no, nik)
-        sm_row = _parse_single_row(sm_result)
+        sm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT SM')
+        sm_row = parse_single_row(sm_result)
         if not sm_row:
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT SM pada SR ini atau tidak memiliki akses.'}
 
         # 2. Ambil detail SR
         sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
-        sr_detail = _parse_single_row(sr_result)
+        sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
 
         # 3. Tentukan apakah assignment sudah locked
-        is_locked = sr_detail.get('smk_id') != STATUS_BACKLOG_SCRUM
+        is_locked = sr_detail.get('smk_id') != assignment_model.STATUS_BACKLOG_SCRUM
 
-        # 4. Ambil PIC roles yang bisa di-assign
+        # 4. Ambil PIC roles yang bisa di-assign (dari DB)
         picroles_result = assignment_model.get_assignable_picroles_model()
-        picroles = _parse_rows(picroles_result)
+        picroles = parse_rows(picroles_result)
+        assignable_role_ids = [r['it_role_id'] for r in picroles]
 
         # 5. Ambil daftar user IT
         users_result = assignment_model.get_it_users_model()
-        it_users = _parse_rows(users_result)
+        it_users = parse_rows(users_result)
 
-        # 6. Ambil assignment yang sudah ada (hanya role 4,5,6,7)
-        assignments_result = assignment_model.get_sr_assignments_model(sr_no, ASSIGNABLE_PICROLE_IDS)
-        current_assignments = _parse_rows(assignments_result)
+        # 6. Ambil assignment yang sudah ada (hanya PIC roles dari DB)
+        assignments_result = assignment_model.get_sr_assignments_model(sr_no, assignable_role_ids)
+        current_assignments = parse_rows(assignments_result)
 
         return {
             'status': True,
@@ -91,7 +70,7 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
     Validasi:
     1. User harus IT SM pada SR ini
     2. SR harus masih status BACKLOG SCRUM (105)
-    3. Minimal 1 user per role (SCM, DEV, QA, RO)
+    3. Minimal 1 user per role (semua PIC roles dari DB)
     4. Semua NIK yang di-assign harus valid (ada di daftar IT users)
 
     form_data format dari HTML form:
@@ -102,17 +81,17 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
     """
     try:
         # 1. Validasi: user harus IT SM pada SR ini
-        sm_result = assignment_model.get_sm_on_sr_model(sr_no, nik)
-        sm_row = _parse_single_row(sm_result)
+        sm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT SM')
+        sm_row = parse_single_row(sm_result)
         if not sm_row:
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT SM pada SR ini.'}
 
         # 2. Validasi: SR harus masih BACKLOG SCRUM (105)
         sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
-        sr_detail = _parse_single_row(sr_result)
+        sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
-        if sr_detail.get('smk_id') != STATUS_BACKLOG_SCRUM:
+        if sr_detail.get('smk_id') != assignment_model.STATUS_BACKLOG_SCRUM:
             return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status Backlog Scrum.'}
 
         # 3. Parse form: assign_user[] dan assign_role[] (paired by index)
@@ -135,19 +114,22 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
         if not assignments:
             return {'status': False, 'data': [], 'msg': 'Tidak ada assignment yang diisi.'}
 
-        # 4. Validasi: minimal 1 user per role (SCM=4, DEV=5, QA=6, RO=7)
-        role_names = {4: 'IT SCM', 5: 'IT DEV', 6: 'IT QA', 7: 'IT RO'}
+        # 4. Validasi: minimal 1 user per role (semua PIC roles dari DB)
+        picroles_result = assignment_model.get_assignable_picroles_model()
+        picroles = parse_rows(picroles_result)
+        role_map = {r['it_role_id']: r['it_role_detail'] for r in picroles}
+
         assigned_roles = {a['it_role_id'] for a in assignments}
-        for it_role_id in ASSIGNABLE_PICROLE_IDS:
+        for it_role_id, role_name in role_map.items():
             if it_role_id not in assigned_roles:
                 return {
                     'status': False, 'data': [],
-                    'msg': f'Minimal 1 user harus di-assign untuk role {role_names.get(it_role_id, it_role_id)}.'
+                    'msg': f'Minimal 1 user harus di-assign untuk role {role_name}.'
                 }
 
         # 5. Validasi: semua NIK harus ada di daftar IT users
         users_result = assignment_model.get_it_users_model()
-        it_users = _parse_rows(users_result)
+        it_users = parse_rows(users_result)
         valid_niks = {u['nik'] for u in it_users}
         for a in assignments:
             if a['nik'] not in valid_niks:
@@ -156,10 +138,171 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                     'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."
                 }
 
-        # 6. Insert assignments + update status (atomic)
-        result = assignment_model.insert_assignments_and_update_status_model(sr_no, assignments, nik)
-        return result
+        # 6. Insert assignments + advance phase (atomic, satu transaksi)
+        shared_conn = DatabasePG("supabase", autocommit=False)
+        try:
+            # 6a. Insert semua assignment
+            insert_result = assignment_model.insert_assignments_model(sr_no, assignments, nik, shared_conn)
+            if not insert_result.get('status'):
+                raise Exception(insert_result.get('msg', 'Gagal insert assignment'))
+
+            # 6b. Advance phase 105→106 via workflow rules (logs + status update)
+            advance_result = workflow_transaction.advance_sr_phase(
+                sr_no=sr_no,
+                current_smk_id=assignment_model.STATUS_BACKLOG_SCRUM,
+                next_smk_id=assignment_model.STATUS_SD_ON_PROGRESS,
+                action_by=nik,
+                shared_conn=shared_conn
+            )
+            if not advance_result.get('status'):
+                raise Exception(advance_result.get('msg', 'Gagal advance phase'))
+
+            shared_conn._conn.commit()
+            return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan dan status SR diupdate.'}
+
+        except Exception as e:
+            if shared_conn:
+                try:
+                    shared_conn._conn.rollback()
+                except Exception:
+                    pass
+            raise e
+
+        finally:
+            if shared_conn:
+                shared_conn.close()
 
     except Exception as e:
         Log.error(f'Exception | submit_assignments_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
+    """
+    Ambil data untuk halaman assign IT SM oleh IT GM.
+    Validasi: user harus IT GM yang ter-assign pada SR ini.
+
+    Return:
+    - sr_detail: detail SR
+    - sm_options: list IT SM yang bisa dipilih (nik + nama)
+    - current_sm: IT SM yang sudah ter-assign (jika ada)
+    - is_locked: True jika status sudah bukan 104
+    """
+    try:
+        # 1. Validasi: user harus IT GM pada SR ini
+        gm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT GM')
+        gm_row = parse_single_row(gm_result)
+        if not gm_row:
+            return {'status': False, 'data': [], 'msg': 'Anda bukan IT GM pada SR ini atau tidak memiliki akses.'}
+
+        # 2. Ambil detail SR
+        sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
+        sr_detail = parse_single_row(sr_result)
+        if not sr_detail:
+            return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
+
+        # 3. Tentukan apakah assignment sudah locked (status bukan 104)
+        is_locked = sr_detail.get('smk_id') != assignment_model.STATUS_IT_GM_REVIEW
+
+        # 4. Ambil opsi IT SM dari NIK yang sudah dikonfigurasi
+        sm_niks = list(workflow_transaction.IT_SM_NIKS)
+        sm_result = assignment_model.get_sm_options_model(sm_niks)
+        sm_options = parse_rows(sm_result)
+
+        # 5. Cek apakah IT SM sudah ter-assign
+        sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
+        assigned_result = assignment_model.get_sr_assignments_model(sr_no, [sm_role_id] if sm_role_id else [])
+        current_sm = parse_rows(assigned_result)
+
+        return {
+            'status': True,
+            'data': {
+                'sr_detail': sr_detail,
+                'sm_options': sm_options,
+                'current_sm': current_sm,
+                'is_locked': is_locked,
+            }
+        }
+    except Exception as e:
+        Log.error(f'Exception | get_gm_assign_page_data_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict) -> dict:
+    """
+    IT GM assign IT SM pada SR, lalu advance status 104→105 secara atomik.
+
+    Validasi:
+    1. User harus IT GM pada SR ini
+    2. SR harus masih status IT GM Review (104)
+    3. NIK IT SM yang dipilih harus salah satu dari IT_SM_NIKS yang dikonfigurasi
+    """
+    try:
+        # 1. Validasi: user harus IT GM pada SR ini
+        gm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT GM')
+        gm_row = parse_single_row(gm_result)
+        if not gm_row:
+            return {'status': False, 'data': [], 'msg': 'Anda bukan IT GM pada SR ini.'}
+
+        # 2. Validasi: SR harus masih status 104
+        sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
+        sr_detail = parse_single_row(sr_result)
+        if not sr_detail:
+            return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
+        if sr_detail.get('smk_id') != assignment_model.STATUS_IT_GM_REVIEW:
+            return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status IT GM Review.'}
+
+        # 3. Ambil NIK IT SM yang dipilih dari form
+        selected_sm_nik = form_data.get('selected_sm_nik', '').strip()
+        if not selected_sm_nik:
+            return {'status': False, 'data': [], 'msg': 'Pilih salah satu IT SM terlebih dahulu.'}
+
+        # 4. Validasi: harus salah satu dari NIK yang dikonfigurasi
+        if selected_sm_nik not in workflow_transaction.IT_SM_NIKS:
+            return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
+
+        # 5. Ambil role ID IT SM dari DB
+        sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
+        if not sm_role_id:
+            return {'status': False, 'data': [], 'msg': 'Gagal mendapatkan role ID IT SM dari database.'}
+
+        # 6. Insert assignment + advance phase 104→105 (atomic)
+        shared_conn = DatabasePG("supabase", autocommit=False)
+        try:
+            insert_result = assignment_model.insert_assignments_model(
+                sr_no=sr_no,
+                assignments=[{'nik': selected_sm_nik, 'it_role_id': sm_role_id}],
+                assigned_by=nik,
+                shared_conn=shared_conn
+            )
+            if not insert_result.get('status'):
+                raise Exception(insert_result.get('msg', 'Gagal insert assignment IT SM'))
+
+            advance_result = workflow_transaction.advance_sr_phase(
+                sr_no=sr_no,
+                current_smk_id=assignment_model.STATUS_IT_GM_REVIEW,
+                next_smk_id=assignment_model.STATUS_BACKLOG_SCRUM,
+                action_by=nik,
+                shared_conn=shared_conn
+            )
+            if not advance_result.get('status'):
+                raise Exception(advance_result.get('msg', 'Gagal advance phase'))
+
+            shared_conn._conn.commit()
+            return {'status': True, 'data': [], 'msg': 'IT SM berhasil di-assign dan status SR diupdate ke Backlog Scrum.'}
+
+        except Exception as e:
+            if shared_conn:
+                try:
+                    shared_conn._conn.rollback()
+                except Exception:
+                    pass
+            raise e
+
+        finally:
+            if shared_conn:
+                shared_conn.close()
+
+    except Exception as e:
+        Log.error(f'Exception | submit_sm_assignment_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}

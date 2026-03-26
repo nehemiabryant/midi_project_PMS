@@ -1,6 +1,7 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import attachment_model
 from ..helpers.pdf_upload import s3_client, BUCKET_NAME, PUBLIC_URL
+from ..utils.converters import parse_rows
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -49,17 +50,8 @@ def upload_and_record_files(reference_no: str, files_dict: dict):
 def get_attachments_for_view(sr_no: str) -> dict:
     """Fetches the latest attachments and formats them into a clean dictionary."""
     db_result = attachment_model.get_latest_attachments(sr_no)
-    
-    if not db_result.get('status') or not db_result.get('data'):
-        return {} # Return empty dict if no files exist
+    rows = parse_rows(db_result)
+    if not rows:
+        return {}
 
-    headers = db_result['data'][0]
-    rows = db_result['data'][1]
-
-    # Turns the DB rows into a clean dictionary like: { 1: 'https://...', 2: 'https://...' }
-    attachments = {}
-    for row in rows:
-        row_dict = dict(zip(headers, row))
-        attachments[row_dict['attach_ctg']] = row_dict['file_url']
-        
-    return attachments
+    return {row['attach_ctg']: row['file_url'] for row in rows}

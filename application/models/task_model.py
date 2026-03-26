@@ -3,14 +3,6 @@ from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
 
-# Mapping it_role_id -> status codes territory
-# TODO: Aktifkan pengecekan status territory ketika kolom status sudah ada di sr_request
-IT_ROLE_STATUS_MAP = {
-    5: [108, 109],       # IT DEV → BACKLOG DEV, DEV ON PROGRESS
-    6: [110, 111],       # IT QA → BACKLOG QA, QA ON PROGRESS
-    7: [114, 115, 116],  # IT RO → BACKLOG TO, TO, ROLLOUT
-}
-
 
 def get_assignment_info_model(nik: str, sr_no: str) -> dict:
     """Cek apakah user ter-assign pada SR tertentu, ambil assign_id dan it_role info."""

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request
 from ..helpers.decorators import login_required
-from ..transactions import my_work_transaction, assignment_transaction
+from ..transactions import my_work_transaction, assignment_transaction, workflow_transaction
 
 dashboard_bp = Blueprint('owh_dashboard', __name__, url_prefix='/', template_folder='../templates', static_folder='/static')
 
@@ -51,6 +51,20 @@ def sr_detail_menu(sr_no):
 
     page_data = result['data']
 
+    # IT GM → render detail_gm.html (info SR + assign IT SM)
+    if page_data['is_gm']:
+        return render_template(
+            '/page/detail_gm.html',
+            user=session['user'],
+            role=session['role'],
+            active_menu='my_work',
+            sr_detail=page_data['sr_detail'],
+            user_roles=page_data['user_roles'],
+            all_assignments=page_data['all_assignments'],
+            can_assign_sm=page_data['can_assign_sm'],
+            gm_assign_data=page_data['gm_assign_data'],
+        )
+
     # PIC (SCM/DEV/QA/RO) yang bukan SM → render detail_pic.html
     if page_data['is_pic'] and not page_data['is_sm']:
         return render_template(
@@ -91,6 +105,22 @@ def submit_assignment(sr_no):
         flash(result.get('msg', 'Gagal menyimpan assignment.'), 'error')
     else:
         flash(result.get('msg', 'Assignment berhasil disimpan.'), 'success')
+
+    return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
+
+
+@dashboard_bp.route('/myWork/detail/<path:sr_no>/assign-sm', methods=['POST'])
+@login_required
+def submit_sm_assignment(sr_no):
+    """IT GM assign IT SM pada SR, lalu advance 104→105."""
+    nik = session['user']['nik']
+
+    result = assignment_transaction.submit_sm_assignment_trx(sr_no, nik, request.form)
+
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal menyimpan assignment IT SM.'), 'error')
+    else:
+        flash(result.get('msg', 'IT SM berhasil di-assign.'), 'success')
 
     return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
 

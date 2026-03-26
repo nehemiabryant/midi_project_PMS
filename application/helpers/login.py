@@ -56,10 +56,13 @@ def validate_user_gateway(nik, password):
         _test_accounts = {
             # NIK: (password, nama, jabatan)
             '02000000':   ('magang123',  'MAGANG IT',                    'IT PMO'),
-            '0210080427': ('sm123',      'MUHAMAD FAJAR',                'Workflow Programmer'),
+            '0201080005': ('gm123',      'IT GENERAL MANAGER',           'IT General Manager'),
+            '0214083545': ('pm123',      'GALIH AGUSFIAN PERMANA',       'IT Project Manager'),
+            '0201080008': ('sm123',      'IT SM DW',                     'IT Senior Manager'),
+            '0208010095': ('sm123',      'IT SM BS',                     'IT Senior Manager'),
+            '0208080011': ('sm123',      'IT SM OPS',                    'IT Senior Manager'),
             '0219096129': ('scm123',     'NOVRI RISKY PATALALA',         'It Back Office Development Analyst'),
             '0200000000': ('dev123',     'DUMMY',                        'It Back Office Development Analyst'),
-            '0214083545': ('qa123',      'GALIH AGUSFIAN PERMANA',       'It Quality Assurance Analyst'),
             '0222108168': ('ro123',      'ALFANI ZIDNI HIDAYAH',         'It Office Support'),
         }
 

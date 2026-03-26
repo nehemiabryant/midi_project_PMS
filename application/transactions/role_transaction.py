@@ -1,21 +1,8 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import role as role_model
+from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
-
-def _to_dict_list(db_result: dict) -> list:
-    """Konversi format [headers, rows] dari DatabasePG ke list of dicts."""
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return []
-    headers, rows = raw[0], raw[1]
-    return [dict(zip(headers, row)) for row in rows]
-
-
-def _to_single_dict(db_result: dict):
-    items = _to_dict_list(db_result)
-    return items[0] if items else None
-
 
 # Roles
 def get_all_roles_trx() -> dict:
@@ -23,7 +10,7 @@ def get_all_roles_trx() -> dict:
         result = role_model.get_all_roles_model()
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_dict_list(result)}
+        return {'status': True, 'data': parse_rows(result)}
     except Exception as e:
         Log.error(f'Exception | get_all_roles | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -34,7 +21,7 @@ def get_role_by_id_trx(approle_id: int) -> dict:
         result = role_model.get_role_by_id_model(approle_id)
         if not result.get('status'):
             return result
-        data = _to_single_dict(result)
+        data = parse_single_row(result)
         if data is None:
             return {'status': False, 'data': [], 'msg': 'Role tidak ditemukan'}
         return {'status': True, 'data': data}
@@ -48,7 +35,7 @@ def create_role_trx(approle_name: str) -> dict:
         result = role_model.create_role_model(approle_name)
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_single_dict(result)}
+        return {'status': True, 'data': parse_single_row(result)}
     except Exception as e:
         Log.error(f'Exception | create_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -59,7 +46,7 @@ def update_role_trx(approle_id: int, approle_name: str) -> dict:
         result = role_model.update_role_model(approle_id, approle_name)
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_single_dict(result)}
+        return {'status': True, 'data': parse_single_row(result)}
     except Exception as e:
         Log.error(f'Exception | update_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -87,7 +74,7 @@ def get_roles_with_permissions_trx() -> dict:
     """
     try:
         result = role_model.get_roles_with_permissions_model()
-        rows = _to_dict_list(result) if result.get('status') else []
+        rows = parse_rows(result) if result.get('status') else []
         roles_seen = {}
         role_permissions = {}
         for row in rows:
@@ -112,7 +99,7 @@ def get_all_permissions_trx() -> dict:
         result = role_model.get_all_permissions_model()
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_dict_list(result)}
+        return {'status': True, 'data': parse_rows(result)}
     except Exception as e:
         Log.error(f'Exception | get_all_permissions | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -123,7 +110,7 @@ def get_permissions_by_role_trx(approle_id: int) -> dict:
         result = role_model.get_permissions_by_role_model(approle_id)
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_dict_list(result)}
+        return {'status': True, 'data': parse_rows(result)}
     except Exception as e:
         Log.error(f'Exception | get_permissions_by_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -146,7 +133,7 @@ def get_all_assigned_roles_trx() -> dict:
         result = role_model.get_all_assigned_roles_model()
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_dict_list(result)}
+        return {'status': True, 'data': parse_rows(result)}
     except Exception as e:
         Log.error(f'Exception | get_all_assigned_roles | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -156,17 +143,28 @@ def assign_role_trx(nik: str, approle_id: int) -> dict:
     try:
         # Cek duplikasi terlebih dahulu
         check = role_model.check_assigned_role_model(nik, approle_id)
-        if check.get('status'):
-            raw = check.get('data', [[], []])
-            if raw and len(raw) > 1 and raw[1]:
-                return {'status': False, 'data': [], 'msg': 'User sudah memiliki role ini'}
+        if parse_rows(check):
+            return {'status': False, 'data': [], 'msg': 'User sudah memiliki role ini'}
 
         result = role_model.assign_role_model(nik, approle_id)
         if not result.get('status'):
             return result
-        return {'status': True, 'data': _to_single_dict(result)}
+        return {'status': True, 'data': parse_single_row(result)}
     except Exception as e:
         Log.error(f'Exception | assign_role | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def update_assigned_role_trx(user_id: int, approle_id: int) -> dict:
+    try:
+        result = role_model.update_assigned_role_model(user_id, approle_id)
+        if not result.get('status'):
+            return result
+        if result.get('rowcount', 0) == 0:
+            return {'status': False, 'data': [], 'msg': 'User tidak ditemukan'}
+        return {'status': True, 'data': [], 'msg': 'Role berhasil diupdate'}
+    except Exception as e:
+        Log.error(f'Exception | update_assigned_role | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
 

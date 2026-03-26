@@ -3,15 +3,16 @@ from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
 
-# Constants
-ASSIGNABLE_PICROLE_IDS = [4, 5, 6, 7]  # IT SCM, IT DEV, IT QA, IT RO
-IT_SM_ROLE_ID = 3
+# Status ID constants — tidak bisa di-derive secara aman tanpa mengetahui string smk_ket yang tepat.
+# TODO: Migrate ke query by smk_ket name ketika konsistensi data di sr_ms_ket terjamin.
 STATUS_BACKLOG_SCRUM = 105
 STATUS_SD_ON_PROGRESS = 106
-IT_USER_ROLE_NAME = 'IT USER'  # approle_name di sr_ms_app_role (approle_id=2)
+STATUS_IT_GM_REVIEW = 104
+
 
 def get_it_users_model() -> dict:
-    """Ambil semua user dari sr_user yang punya role 'User IT', JOIN karyawan_all untuk nama."""
+    """Ambil semua user dari sr_user yang punya role 'IT USER', JOIN karyawan_all untuk nama."""
+    it_user_role_name = 'IT USER'  # approle_name di sr_ms_app_role (approle_id=2)
     sql = """
         SELECT su.nik, COALESCE(k.nama, '') AS nama
         FROM sr_user su
@@ -25,20 +26,29 @@ def get_it_users_model() -> dict:
         conn = DatabasePG("supabase")
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'role_name': IT_USER_ROLE_NAME})
+        return conn.selectDataHeader(sql, {'role_name': it_user_role_name})
     except Exception as e:
         Log.error(f'DB Exception | get_it_users | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
 
+
 def get_assignable_picroles_model() -> dict:
-    """Ambil PIC roles yang bisa di-assign oleh SM: SCM(4), DEV(5), QA(6), RO(7)."""
+    """
+    Ambil PIC roles yang bisa di-assign oleh SM.
+    Di-derive langsung dari sr_ms_workflow_rules, mengecualikan role oversight (1,2,3,8,9).
+    """
     sql = """
-        SELECT it_role_id, it_role_detail
-        FROM sr_ms_it
-        WHERE it_role_id IN (4, 5, 6, 7)
-        ORDER BY it_role_id
+        SELECT DISTINCT it.it_role_id, it.it_role_detail
+        FROM sr_ms_it it
+        WHERE it.it_role_id IN (
+            SELECT DISTINCT allowed_picrole
+            FROM sr_ms_workflow_rules
+            WHERE allowed_picrole IS NOT NULL
+              AND allowed_picrole NOT IN (1, 2, 3, 8, 9)
+        )
+        ORDER BY it.it_role_id
     """
     conn = None
     try:
@@ -51,6 +61,53 @@ def get_assignable_picroles_model() -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+
+def get_it_role_id_by_name_model(role_name: str) -> int | None:
+    """Ambil it_role_id dari sr_ms_it berdasarkan it_role_detail (nama role)."""
+    sql = "SELECT it_role_id FROM sr_ms_it WHERE it_role_detail = %(role_name)s LIMIT 1"
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return None
+        result = conn.selectData(sql, {'role_name': role_name})
+        if result.get('status') and result.get('data'):
+            return int(result['data'][0][0])
+        return None
+    except Exception as e:
+        Log.error(f'DB Exception | get_it_role_id_by_name | Msg: {str(e)}')
+        return None
+    finally:
+        if conn: conn.close()
+
+
+def get_user_role_assignment_on_sr_model(sr_no: str, nik: str, role_name: str) -> dict:
+    """
+    Cek apakah NIK ter-assign pada SR ini dengan role_name tertentu (berdasarkan it_role_detail).
+    Menggantikan fungsi spesifik get_sm_on_sr_model dan get_gm_on_sr_model.
+    Contoh: get_user_role_assignment_on_sr_model(sr_no, nik, 'IT SM')
+    """
+    sql = """
+        SELECT sa.assign_id, sa.assigned_user, sa.it_role_id, it.it_role_detail
+        FROM sr_assignments sa
+        JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
+        WHERE sa.sr_no = %(sr_no)s
+          AND sa.assigned_user = %(nik)s
+          AND it.it_role_detail = %(role_name)s
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'nik': nik, 'role_name': role_name})
+    except Exception as e:
+        Log.error(f'DB Exception | get_user_role_assignment_on_sr | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
 
 def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
     """Ambil assignment pada SR. Jika it_role_ids diberikan, filter hanya role tersebut."""
@@ -81,26 +138,6 @@ def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
     finally:
         if conn: conn.close()
 
-def get_sm_on_sr_model(sr_no: str, nik: str) -> dict:
-    """Cek apakah NIK adalah IT SM (it_role_id=3) yang ter-assign pada SR ini."""
-    sql = """
-        SELECT sa.assign_id, sa.assigned_user, sa.it_role_id
-        FROM sr_assignments sa
-        WHERE sa.sr_no = %(sr_no)s
-          AND sa.assigned_user = %(nik)s
-          AND sa.it_role_id = %(sm_role)s
-    """
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'nik': nik, 'sm_role': IT_SM_ROLE_ID})
-    except Exception as e:
-        Log.error(f'DB Exception | get_sm_on_sr | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
 
 def get_it_role_on_sr_model(sr_no: str, nik: str) -> dict:
     """Cek apakah it_role pada nik yang ter-assign pada SR ini. Return role_id jika ada."""
@@ -150,19 +187,52 @@ def get_sr_detail_with_status_model(sr_no: str) -> dict:
     finally:
         if conn: conn.close()
 
-def insert_assignments_and_update_status_model(sr_no: str, assignments: list, assigned_by: str) -> dict:
+
+def get_sm_options_model(nik_list: list) -> dict:
+    """Ambil NIK dan nama dari karyawan_all untuk list NIK IT SM."""
+    sql = """
+        SELECT nik, COALESCE(nama, '') AS nama
+        FROM karyawan_all
+        WHERE nik IN %(niks)s
+        ORDER BY nama
     """
-    Insert semua assignment dan update status SR (105→106) secara ATOMIK.
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'niks': tuple(nik_list)})
+    except Exception as e:
+        Log.error(f'DB Exception | get_sm_options | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, shared_conn=None) -> dict:
+    """
+    Insert semua assignment pada SR.
     assignments = list of {'nik': str, 'it_role_id': int}
-    Menggunakan autocommit=False + manual commit/rollback.
+    Jika shared_conn diberikan, pakai koneksi tersebut (tidak commit/rollback sendiri).
     """
     insert_sql = """
         INSERT INTO sr_assignments (sr_no, assigned_user, assigned_by, it_role_id, assigned_at)
         VALUES (%(sr_no)s, %(assigned_user)s, %(assigned_by)s, %(it_role_id)s, NOW())
+        ON CONFLICT DO NOTHING
     """
-    update_sql = """
-        UPDATE sr_request SET smk_id = %(new_status)s WHERE sr_no = %(sr_no)s
-    """
+
+    if shared_conn:
+        for a in assignments:
+            result = shared_conn.executeDataNoCommit(insert_sql, {
+                'sr_no': sr_no,
+                'assigned_user': a['nik'],
+                'assigned_by': assigned_by,
+                'it_role_id': a['it_role_id']
+            })
+            if not result.get('status'):
+                return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal insert assignment')}
+        return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan.'}
+
     conn = None
     try:
         conn = DatabasePG("supabase", autocommit=False)
@@ -179,22 +249,15 @@ def insert_assignments_and_update_status_model(sr_no: str, assignments: list, as
             if not result.get('status'):
                 raise Exception(result.get('msg', 'Gagal insert assignment'))
 
-        result = conn.executeDataNoCommit(update_sql, {
-            'sr_no': sr_no,
-            'new_status': STATUS_SD_ON_PROGRESS
-        })
-        if not result.get('status'):
-            raise Exception(result.get('msg', 'Gagal update status SR'))
-
         conn._conn.commit()
-        return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan dan status SR diupdate.'}
+        return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan.'}
     except Exception as e:
         if conn:
             try:
                 conn._conn.rollback()
             except Exception:
                 pass
-        Log.error(f'DB Exception | insert_assignments_and_update_status | Msg: {str(e)}')
+        Log.error(f'DB Exception | insert_assignments | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
