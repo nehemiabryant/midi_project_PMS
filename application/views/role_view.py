@@ -127,6 +127,23 @@ def master_user_assign():
     return redirect(url_for('role_mgmt.master_user_menu'))
 
 
+@role_mgmt_bp.route('/masterUser/<int:user_id>/update', methods=['POST'])
+@login_required
+@super_admin_required
+def master_user_update(user_id):
+    approle_id = request.form.get('approle_id', '').strip()
+    if not approle_id:
+        flash('Role harus dipilih.', 'error')
+        return redirect(url_for('role_mgmt.master_user_menu'))
+
+    result = role_transaction.update_assigned_role_trx(user_id, int(approle_id))
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal update role.'), 'error')
+    else:
+        flash('Role berhasil diupdate.', 'success')
+    return redirect(url_for('role_mgmt.master_user_menu'))
+
+
 @role_mgmt_bp.route('/masterUser/<int:user_id>/remove', methods=['POST'])
 @login_required
 @super_admin_required

@@ -149,17 +149,16 @@ def approveSR_menu(token):
         # ==========================================
         # PART A: UPDATE THE EDITABLE DATA
         # ==========================================
-        # (Optional: Add the whitelist sanitize function here if you built it!)
         trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
 
         if not trx_result.get('status'):
             flash(f"Error saving data: {trx_result.get('msg')}", "error")
             return redirect(request.url)
-        
+
         # ==========================================
         # PART B: FIGURE OUT THE WORKFLOW STATE
         # ==========================================
-        current_smk_id = sr_data.get('smk_id') 
+        current_smk_id = sr_data.get('smk_id')
         next_smk_id = int(request.form.get('intended_next_smk_id'))
 
         # ==========================================

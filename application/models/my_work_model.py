@@ -3,22 +3,91 @@ from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
 
-# Mapping it_role_id -> smk_id territory
-# SR hanya muncul di My Work jika status SR masuk teritori role user
-IT_ROLE_TERRITORY = {
-    3: [105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116],  # IT SM → semua fase setelah BACKLOG SCRUM
-    4: [105, 106, 107],          # IT SCM → BACKLOG SCRUM, SD ON PROGRESS, REVIEW SD
-    5: [108, 109],               # IT DEV → BACKLOG DEV, DEV ON PROGRESS
-    6: [110, 111],               # IT QA  → BACKLOG QA, QA ON PROGRESS
-    7: [114, 115, 116],          # IT RO  → BACKLOG TO, TO, ROLLOUT
+# Oversight role territory — tidak bisa di-derive dari sr_ms_workflow_rules karena
+# lingkup monitoring role ini lebih luas dari lingkup aksinya.
+# Nilai representasi smk_id di mana role tersebut bisa melihat item di My Work.
+# TODO: Pindahkan ke tabel sr_ms_role_territory ketika skema DB diperluas.
+_OVERSIGHT_TERRITORY = {
+    1: [104],                                                                     # IT GM
+    2: [103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116],  # IT PM
+    3: [105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116],             # IT SM
+    8: [102],                                                                     # Atasan (Manager)
 }
+
+def get_role_territory_model() -> dict:
+    """
+    Bangun mapping {it_role_id: [smk_ids]} dari dua sumber:
+    1. PIC roles (4-7+): langsung dari sr_ms_workflow_rules.allowed_picrole + current_smk_id
+    2. Oversight roles (1,2,3,8): dari _OVERSIGHT_TERRITORY (tidak bisa di-derive dari DB)
+    Return: dict {role_id: [smk_id, ...]}
+    """
+    sql = """
+        SELECT DISTINCT allowed_picrole, current_smk_id
+        FROM public.sr_ms_workflow_rules
+        WHERE allowed_picrole IS NOT NULL
+          AND allowed_picrole NOT IN (1, 2, 3, 8, 9)
+        ORDER BY allowed_picrole, current_smk_id
+    """
+    territory = {}
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            Log.warning(f'Cannot fetch role territory from DB: {conn.status.get("msg")}. Returning oversight territory only.')
+            return dict(_OVERSIGHT_TERRITORY)
+
+        result = conn.selectHeader(sql)
+        if result.get('status') and result.get('data') and len(result['data']) >= 2:
+            headers = result['data'][0]
+            rows = result['data'][1]
+            for row in rows:
+                row_dict = dict(zip(headers, row))
+                role_id = int(row_dict['allowed_picrole'])
+                smk_id = int(row_dict['current_smk_id'])
+                if role_id not in territory:
+                    territory[role_id] = []
+                if smk_id not in territory[role_id]:
+                    territory[role_id].append(smk_id)
+
+        # Merge oversight territory — log warning jika ada overlap (inkonsistensi data)
+        for role_id, smk_ids in _OVERSIGHT_TERRITORY.items():
+            if role_id in territory:
+                Log.warning(f'Role {role_id} ada di PIC territory DB dan _OVERSIGHT_TERRITORY. Nilai oversight akan menggantikan.')
+            territory[role_id] = smk_ids
+
+        return territory
+
+    except Exception as e:
+        Log.error(f'Exception | get_role_territory_model | Msg: {str(e)}')
+        return dict(_OVERSIGHT_TERRITORY)
+    finally:
+        if conn: conn.close()
+
 
 def get_my_work_items_model(nik: str) -> dict:
     """
     Ambil semua SR yang di-assign ke user ini beserta role-nya.
     Filter: SR hanya muncul jika smk_id masuk teritori role user pada SR tersebut.
+    Territory di-derive secara dinamis dari DB (PIC roles) dan konstanta (oversight roles).
     """
-    sql = """
+    territory = get_role_territory_model()
+    if not territory:
+        return {'status': False, 'data': [], 'msg': 'Gagal memuat konfigurasi territory role.'}
+
+    # Build dynamic WHERE condition
+    # Aman: role_id adalah integer dari data internal DB (bukan user input)
+    # smk_ids tetap menggunakan parameterized query
+    conditions = []
+    params = {'nik': nik}
+    for role_id, smk_ids in territory.items():
+        if smk_ids:
+            key = f'smk_{role_id}'
+            conditions.append(f"(sa.it_role_id = {int(role_id)} AND r.smk_id IN %({key})s)")
+            params[key] = tuple(smk_ids)
+
+    territory_filter = "(" + " OR ".join(conditions) + ")" if conditions else "FALSE"
+
+    sql = f"""
         SELECT r.sr_no, r.name, r.module, r.division,
                r.smk_id, COALESCE(s.smk_ket, '') AS smk_ket,
                r.created_at,
@@ -28,14 +97,7 @@ def get_my_work_items_model(nik: str) -> dict:
         LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.assigned_user = %(nik)s
-          AND (
-              (sa.it_role_id = 3 AND r.smk_id IN (105,106,107,108,109,110,111,112,113,114,115,116))
-              OR (sa.it_role_id = 4 AND r.smk_id IN (105,106,107))
-              OR (sa.it_role_id = 5 AND r.smk_id IN (108,109))
-              OR (sa.it_role_id = 6 AND r.smk_id IN (110,111))
-              OR (sa.it_role_id = 7 AND r.smk_id IN (114,115,116))
-              OR (sa.it_role_id = 8 AND r.smk_id IN (102))
-          )
+          AND {territory_filter}
         ORDER BY r.created_at DESC
     """
     conn = None
@@ -43,12 +105,13 @@ def get_my_work_items_model(nik: str) -> dict:
         conn = DatabasePG("supabase")
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'nik': nik})
+        return conn.selectDataHeader(sql, params)
     except Exception as e:
         Log.error(f'DB Exception | get_my_work_items | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
 
 def get_sr_detail_full_model(sr_no: str) -> dict:
     """Ambil detail SR lengkap untuk halaman detail."""
@@ -75,6 +138,7 @@ def get_sr_detail_full_model(sr_no: str) -> dict:
     finally:
         if conn: conn.close()
 
+
 def get_all_sr_assignments_model(sr_no: str) -> dict:
     """Ambil semua assignment pada SR (semua role)."""
     sql = """
@@ -99,6 +163,7 @@ def get_all_sr_assignments_model(sr_no: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
 
 def get_user_role_on_sr_model(sr_no: str, nik: str) -> dict:
     """Ambil role user pada SR tertentu (bisa punya multiple role)."""

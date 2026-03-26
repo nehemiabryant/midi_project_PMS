@@ -1,5 +1,6 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import user as user_model
+from ..utils.converters import parse_single_row
 
 Log = Logger()
 
@@ -12,15 +13,9 @@ def get_user_role_info_trx(nik: str) -> dict:
     """
     try:
         result = user_model.get_user_role_info_model(nik)
-        if not result.get('status'):
+        row = parse_single_row(result)
+        if not row:
             return {'name': '', 'permissions': []}
-
-        raw = result.get('data', [[], []])
-        if not raw or len(raw) < 2 or not raw[1]:
-            return {'name': '', 'permissions': []}
-
-        headers, rows = raw[0], raw[1]
-        row = dict(zip(headers, rows[0]))
 
         return {
             'name': row.get('approle_name', ''),

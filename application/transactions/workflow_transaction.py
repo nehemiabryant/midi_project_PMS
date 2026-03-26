@@ -8,19 +8,24 @@ from ..utils import converters
 Log = Logger()
 
 # CHANGE THIS LATER FOR SECURITY CONCERN
+# TODO: Ganti dengan query DB ketika tabel sr_user mendukung designasi role SM/PM/GM
 IT_PM_NIK = "0214083545"
 IT_GM_NIK = "0201080005"
-IT_SM_DW_NIK = "0201080008"
-IT_SM_BS_NIK = "0208010095"
-IT_SM_OPS_NIK = "0208080011"
+IT_SM_NIKS = {"0201080008", "0208010095", "0208080011"}  # DW, BS, OPS
 
-def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_by: str) -> dict:
+# Auto-assign: ketika SR masuk ke status ini, langsung assign ke NIK yang sudah ditentukan
+AUTO_ASSIGN_ON_PHASE = {
+    103: {'nik': IT_PM_NIK, 'it_role_id': 2},  # 102→103: assign IT PM
+    104: {'nik': IT_GM_NIK, 'it_role_id': 1},  # 103→104: assign IT GM
+}
+
+def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_by: str, shared_conn=None) -> dict:
     try:
         # 1. Get the rule from your newly simplified table
         rule_res = workflow_model.get_workflow_rule(current_smk_id, next_smk_id)
         if not rule_res.get('status') or not rule_res.get('data'):
             return {'status': False, 'msg': 'Invalid workflow transition.'}
-        
+
         rule_id = rule_res['data'][0][0]
         allowed_role = rule_res['data'][0][1]
 
@@ -32,13 +37,13 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
             # ==========================================
             # 3. THE IDENTITY CHECK (Contextual Authority)
             # ==========================================
-            
-            if allowed_role == 9: 
+
+            if allowed_role == 9:
                 requester_nik = sr_model.get_sr_requester(sr_no)
                 if action_by != requester_nik:
                     return {'status': False, 'msg': 'Only the original requester can execute this step.'}
 
-            elif allowed_role == 8: 
+            elif allowed_role == 8:
                 requester_nik = sr_model.get_sr_requester(sr_no)
                 required_manager_nik = karyawan.get_karyawan_nik_up(requester_nik)
                 if action_by != required_manager_nik:
@@ -47,44 +52,47 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
             elif allowed_role == 1:
                 if action_by != IT_GM_NIK:
                     return {'status': False, 'msg': 'Only the IT General Manager can approve this step.'}
-                    
+
             elif allowed_role == 2:
                 if action_by != IT_PM_NIK:
                     return {'status': False, 'msg': 'Only the IT Project Manager can approve this step.'}
 
             elif allowed_role == 3:
-                if action_by not in [IT_SM_DW_NIK, IT_SM_BS_NIK, IT_SM_OPS_NIK]:
+                if action_by not in IT_SM_NIKS:
                     return {'status': False, 'msg': 'Only an IT Senior Manager can approve this step.'}
 
             elif allowed_role in [4, 5, 6, 7]:
                 assigned_role = assignment_model.get_it_role_on_sr_model(sr_no, action_by)
-                
+
                 if not assigned_role or assigned_role != allowed_role:
                     return {'status': False, 'msg': 'You must be specifically assigned to this ticket to execute this phase.'}
             # ==========================================
-            # 4. Validate Mandatory Documents 
+            # 4. Validate Mandatory Documents
             # ==========================================
             docs_res = workflow_model.get_mandatory_docs(rule_id)
-            
+
             if docs_res.get('status') and docs_res.get('data'):
                 # Convert list of tuples [(1,), (2,)] into a clean flat list of required IDs: [1, 2]
                 mandatory_docs = [row[0] for row in docs_res['data']]
-                
+
                 # Get what the user has actually uploaded
                 uploaded_res = workflow_model.get_uploaded_docs(sr_no)
                 uploaded_docs = [row[0] for row in uploaded_res.get('data', [])] if uploaded_res.get('status') else []
-                
+
                 # Check if any mandatory docs are missing from the uploaded list
                 missing_docs = [doc for doc in mandatory_docs if doc not in uploaded_docs]
-                
+
                 if missing_docs:
                     return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
-        
+
         # ==========================================
         # 5. Execute the Database Log Updates
         # ==========================================
-        
-        shared_conn = DatabasePG("supabase", autocommit=False)
+
+        # Jika shared_conn diberikan dari luar, pakai itu (tidak commit/rollback sendiri)
+        owns_conn = shared_conn is None
+        if owns_conn:
+            shared_conn = DatabasePG("supabase", autocommit=False)
 
         try:
 
@@ -94,34 +102,34 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
 
             if latest_log.get('status') and latest_log.get('data'):
                 log_dict = latest_log['data'][0] # Grab the first (and only) dictionary in the list
-                
+
                 db_logs_id = log_dict.get('logs_id', 0)
                 db_log_smk_id = log_dict.get('smk_id', 0)
 
             # B. THE DRIFT DETECTOR
-            # If the main table (current_smk_id) doesn't match the latest log, 
+            # If the main table (current_smk_id) doesn't match the latest log,
             # someone manually edited the database! We must heal it.
             if db_logs_id > 0 and db_log_smk_id != current_smk_id:
-                
+
                 # Heal Step 1: Force close the hanging log from the manual edit
                 # (We pass a special flag or system ID so auditors know the system did this)
                 drift_close_res = srlogs_transaction.update_sr_log_trx(
-                    logs_id=db_logs_id, 
+                    logs_id=db_logs_id,
                     shared_conn=shared_conn
                 )
-                
+
                 if not drift_close_res.get('status'):
                     return {'status': False, 'msg': 'Failed to heal database drift.'}
-                
-                # Heal Step 2: Since we just closed the old log, we tell the engine 
+
+                # Heal Step 2: Since we just closed the old log, we tell the engine
                 # there is no active log left to close in the normal flow.
-                db_logs_id = 0 
-                
+                db_logs_id = 0
+
                 Log.info(f"SYSTEM NOTICE: Healed database drift on SR {sr_no}. Closed dangling log {db_log_smk_id}.")
 
             # C. THE NORMAL FLOW
             # Now the timeline is completely clean and safe to proceed!
-            
+
             # Step 5a: Close the current valid log (if it exists)
             if db_logs_id > 0:
                 close_result = srlogs_transaction.update_sr_log_trx(db_logs_id, shared_conn)
@@ -143,16 +151,32 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
             if not sr_prog_result.get('status'):
                 return {'status': False, 'msg': f"Failed to update main SR status: {sr_prog_result.get('msg')}"}
 
-            shared_conn._conn.commit()  # Commit if everything went well
+            # 7. Auto-assign jika transisi ini memerlukan assignment otomatis
+            if next_smk_id in AUTO_ASSIGN_ON_PHASE:
+                target = AUTO_ASSIGN_ON_PHASE[next_smk_id]
+                assign_result = assignment_model.insert_assignments_model(
+                    sr_no=sr_no,
+                    assignments=[{'nik': target['nik'], 'it_role_id': target['it_role_id']}],
+                    assigned_by=action_by,
+                    shared_conn=shared_conn
+                )
+                if not assign_result.get('status'):
+                    return {'status': False, 'msg': f"Failed to auto-assign: {assign_result.get('msg')}"}
+
+            # Hanya commit/close jika kita yang buat koneksi sendiri
+            if owns_conn:
+                shared_conn._conn.commit()
             return {'status': True, 'msg': 'Phase advanced successfully.'}
-        
+
         except Exception as e:
-            shared_conn._conn.rollback()  # Rollback if anything goes wrong
+            if owns_conn:
+                shared_conn._conn.rollback()
             Log.error(f"DB Exception during phase advancement | Msg: {str(e)}")
             return {'status': False, 'msg': 'An error occurred while advancing the phase. No changes were made.'}
-        
+
         finally:
-            shared_conn.close()
+            if owns_conn:
+                shared_conn.close()
 
     except Exception as e:
         Log.error(f"Exception | Advance Phase Trx | Msg: {str(e)}")

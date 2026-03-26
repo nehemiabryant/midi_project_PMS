@@ -1,10 +1,13 @@
 from application.utils import tokenization
 from common.midiconnectserver.midilog import Logger
 from ..models import my_work_model, assignment_model, task_model
+from ..transactions import assignment_transaction
+from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
 
 # Status class mapping untuk badge styling di template
+# TODO: Tambahkan kolom status_class ke sr_ms_ket agar mapping ini bisa di-derive dari DB
 STATUS_CLASS_MAP = {
     101: 'status-new',
     102: 'status-review',
@@ -29,25 +32,6 @@ STATUS_CLASS_MAP = {
 }
 
 
-def _parse_single_row(db_result: dict) -> dict | None:
-    if not db_result.get('status'):
-        return None
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return None
-    return dict(zip(raw[0], raw[1][0]))
-
-
-def _parse_rows(db_result: dict) -> list:
-    if not db_result.get('status'):
-        return []
-    raw = db_result.get('data', [[], []])
-    if not raw or len(raw) < 2 or not raw[1]:
-        return []
-    headers = raw[0]
-    return [dict(zip(headers, row)) for row in raw[1]]
-
-
 def get_my_work_trx(nik: str, search_query: str = '') -> dict:
     """
     Ambil semua SR yang di-assign ke user, group by sr_no.
@@ -55,7 +39,7 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
     """
     try:
         result = my_work_model.get_my_work_items_model(nik)
-        rows = _parse_rows(result)
+        rows = parse_rows(result)
 
         # Group by sr_no — kumpulkan roles per SR
         sr_map = {}
@@ -116,19 +100,19 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
     try:
         # 1. Cek apakah user ter-assign pada SR ini
         user_roles_result = my_work_model.get_user_role_on_sr_model(sr_no, nik)
-        user_roles = _parse_rows(user_roles_result)
+        user_roles = parse_rows(user_roles_result)
         if not user_roles:
             return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses pada SR ini.'}
 
         # 2. Ambil detail SR
         sr_result = my_work_model.get_sr_detail_full_model(sr_no)
-        sr_detail = _parse_single_row(sr_result)
+        sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
 
         # 3. Ambil semua assignment pada SR
         assignments_result = my_work_model.get_all_sr_assignments_model(sr_no)
-        all_assignments_raw = _parse_rows(assignments_result)
+        all_assignments_raw = parse_rows(assignments_result)
 
         # Group assignments by role
         assignments_by_role = {}
@@ -138,24 +122,27 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 assignments_by_role[role_detail] = []
             assignments_by_role[role_detail].append(a)
 
-        # 4. Tentukan role user
-        user_role_ids = [r['it_role_id'] for r in user_roles]
-        is_sm = 3 in user_role_ids  # IT SM = 3
+        # 4. Ambil PIC role IDs dari DB (digunakan di beberapa tempat di bawah)
+        picroles_result = assignment_model.get_assignable_picroles_model()
+        picroles = parse_rows(picroles_result)
+        assignable_role_ids = {r['it_role_id'] for r in picroles}
 
-        # 5. Apakah bisa assign? (SM + status masih 105)
+        # 5. Tentukan role user berdasarkan nama role (bukan hardcoded ID)
+        is_sm = any(r['it_role_detail'] == 'IT SM' for r in user_roles)
+        is_gm = any(r['it_role_detail'] == 'IT GM' for r in user_roles)
+
+        # 6. Apakah bisa assign? (SM + status masih 105 | GM + status masih 104)
         can_assign = is_sm and sr_detail.get('smk_id') == assignment_model.STATUS_BACKLOG_SCRUM
+        can_assign_sm = is_gm and sr_detail.get('smk_id') == assignment_model.STATUS_IT_GM_REVIEW
 
-        # 6. Jika SM, siapkan data assignment (picroles + it_users)
+        # 7. Jika SM, siapkan data assignment (picroles + it_users)
         assignment_data = {}
         if is_sm:
-            picroles_result = assignment_model.get_assignable_picroles_model()
-            picroles = _parse_rows(picroles_result)
-
             users_result = assignment_model.get_it_users_model()
-            it_users = _parse_rows(users_result)
+            it_users = parse_rows(users_result)
 
-            # Assignment yang sudah ada (role 4,5,6,7)
-            pic_assignments = [a for a in all_assignments_raw if a.get('it_role_id') in [4, 5, 6, 7]]
+            # Assignment yang sudah ada (hanya PIC roles dari DB)
+            pic_assignments = [a for a in all_assignments_raw if a.get('it_role_id') in assignable_role_ids]
 
             assignment_data = {
                 'picroles': picroles,
@@ -163,19 +150,26 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 'current_assignments': pic_assignments,
             }
 
-        # 7. Jika PIC, ambil tasks — hanya role yang teritorinya match smk_id SR saat ini
+        # 7b. Jika GM, siapkan data assignment IT SM
+        gm_assign_data = {}
+        if is_gm:
+            gm_page = assignment_transaction.get_gm_assign_page_data_trx(sr_no, nik)
+            if gm_page.get('status'):
+                gm_assign_data = gm_page['data']
+
+        # 8. Jika PIC, ambil tasks — hanya role yang teritorinya match smk_id SR saat ini
         current_smk_id = sr_detail.get('smk_id')
-        territory_map = my_work_model.IT_ROLE_TERRITORY
+        territory_map = my_work_model.get_role_territory_model()
         pic_roles = [
             r for r in user_roles
-            if r['it_role_id'] in [4, 5, 6, 7]
+            if r['it_role_id'] in assignable_role_ids
             and current_smk_id in territory_map.get(r['it_role_id'], [])
         ]
         pic_sections = []
         for pr in pic_roles:
             role_id = pr['it_role_id']
             tasks_result = task_model.get_tasks_by_sr_and_role_model(sr_no, role_id)
-            tasks = _parse_rows(tasks_result)
+            tasks = parse_rows(tasks_result)
             pic_sections.append({
                 'it_role_id': role_id,
                 'it_role_detail': pr['it_role_detail'],
@@ -191,8 +185,11 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 'all_assignments': all_assignments_raw,
                 'assignments_by_role': assignments_by_role,
                 'is_sm': is_sm,
+                'is_gm': is_gm,
                 'can_assign': can_assign,
+                'can_assign_sm': can_assign_sm,
                 'assignment_data': assignment_data,
+                'gm_assign_data': gm_assign_data,
                 'is_pic': len(pic_roles) > 0,
                 'pic_sections': pic_sections,
             }
