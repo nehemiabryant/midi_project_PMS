@@ -7,21 +7,6 @@
 {% endwith %}
 
 <div class="page-content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div id="flash-container" style="margin-bottom: 20px;">
-      {% for category, message in messages %}
-        
-        <div class="custom-alert custom-alert-{{ category }}">
-            <span>{{ message }}</span>
-            
-            <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
-        </div>
-        
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
 	<div class="form-card">
 		<form id="srForm" method="POST" enctype="multipart/form-data" action="">
 

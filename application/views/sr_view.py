@@ -123,7 +123,7 @@ def editSR_menu(token):
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data)
+    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
 @sr_bp.route('/approval/<token>', methods=['GET', 'POST'])
 @login_required
@@ -189,7 +189,7 @@ def approveSR_menu(token):
             flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
             return redirect(request.url)
 
-    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), sr_data=sr_data, options=options)
+    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_work', sr_data=sr_data, options=options)
 
 @sr_bp.route('/projectDetails/<token>', methods=['GET'])
 @login_required
