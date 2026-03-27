@@ -2,14 +2,6 @@
 {% block title %}Detail Project - {{ sr_detail.sr_no }}{% endblock %}
 {% block content %}
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-    {% for category, message in messages %}
-    <p class="{{ category }}">{{ message }}</p>
-    {% endfor %}
-{% endif %}
-{% endwith %}
-
 <a href="{{ url_for('owh_dashboard.myWork_menu') }}">&larr; Kembali ke My Work</a>
 
 <!-- Informasi Project -->

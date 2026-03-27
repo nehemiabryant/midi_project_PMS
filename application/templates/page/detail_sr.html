@@ -4,17 +4,6 @@
 
 <h2>Detail Service Request</h2>
 
-<!-- Flash messages -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-<div>
-    {% for category, message in messages %}
-    <p class="{{ category }}">{{ message }}</p>
-    {% endfor %}
-</div>
-{% endif %}
-{% endwith %}
-
 <!-- Back button -->
 <a href="{{ url_for('owh_dashboard.myWork_menu') }}">&larr; Kembali ke My Work</a>
 
