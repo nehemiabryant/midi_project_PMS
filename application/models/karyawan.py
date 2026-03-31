@@ -12,7 +12,7 @@ def search_karyawan_model(query: str, limit: int = 20, offset: int = 0) -> dict:
 
         if query:
             sql = """
-                SELECT nik, nama, jabatan, toko_absen, email
+                SELECT nik, nama, jabatan, toko_absen, email, divisi
                 FROM karyawan_all
                 WHERE nik ILIKE %(pattern)s OR nama ILIKE %(pattern)s
                 ORDER BY nik
@@ -21,7 +21,7 @@ def search_karyawan_model(query: str, limit: int = 20, offset: int = 0) -> dict:
             return conn.selectDataHeader(sql, {'pattern': f'%{query}%', 'limit': limit, 'offset': offset})
         else:
             sql = """
-                SELECT nik, nama, jabatan, toko_absen, email
+                SELECT nik, nama, jabatan, toko_absen, email, divisi
                 FROM karyawan_all
                 ORDER BY nik
                 LIMIT %(limit)s OFFSET %(offset)s

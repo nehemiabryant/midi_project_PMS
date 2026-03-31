@@ -54,7 +54,7 @@
                 <td>{{ item.updated_at }}</td>
                 <td>
                   <a href="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
-                  <a href="{{ url_for('owh_sr.approveSR_menu', token=item.token) }}" class="my-work-detail-btn">Approvals</a>
+                  <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
                 </td>
               </tr>
             {% endfor %}

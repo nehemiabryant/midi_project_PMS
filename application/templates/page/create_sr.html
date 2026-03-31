@@ -81,7 +81,7 @@
 				<div class="form-row">
 					<div class="form-label">Divisi</div>
 					<div class="form-field">
-						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" /> <!-- style="background-color: #f3f4f6; cursor: not-allowed;" disabled -->
+						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" style="background-color: #f3f4f6; cursor: not-allowed;" readonly/>
 					</div>
 				</div>
 
@@ -240,6 +240,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const displayInput = document.getElementById('req_display');
     const hiddenInput = document.getElementById('req_id');
     const suggestionBox = document.getElementById('req_suggestions');
+    
+    // 1. Grab the division input element
+    const divisionInput = document.getElementById('division');
 
     function debounce(func, delay) {
         let timeoutId;
@@ -256,7 +259,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            // Pointing to YOUR new wrapper route
             const response = await fetch(`/karyawan/search?q=${encodeURIComponent(query)}`);
             const json = await response.json(); 
             const results = json.data || []; 
@@ -270,7 +272,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     li.style.cursor = "pointer";
                     li.style.borderBottom = "1px solid #eee";
                     
-                    // Pulling exactly from your team's dictionary keys!
                     li.innerHTML = `<strong>${item.nik}</strong> - ${item.nama} <br><small style="color:gray;">${item.jabatan}</small>`; 
                     
                     li.onmouseover = () => li.style.backgroundColor = "#f3f4f6";
@@ -279,6 +280,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     li.onclick = () => {
                         displayInput.value = `${item.nik} - ${item.nama}`;
                         hiddenInput.value = item.nik; 
+                        
+                        // 2. Set the division value when clicked!
+                        if (divisionInput) {
+                            // Ensure we don't print "undefined" if data is missing
+                            divisionInput.value = item.divisi || ''; 
+                        }
+
                         suggestionBox.style.display = 'none';
                     };
                     suggestionBox.appendChild(li);
@@ -295,7 +303,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (displayInput) {
         displayInput.addEventListener('input', (e) => {
-            if (e.target.value === '') hiddenInput.value = ''; 
+            if (e.target.value === '') {
+                hiddenInput.value = ''; 
+                // 3. Optional: Clear the division if the user deletes the requester name
+                if (divisionInput) {
+                    divisionInput.value = '';
+                }
+            }
             fetchSuggestions(e.target.value);
         });
 

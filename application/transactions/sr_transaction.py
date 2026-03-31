@@ -1,6 +1,5 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import sr_model, karyawan
-from ..utils import tokenization
 from ..utils.converters import parse_rows, parse_single_row
 from . import attachment_transaction
 
@@ -23,8 +22,6 @@ def get_my_sr_trx(nik: str) -> dict:
             return db_result
 
         items = parse_rows(db_result)
-        for item in items:
-            item['token'] = tokenization.encrypt_id(item['sr_no'])
 
         return {'status': True, 'data': items}
     except Exception as e:
