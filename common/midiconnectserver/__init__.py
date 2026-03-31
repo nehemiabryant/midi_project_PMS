@@ -1,5 +1,6 @@
 import os
 import psycopg2
+from psycopg2 import pool
 from typing import Any, Dict
 
 try:
@@ -47,13 +48,9 @@ def _normalize_error_pg(e: Exception, query: str = "") -> Dict[str, Any]:
 
 # --- DATABASE CLASS ---
 class DatabasePG:
-    def __init__(self, alias: str, autocommit: bool = False):
-        self._alias = alias
-        self.status = _result_template()
-        self._conn = None
-        self._curs = None
-        self._connect(autocommit)
+    _pools: Dict[str, pool.ThreadedConnectionPool] = {}
 
+    @classmethod
     def _get_credentials_from_cfg(self, alias_target: str) -> str:
         """Parses the cfg file to find the connection string for the alias."""
         cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "Connection.cfg")
@@ -72,14 +69,36 @@ class DatabasePG:
                     if alias_name == alias_target:
                         return credentials
         return ""
+    
+    @classmethod
+    def _get_pool(cls, alias: str) -> pool.ThreadedConnectionPool:
+        """Retrieves an existing pool for the alias, or creates one if it doesn't exist."""
+        if alias not in cls._pools:
+            conn_string = cls._get_credentials_from_cfg(alias)
+            if not conn_string:
+                raise Exception(f"Alias '{alias}' not found in db.cfg.")
+            
+            # Initialize pool: min 1 connection, max 10 connections.
+            # Adjust these numbers based on your Gunicorn worker count and traffic.
+            Log.info(f"Initializing new DB pool for alias: {alias}")
+            cls._pools[alias] = pool.ThreadedConnectionPool(minconn=1, maxconn=10, dsn=conn_string)
+            
+        return cls._pools[alias]
+    
+    def __init__(self, alias: str, autocommit: bool = False):
+        self._alias = alias
+        self.status = _result_template()
+        self._conn = None
+        self._curs = None
+        self._connect(autocommit)
 
     def _connect(self, autocommit: bool):
         try:
-            conn_string = self._get_credentials_from_cfg(self._alias)
-            if not conn_string:
-                raise Exception(f"Alias '{self._alias}' not found in db.cfg.")
-
-            self._conn = psycopg2.connect(conn_string)
+            # 1. Get the pool for this alias
+            db_pool = self._get_pool(self._alias)
+            
+            # 2. Check out a connection from the pool
+            self._conn = db_pool.getconn()
             self._conn.autocommit = autocommit
             self._curs = self._conn.cursor()
             
@@ -87,6 +106,12 @@ class DatabasePG:
             self.status["msg"] = "Koneksi Berhasil"
             self.status["errorcode"] = "0"
             
+        # 3. Add the exception if the pool is exhausted
+        except pool.PoolError as e:
+            # This happens if maxconn is reached and no connections are available
+            err = _normalize_error_pg(e, f"Pool exhausted for {self._alias}")
+            self.status.update(err)
+            Log.error(f"DB Pool Exhausted ({self._alias}): {self.status['msg']}")
         except Exception as e:
             err = _normalize_error_pg(e, f"Connect to {self._alias}")
             self.status.update(err)
@@ -267,12 +292,27 @@ class DatabasePG:
         try:
             if self._curs:
                 self._curs.close()
-            self._conn.close()
+
+            # Safety measure: if autocommit is off, rollback any lingering uncommitted 
+            # transactions before returning the connection so the next user gets a clean slate.
+            if not self._conn.autocommit:
+                try:
+                    self._conn.rollback()
+                except Exception:
+                    pass
+
+            # Return the connection to the pool instead of closing it permanently
+            db_pool = self._get_pool(self._alias)
+            db_pool.putconn(self._conn)
+
+            self._conn = None
+            self._curs = None
+
             res["status"] = True
-            res["msg"] = "Berhasil Menutup Koneksi"
+            res["msg"] = "Berhasil Mengembalikan Koneksi ke Pool"
             res["errorcode"] = "0"
         except Exception as e:
-            err = _normalize_error_pg(e, "Delete Connection")
+            err = _normalize_error_pg(e, "Return Connection to Pool")
             Log.error(message=f"PG ERROR: {err}")
             res.update(err)
         return res
