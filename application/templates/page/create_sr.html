@@ -28,14 +28,22 @@
 <div class="page-content">
     <div class="form-card">
         <form id="srForm" method="POST" enctype="multipart/form-data" action="">
-
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <div class="form-group full-width" style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #e2e8f0;">
+                <label class="form-label">Nama Aplikasi</label>
+                <input type="text" class="form-input" id="nama_aplikasi" name="nama_aplikasi" placeholder="Nama Aplikasi" value="{{ sr_data.name if sr_data else '' }}" required style="max-width: 400px; font-weight: 600;" />
+            </div>
 
             <div class="form-grid">
 
-                <div class="form-group">
-                    <label class="form-label">Maker</label>
-                    <input type="text" class="form-input" value="{{ sr_data.user_info.maker.nik if sr_data else user.nik }} - {{ sr_data.user_info.maker.name if sr_data else user.nama }}" style="background-color: #f8fafc; color: #64748b; cursor: not-allowed;" disabled />
+                <div class="form-group" style="position: relative;">
+                    <label class="form-label">Requester</label>
+                    <input type="text" class="form-input" id="req_display" autocomplete="off" placeholder="Enter name or NIK"
+                        value="{% if sr_data %}{{ sr_data.user_info.requester.nik }} - {{ sr_data.user_info.requester.name }}{% endif %}" 
+                        {% if sr_data %} style="background-color: #f8fafc; color: #64748b; cursor: not-allowed;" disabled {% endif %} />
+                    <input type="hidden" id="req_id" name="req_id" value="{% if sr_data %}{{ sr_data.user_info.requester.nik }}{% endif %}">
+                    <ul id="req_suggestions" style="display: none;"></ul>
                 </div>
 
                 <div class="form-group">
@@ -47,7 +55,7 @@
                         </label>
                         <label class="kategori-option">
                             <input type="radio" name="kategori_sr" value="2" {% if sr_data and sr_data.ctg_id == 2 %}checked{% endif %} />
-                            <span class="kategori-badge">DIVISIONAL</span>
+                            <span class="kategori-badge">Divisional</span>
                         </label>
                         <label class="kategori-option">
                             <input type="radio" name="kategori_sr" value="3" {% if sr_data and sr_data.ctg_id == 3 %}checked{% endif %} />
@@ -56,71 +64,60 @@
                     </div>
                 </div>
 
-                <div class="form-group" style="position: relative;">
-                    <label class="form-label">Requester</label>
-                    <input type="text" class="form-input" id="req_display" autocomplete="off" placeholder="Type NIK or Name..."
-                        value="{% if sr_data %}{{ sr_data.user_info.requester.nik }} - {{ sr_data.user_info.requester.name }}{% endif %}" 
-                        {% if sr_data %} style="background-color: #f8fafc; color: #64748b; cursor: not-allowed;" disabled {% endif %} />
-                    <input type="hidden" id="req_id" name="req_id" value="{% if sr_data %}{{ sr_data.user_info.requester.nik }}{% endif %}">
-                    <ul id="req_suggestions" style="display: none;"></ul>
-                </div>
-
                 <div class="form-group">
-                    <label class="form-label">Divisi</label>
-                    <input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Nama Aplikasi</label>
-                    <input type="text" class="form-input" id="nama_aplikasi" name="nama_aplikasi" value="{{ sr_data.name if sr_data else '' }}" required/>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Modul</label>
+                    <label class="form-label">Modul <span style="color: #ef4444;">*</span></label>
                     <input type="text" class="form-input" id="modul" name="modul" value="{{ sr_data.module if sr_data else '' }}" required/>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Values</label>
-                    <input type="text" class="form-input" id="values" name="values" value="{{ sr_data.value if sr_data else '' }}" required />
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Number of User</label>
-                    <input type="text" class="form-input" id="number_of_user" name="number_of_user" value="{{ sr_data.num_user if sr_data else '' }}" required />
+                    <label class="form-label">Divisi <span style="color: #ef4444;">*</span></label>
+                    <select class="form-input form-select" id="division" name="division" required>
+                        <option value="IT Division" {% if sr_data and sr_data.division == 'IT Division' %}selected{% endif %}>IT Division</option>
+                        <option value="Finance" {% if sr_data and sr_data.division == 'Finance' %}selected{% endif %}>Finance</option>
+                        <option value="HR" {% if sr_data and sr_data.division == 'HR' %}selected{% endif %}>HR</option>
+                    </select>
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label">Tujuan</label>
+                    <label class="form-label">Tujuan <span style="color: #ef4444;">*</span></label>
                     <textarea class="form-input richtext" id="tujuan" name="tujuan" required>{{ sr_data.purpose if sr_data else '' }}</textarea>
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label">Detail Permohonan</label>
+                    <label class="form-label">Detail Permohonan <span style="color: #ef4444;">*</span></label>
                     <textarea class="form-input richtext" id="detail_permohonan" name="detail_permohonan" required>{{ sr_data.details if sr_data else '' }}</textarea>
                 </div>
 
                 <div class="form-group full-width">
-                    <label class="form-label">Frequency</label>
+                    <label class="form-label">Frequency <span style="color: #ef4444;">*</span></label>
                     <textarea class="form-input richtext" id="frequency" name="frequency" required>{{ sr_data.frequency if sr_data else '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Values</label>
+                    <input type="text" class="form-input" id="values" name="values" value="{{ sr_data.value if sr_data else '' }}" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Number of User</label>
+                    <input type="text" class="form-input" id="number_of_user" name="number_of_user" value="{{ sr_data.num_user if sr_data else '' }}" />
                 </div>
 
                 <div class="form-group full-width">
                     <label class="form-label">Keterangan Values</label>
-                    <textarea class="form-input richtext" id="keterangan_values" name="keterangan_values" required>{{ sr_data.value_det if sr_data else '' }}</textarea>
+                    <textarea class="form-input richtext" id="keterangan_values" name="keterangan_values">{{ sr_data.value_det if sr_data else '' }}</textarea>
                 </div>
 
                 <div class="form-group full-width" style="margin-top: 10px;">
-                    <label class="form-label">Lampiran <span style="font-size: 11px; font-weight: 500; text-transform: none; margin-left: 8px;">(*File harus berupa PDF)</span></label>
+                    <label class="form-label" style="font-size: 15px;">Lampiran</label>
                     <div class="lampiran-grid">
                         
                         <div class="lampiran-col">
                             <div class="lampiran-title">Alur Proses</div>
                             <label class="drop-zone" data-input="attachment_ctg_1">
                                 <input type="file" name="attachment_ctg_1" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 1 not in sr_data.attachments%}required{% endif %}>
-                                <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                <span class="drop-zone-text">Klik atau drag file</span>
-                                <span class="drop-zone-hint">PDF, maks 10MB</span>
+                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
+                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
                                 {% if sr_data %}
                                     <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
                                 {% endif %}
@@ -129,7 +126,7 @@
                             {% if sr_data and sr_data.attachments and 1 in sr_data.attachments %}
                                 <div class="lampiran-current">
                                     <span>File Saat Ini:</span>
-                                    <a href="{{ sr_data.attachments[1] }}" target="_blank">📥 Download / View PDF</a>
+                                    <a href="{{ sr_data.attachments[1] }}" target="_blank">📥 View PDF</a>
                                 </div>
                             {% endif %}
                         </div>
@@ -138,9 +135,8 @@
                             <div class="lampiran-title">Desain Aplikasi</div>
                             <label class="drop-zone" data-input="attachment_ctg_2">
                                 <input type="file" name="attachment_ctg_2" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 2 not in sr_data.attachments%}required{% endif %}/>
-                                <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                <span class="drop-zone-text">Klik atau drag file</span>
-                                <span class="drop-zone-hint">PDF, maks 10MB</span>
+                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
+                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
                                 {% if sr_data %}
                                     <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
                                 {% endif %}
@@ -149,7 +145,7 @@
                             {% if sr_data and sr_data.attachments and 2 in sr_data.attachments %}
                                 <div class="lampiran-current">
                                     <span>File Saat Ini:</span>
-                                    <a href="{{ sr_data.attachments[2] }}" target="_blank">📥 Download / View PDF</a>
+                                    <a href="{{ sr_data.attachments[2] }}" target="_blank">📥 View PDF</a>
                                 </div>
                             {% endif %}
                         </div>
@@ -158,9 +154,8 @@
                             <div class="lampiran-title">Report</div>
                             <label class="drop-zone" data-input="attachment_ctg_3">
                                 <input type="file" name="attachment_ctg_3" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 3 not in sr_data.attachments%}required{% endif %}/>
-                                <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                <span class="drop-zone-text">Klik atau drag file</span>
-                                <span class="drop-zone-hint">PDF, maks 10MB</span>
+                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
+                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
                                 {% if sr_data %}
                                     <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
                                 {% endif %}
@@ -169,12 +164,13 @@
                             {% if sr_data and sr_data.attachments and 3 in sr_data.attachments %}
                                 <div class="lampiran-current">
                                     <span>File Saat Ini:</span>
-                                    <a href="{{ sr_data.attachments[3] }}" target="_blank">📥 Download / View PDF</a>
+                                    <a href="{{ sr_data.attachments[3] }}" target="_blank">📥 View PDF</a>
                                 </div>
                             {% endif %}
                         </div>
 
                     </div>
+                    <span style="font-size: 11px; color: #94a3b8; font-weight: 400; display: block; margin-top: 10px;">*File harus berupa PDF</span>
                 </div>
 
             </div> 

@@ -10,14 +10,14 @@
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 28px 32px; /* Jarak vertikal 28px, Horizontal 32px (Sangat lega) */
+  gap: 24px 32px;
 }
 
-/* --- PER GROUP INPUT --- */
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Jarak pas antara Label ke Kotak Input */
+  gap: 4px; /* Jarak dirapatkan karena tidak ada kotak form */
+  margin-bottom: 8px;
 }
 
 .form-group.full-width {
@@ -25,58 +25,78 @@
 }
 
 /* ========================================================= */
-/* TIPOGRAFI PERSIS SEPERTI GAMBAR DETAIL                    */
+/* GAYA "NON-FORM" (BORDERLESS / DOCUMENT STYLE)             */
 /* ========================================================= */
 
-/* LABEL (Muted / Slate / Uppercase) */
+/* --- LABEL --- */
 .form-label {
   font-family: 'Poppins', 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 700;
-  color: #94a3b8; /* Abu-abu slate terang */
-  text-transform: uppercase; /* Huruf KAPITAL semua */
+  color: #94a3b8; /* Abu-abu terang */
+  text-transform: uppercase; /* Huruf KAPITAL seperti halaman detail */
   letter-spacing: 0.5px;
   display: block;
+  margin-bottom: 2px;
 }
 
-/* INPUT TEXT (Solid / Bold / Hitam Pekat) */
+/* --- INPUT TEXT (Tanpa Kotak) --- */
 .form-input {
   width: 100%;
-  height: 44px; /* Sedikit lebih tinggi */
-  padding: 10px 16px;
-  border: 1.5px solid #e2e8f0; /* Border sangat halus */
-  border-radius: 8px;
+  padding: 8px 0px; /* Padding kiri-kanan dihilangkan agar sejajar dengan label */
+  border: none; /* HILANGKAN KOTAK BORDER */
+  border-bottom: 1px dashed #cbd5e1; /* Hanya garis bawah putus-putus yang samar */
+  border-radius: 0;
   font-family: 'Poppins', 'Inter', sans-serif;
-  font-size: 14px; 
-  font-weight: 600; /* Teks tebal persis di gambar */
-  color: #0f172a; /* Hitam slate sangat pekat */
-  background: #ffffff;
+  font-size: 15px; 
+  font-weight: 600; /* Teks tebal agar terlihat seperti teks dokumen */
+  color: #0f172a; 
+  background: transparent !important; /* Background tembus pandang */
   outline: none;
   box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
-/* Efek saat diklik / mengetik */
+/* Efek saat form diklik (Menandakan sedang diedit) */
 .form-input:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+  border-bottom: 2px solid #3b82f6; /* Garis bawah berubah biru solid */
+  box-shadow: none; /* Hilangkan efek glow kotak */
 }
 
+/* Placeholder dibuat lebih terang & miring */
 .form-input::placeholder {
-  color: #cbd5e1;
-  font-weight: 400; /* Placeholder tetap normal, tidak tebal */
+  color: #94a3b8;
+  font-weight: 400;
+  font-style: italic;
 }
 
-/* Khusus Dropdown Select (jika Anda pakai kedepannya) */
+/* Tampilan untuk input yang di-disable (seperti Maker) */
+.form-input:disabled {
+  color: #64748b;
+  border-bottom: 1px dotted #e2e8f0;
+  cursor: not-allowed;
+}
+
+/* --- KHUSUS DROPDOWN --- */
 .form-select {
-  font-weight: 600;
   color: #0f172a;
+  cursor: pointer;
+  background-position: right 0px center; /* Geser panah ke paling kanan */
+  padding-right: 20px;
 }
 
+/* --- KHUSUS TEXTAREA (Garis putus-putus keliling) --- */
 textarea.form-input.richtext {
-  min-height: 100px;
-  resize: vertical;
+  min-height: 40px; 
+  border: 1px dashed #cbd5e1; /* Textarea butuh sedikit batas agar jelas area ketiknya */
+  border-radius: 8px;
+  padding: 12px;
   line-height: 1.6;
+  resize: vertical;
+}
+
+textarea.form-input.richtext:focus {
+  border: 1px solid #3b82f6; /* Jadi kotak biru solid saat diklik */
 }
 
 /* ========================================================= */
@@ -86,6 +106,7 @@ textarea.form-input.richtext {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  padding-top: 4px;
 }
 
 .kategori-option {
@@ -103,26 +124,21 @@ textarea.form-input.richtext {
 .kategori-badge {
   display: inline-flex;
   align-items: center;
-  padding: 10px 20px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px; /* Bentuk kotak membulat */
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px dashed #cbd5e1; /* Mengikuti tema borderless/dashed */
+  border-radius: 20px; /* Bentuk pil */
   font-size: 13px;
   font-weight: 600;
-  color: #64748b; /* Warna abu-abu default */
+  color: #64748b; 
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.kategori-badge:hover {
-  background: #e2e8f0;
-  color: #334155;
-}
-
 .kategori-option input[type='radio']:checked + .kategori-badge {
   background: #eff6ff;
-  border-color: #3b82f6;
-  color: #1d4ed8; /* Biru tebal saat dipilih */
+  border: 1px solid #3b82f6;
+  color: #1d4ed8; 
 }
 
 /* --- BAGIAN LAMPIRAN FILE --- */
@@ -136,6 +152,7 @@ textarea.form-input.richtext {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: flex-start; /* Dibuat rata kiri mengikuti desain dokumen */
 }
 
 .lampiran-title {
@@ -150,45 +167,36 @@ textarea.form-input.richtext {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   padding: 24px 16px;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
-  min-height: 130px;
+  width: 100%;
+  min-height: 100px;
 }
 
 .drop-zone:hover {
-  border-color: #38bdf8;
-  background: #f0f9ff;
-}
-
-.drop-zone-icon {
-  color: #94a3b8;
-  transition: color 0.2s;
-}
-
-.drop-zone:hover .drop-zone-icon {
-  color: #0284c7;
+  border-color: #3b82f6;
+  background: #f8fafc;
 }
 
 .drop-zone-text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
 }
 
 .drop-zone-hint {
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
-  font-weight: 400;
 }
 
 .drop-zone-filename {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #0f172a;
   word-break: break-all;
@@ -197,12 +205,8 @@ textarea.form-input.richtext {
 
 .drop-zone.has-file {
   border-color: #10b981;
-  border-style: solid;
   background: #ecfdf5;
-}
-
-.drop-zone.has-file .drop-zone-icon {
-  color: #10b981;
+  border-style: solid;
 }
 
 .drop-zone.has-file .drop-zone-text,
@@ -215,31 +219,15 @@ textarea.form-input.richtext {
 }
 
 .lampiran-current {
-  margin-top: 8px;
-  padding: 12px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.lampiran-current span {
-  font-size: 12px;
-  color: #64748b;
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
+  margin-top: 4px;
+  text-align: left;
 }
 
 .lampiran-current a {
-  color: #0284c7;
+  color: #3b82f6;
   text-decoration: none;
   font-weight: 600;
   font-size: 13px;
-}
-
-.lampiran-current a:hover {
-  text-decoration: underline;
 }
 
 /* --- TOMBOL AKSI BAWAH --- */
@@ -249,45 +237,44 @@ textarea.form-input.richtext {
   gap: 16px;
   margin-top: 40px;
   padding-top: 30px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px dashed #e2e8f0; /* Garis batas bawah menggunakan dashed */
 }
 
 .form-actions .btn {
   padding: 0 32px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   font-family: 'Poppins', 'Inter', sans-serif;
-  border: 1px solid transparent;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 44px;
+  height: 42px;
 }
 
 .form-actions .btn-cancel {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: transparent;
+  border: 1px solid #cbd5e1;
   color: #475569;
 }
 
 .form-actions .btn-cancel:hover {
   background: #f8fafc;
-  border-color: #94a3b8;
   color: #0f172a;
 }
 
 .form-actions .btn-create {
-  background: #0284c7; /* Biru utama yang elegan */
+  background: #3b82f6;
+  border: none;
   color: #ffffff;
 }
 
 .form-actions .btn-create:hover {
-  background: #0369a1;
-  box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2);
+  background: #2563eb;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
 }
 
 /* --- RESPONSIF UNTUK HP --- */
