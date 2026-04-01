@@ -1,4 +1,5 @@
 from common.midiconnectserver.midilog import Logger
+from common.midiconnectserver import DatabasePG
 from ..models import sr_model, karyawan
 from ..utils.converters import parse_rows, parse_single_row
 from . import attachment_transaction
@@ -29,6 +30,8 @@ def get_my_sr_trx(nik: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
 
 def create_sr_trx(raw_data: dict, files: dict) -> dict:
+    shared_conn = DatabasePG("supabase", autocommit=False)
+
     try:
         db_params = {
             'ctg_id': raw_data.get('kategori_sr'),
@@ -51,16 +54,23 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
         else:
             db_params['num_user'] = 0
 
-        data = sr_model.create_sr(db_params)
+        data = sr_model.create_sr(db_params, shared_conn)
         if data.get('status'):
             new_sr_no = data['data'][0][0]
 
-            attachment_transaction.upload_and_record_files(new_sr_no, files)
+            attachment_transaction.upload_and_record_files(new_sr_no, files, 101, shared_conn)
+
+        if shared_conn:
+            shared_conn._conn.commit()
 
         return data
     except Exception as e:
+        if shared_conn:
+            shared_conn._conn.rollback()
         Log.error(f'Exception | Create SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        shared_conn.close()
 
 def get_edit_sr_trx(sr_no: str) -> dict:
     try:
@@ -96,7 +106,7 @@ def get_edit_sr_trx(sr_no: str) -> dict:
             }
         }
 
-        attachments = attachment_transaction.get_attachments_for_view(sr_no)
+        attachments = attachment_transaction.get_latest_attachments_trx(sr_no)
 
         sr_dict['attachments'] = attachments
 
