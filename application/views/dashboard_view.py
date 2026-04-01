@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request
 from ..helpers.decorators import login_required
-from ..transactions import my_work_transaction, assignment_transaction, workflow_transaction
+from ..transactions import my_work_transaction, assignment_transaction, workflow_transaction, attachment_transaction
 
 dashboard_bp = Blueprint('owh_dashboard', __name__, url_prefix='/', template_folder='../templates', static_folder='/static')
 
@@ -121,6 +121,26 @@ def submit_sm_assignment(sr_no):
         flash(result.get('msg', 'Gagal menyimpan assignment IT SM.'), 'error')
     else:
         flash(result.get('msg', 'IT SM berhasil di-assign.'), 'success')
+
+    return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
+
+@dashboard_bp.route('/myWork/detail/<path:sr_no>/attachment', methods=['GET','POST'])
+@login_required
+def upload_attachment(sr_no):
+    """Upload attachment dari halaman detail SR."""
+    nik = session['user']['nik']
+    file = request.files.get('attachment')
+
+    if not file:
+        flash('Tidak ada file yang diunggah.', 'error')
+        return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
+
+    result = attachment_transaction.upload_attachment_trx(sr_no, nik, file)
+
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal mengunggah attachment.'), 'error')
+    else:
+        flash(result.get('msg', 'Attachment berhasil diunggah.'), 'success')
 
     return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
 
