@@ -31,7 +31,7 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
-
+        
         # 3. Tentukan apakah assignment sudah locked
         is_locked = sr_detail.get('smk_id') != assignment_model.STATUS_BACKLOG_SCRUM
 

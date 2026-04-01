@@ -138,7 +138,7 @@ def approveSR_menu(token):
 
     # 1. Eligibility Check (Reused perfectly!)
     eligibility_result = workflow_transaction.authorize_sr_access(
-        sr_no=sr_no, 
+        sr_no=sr_no,
         user_nik=current_user,
         intent='APPROVE'
     )

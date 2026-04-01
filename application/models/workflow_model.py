@@ -35,7 +35,7 @@ def get_next_allowed_phases(current_smk_id: int, shared_conn=None) -> dict:
         WHERE current_smk_id = %(current_smk_id)s
         ORDER BY next_smk_id ASC
     """
-
+    
     if shared_conn:
         return shared_conn.selectDataHeader(sql, {'current_smk_id': current_smk_id})
     
