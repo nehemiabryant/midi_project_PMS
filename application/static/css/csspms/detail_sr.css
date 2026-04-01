@@ -1,0 +1,246 @@
+/* ========================================= */
+/* CSS UNTUK HALAMAN DETAIL SR               */
+/* ========================================= */
+
+.page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    width: fit-content;
+}
+
+.btn-back:hover {
+    color: #0f172a;
+}
+
+.page-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge-sr {
+    background: #eff6ff;
+    color: #2563eb;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid #bfdbfe;
+}
+
+/* --- CARDS KONTEN --- */
+.detail-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    margin-bottom: 24px;
+    border: 1px solid #f1f5f9;
+}
+
+.section-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* --- INFO GRID (MENGGANTIKAN TABEL LAMA) --- */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 32px;
+}
+
+.info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-group.full-width {
+    grid-column: span 2;
+}
+
+.info-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.5;
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+}
+
+/* --- ROLE BADGES --- */
+.role-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.badge-role {
+    background: #f1f5f9;
+    color: #334155;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+}
+
+/* --- TABEL MODERN --- */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.modern-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.modern-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.modern-table tr:hover td {
+    background: #f8fafc;
+}
+
+/* --- STYLING FORM ASSIGNMENT --- */
+.form-select-modern {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    outline: none;
+    background: #fff;
+    cursor: pointer;
+}
+
+.form-select-modern:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-action {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Poppins', sans-serif;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-add {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px dashed #cbd5e1;
+    margin-top: 12px;
+}
+
+.btn-add:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.btn-remove {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.btn-remove:hover {
+    background: #fee2e2;
+}
+
+.btn-submit {
+    background: #3b82f6;
+    color: #ffffff;
+    padding: 10px 24px;
+    font-size: 14px;
+    margin-top: 24px;
+}
+
+.btn-submit:hover {
+    background: #2563eb;
+}
+
+.helper-text {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: -10px;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.alert-locked {
+    background: #f8fafc;
+    border-left: 4px solid #94a3b8;
+    padding: 16px;
+    border-radius: 0 8px 8px 0;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* --- RESPONSIF HP --- */
+@media (max-width: 768px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .info-group.full-width { grid-column: span 1; }
+    .modern-table { display: block; overflow-x: auto; }
+    .detail-card { padding: 20px; }
+}
