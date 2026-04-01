@@ -135,6 +135,46 @@ def editSR_menu(sr_no):
     return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
                            , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict)
 
+@sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
+@login_required
+def confirmSR_menu(sr_no):
+    current_user = session.get('user', {}).get('nik', '')
+
+    eligibility_result = workflow_transaction.authorize_sr_access(
+        sr_no=sr_no,
+        user_nik=current_user,
+        intent='EDIT'
+    )
+
+    if not eligibility_result.get('status'):
+        flash(eligibility_result.get('msg'), "error")
+        return redirect(url_for('owh_sr.mySR_menu'))
+
+    sr_data = eligibility_result['data'][0]
+
+    if sr_data.get('req_id') != current_user:
+        flash("Hanya requester yang dapat mengkonfirmasi SR ini.", "error")
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
+
+    if sr_data.get('smk_id') != 101:
+        flash("SR ini sudah tidak dalam status Draft.", "warning")
+        return redirect(url_for('owh_sr.mySR_menu'))
+
+    advance_result = workflow_transaction.advance_sr_phase(
+        sr_no=sr_no,
+        current_smk_id=101,
+        next_smk_id=102,
+        action_by=current_user
+    )
+
+    if advance_result.get('status'):
+        flash("SR berhasil dikonfirmasi dan diteruskan ke atasan.", "success")
+        return redirect(url_for('owh_sr.mySR_menu'))
+    else:
+        flash(advance_result.get('msg', 'Gagal mengkonfirmasi SR.'), "error")
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
+
+
 @sr_bp.route('/approval/<path:sr_no>', methods=['GET', 'POST'])
 @login_required
 def approveSR_menu(sr_no):
@@ -147,7 +187,7 @@ def approveSR_menu(sr_no):
     
     # 1. Eligibility Check (Reused perfectly!)
     eligibility_result = workflow_transaction.authorize_sr_access(
-        sr_no=sr_no, 
+        sr_no=sr_no,
         user_nik=current_user,
         intent='APPROVE'
     )

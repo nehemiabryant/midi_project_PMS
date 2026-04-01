@@ -34,10 +34,12 @@ def get_sr(shared_conn=None) -> dict:
 
 def get_my_sr(nik: str, shared_conn=None) -> dict:
     sql = """
-        SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
-            frequency, value, value_det, num_user
-        FROM public.sr_request
-        WHERE req_id = %(nik)s
+        SELECT r.sr_no, r.smk_id, r.ctg_id, r.maker_id, r.req_id, r.division, r.name, r.module,
+               r.purpose, r.details, r.frequency, r.value, r.value_det, r.num_user,
+               COALESCE(s.smk_ket, 'Draft') AS smk_ket
+        FROM public.sr_request r
+        LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id
+        WHERE r.req_id = %(nik)s AND r.smk_id = 101
     """
 
     if shared_conn:
