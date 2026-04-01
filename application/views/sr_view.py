@@ -107,6 +107,12 @@ def editSR_menu(sr_no):
         return redirect(url_for('owh_dashboard.dashboard_menu'))
 
     sr_data = eligibility_result['data'][0]
+    current_smk_id = sr_data.get('smk_id', 101)
+
+    docs_res = attachment_transaction.get_required_docs_for_phase_trx(current_smk_id)
+    ui_doc_blueprints = docs_res.get('data', [])
+
+    current_files_dict = sr_data.get('attachments', {})
 
     if sr_data.get('req_id') != current_user:
         flash("Unauthorized: You can only edit your own Service Requests.", "error")
@@ -117,7 +123,7 @@ def editSR_menu(sr_no):
 
         files = request.files
 
-        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
+        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no, current_smk_id)
 
         if trx_result.get('status'):
             flash("Service Request updated successfully!", "success")
@@ -126,7 +132,8 @@ def editSR_menu(sr_no):
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
+    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
+                           , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict)
 
 @sr_bp.route('/approval/<path:sr_no>', methods=['GET', 'POST'])
 @login_required

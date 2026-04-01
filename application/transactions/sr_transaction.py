@@ -115,14 +115,13 @@ def get_edit_sr_trx(sr_no: str) -> dict:
         Log.error(f'Exception | Get Edit SR Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-def update_sr_trx(raw_data: dict, files: dict, sr_no: str) -> dict:
+def update_sr_trx(raw_data: dict, files: dict, sr_no: str, current_smk_id: int) -> dict:
     try:
         db_params = {
             'sr_no': sr_no,
             'req_id': raw_data.get('req_id'),
             'division': raw_data.get('division'),
             'ctg_id': raw_data.get('kategori_sr'),
-            'division': raw_data.get('divisi'),
             'name': raw_data.get('nama_aplikasi'),
             'module': raw_data.get('modul'),
             'purpose': raw_data.get('tujuan'),
@@ -140,9 +139,7 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str) -> dict:
         
         data = sr_model.update_sr(db_params)
         if data.get('status'):
-            new_sr_no = data['data'][0][0]
-
-            attachment_transaction.upload_and_record_files(new_sr_no, files)
+            attachment_transaction.upload_and_record_files(sr_no, files, current_smk_id)
 
         #return sr_model.update_sr(db_params)
         return {'status': True, 'data': data}

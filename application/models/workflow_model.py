@@ -83,7 +83,7 @@ def get_mandatory_docs(rule_id: int, shared_conn=None) -> dict:
 def get_uploaded_docs(sr_no: str, shared_conn=None) -> dict:
     sql = """
         SELECT DISTINCT attach_ctg
-        FROM public.sr_attachment
+        FROM public.sr_attachments
         WHERE sr_no = %(sr_no)s
     """
     if shared_conn:

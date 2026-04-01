@@ -9,3 +9,4 @@ flask_wtf==1.2.2
 werkzeug==2.3.7
 cryptography==43.0.1
 boto3==1.42.66
+PyMuPDF==1.27.2.2
