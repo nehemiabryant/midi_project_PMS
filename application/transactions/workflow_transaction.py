@@ -2,7 +2,6 @@ from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
 from ..models import sr_model, workflow_model, karyawan, assignment_model
 from ..transactions import srlogs_transaction, sr_transaction
-from datetime import datetime
 from ..utils import converters
 
 Log = Logger()
@@ -162,6 +161,25 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                 )
                 if not assign_result.get('status'):
                     return {'status': False, 'msg': f"Failed to auto-assign: {assign_result.get('msg')}"}
+
+            # 7b. Khusus 101→102: auto-assign nik_up requester sebagai Manager (role 8)
+            if next_smk_id == 102:
+                requester_nik = sr_model.get_sr_requester(sr_no, shared_conn)
+                if not requester_nik:
+                    return {'status': False, 'msg': 'Gagal mendapatkan data requester untuk auto-assign manager.'}
+
+                manager_nik = karyawan.get_karyawan_nik_up(requester_nik)
+                if not manager_nik:
+                    return {'status': False, 'msg': 'Requester tidak memiliki atasan terdaftar (nik_up kosong).'}
+
+                assign_result = assignment_model.insert_assignments_model(
+                    sr_no=sr_no,
+                    assignments=[{'nik': manager_nik, 'it_role_id': 8}],
+                    assigned_by=action_by,
+                    shared_conn=shared_conn
+                )
+                if not assign_result.get('status'):
+                    return {'status': False, 'msg': f"Gagal auto-assign manager: {assign_result.get('msg')}"}
 
             # Hanya commit/close jika kita yang buat koneksi sendiri
             if owns_conn:

@@ -189,7 +189,7 @@
 		</form>
 
 		{% if sr_data and sr_data.smk_id == 101 %}
-		<form method="POST" action="{{ url_for('owh_sr.confirmSR_menu', token=token) }}">
+		<form method="POST" action="{{ url_for('owh_sr.confirmSR_menu', sr_no=sr_data.sr_no) }}">
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			<div class="form-actions" style="margin-top: 12px; justify-content: flex-end;">
 				<button type="submit" class="btn btn-create" style="background-color: #16a34a;">

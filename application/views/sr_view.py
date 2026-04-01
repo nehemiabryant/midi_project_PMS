@@ -126,17 +126,11 @@ def editSR_menu(sr_no):
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data, token=token)
+    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
-@sr_bp.route('/editSR/<token>/confirm', methods=['POST'])
+@sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
 @login_required
-def confirmSR_menu(token):
-    sr_no = tokenization.decrypt_token(token)
-
-    if not sr_no:
-        flash("Invalid or corrupted confirmation link.", "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
-
+def confirmSR_menu(sr_no):
     current_user = session.get('user', {}).get('nik', '')
 
     eligibility_result = workflow_transaction.authorize_sr_access(
@@ -153,7 +147,7 @@ def confirmSR_menu(token):
 
     if sr_data.get('req_id') != current_user:
         flash("Hanya requester yang dapat mengkonfirmasi SR ini.", "error")
-        return redirect(url_for('owh_sr.editSR_menu', token=token))
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
 
     if sr_data.get('smk_id') != 101:
         flash("SR ini sudah tidak dalam status Draft.", "warning")
@@ -171,7 +165,7 @@ def confirmSR_menu(token):
         return redirect(url_for('owh_sr.mySR_menu'))
     else:
         flash(advance_result.get('msg', 'Gagal mengkonfirmasi SR.'), "error")
-        return redirect(url_for('owh_sr.editSR_menu', token=token))
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
 
 
 @sr_bp.route('/approval/<path:sr_no>', methods=['GET', 'POST'])
