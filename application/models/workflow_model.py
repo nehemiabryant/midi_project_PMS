@@ -35,7 +35,7 @@ def get_next_allowed_phases(current_smk_id: int, shared_conn=None) -> dict:
         WHERE current_smk_id = %(current_smk_id)s
         ORDER BY next_smk_id ASC
     """
-
+    
     if shared_conn:
         return shared_conn.selectDataHeader(sql, {'current_smk_id': current_smk_id})
     
@@ -83,7 +83,7 @@ def get_mandatory_docs(rule_id: int, shared_conn=None) -> dict:
 def get_uploaded_docs(sr_no: str, shared_conn=None) -> dict:
     sql = """
         SELECT DISTINCT attach_ctg
-        FROM public.sr_attachment
+        FROM public.sr_attachments
         WHERE sr_no = %(sr_no)s
     """
     if shared_conn:

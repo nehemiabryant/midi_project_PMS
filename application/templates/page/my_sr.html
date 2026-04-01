@@ -31,9 +31,9 @@
                     <tr>
                         <td style="font-weight: 500;">{{row.sr_no}}</td>
                         <td>{{row.name}}</td>
-                        <td><span class="status-badge status-active">{{row.status}}</span></td>
+                        <td><span class="status-badge status-new">{{row.smk_ket}}</span></td>
                        <td>
-                            <a href="{{ url_for('owh_sr.editSR_menu', token=row.token) }}" class="btn-action btn-edit" title="Edit Data" style="text-decoration: none;">
+                            <a href="{{ url_for('owh_sr.editSR_menu', sr_no=row.sr_no) }}" class="btn-action btn-edit" title="Edit Data" style="text-decoration: none;">
                                 <i class="fas fa-edit"></i>
                             </a>
                             

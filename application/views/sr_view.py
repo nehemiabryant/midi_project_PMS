@@ -1,8 +1,7 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from ..transactions import sr_transaction, srlogs_transaction, workflow_transaction
+from application.transactions import sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction
 from ..helpers.decorators import login_required
-from ..utils import tokenization
 
 Log = Logger()
 
@@ -44,6 +43,11 @@ def mySR_menu():
 @sr_bp.route('/createSR', methods=['GET', 'POST'])
 @login_required
 def createSR_menu():
+    docs_res = attachment_transaction.get_required_docs_for_phase_trx(101)
+    ui_doc_blueprints = docs_res.get('data', [])
+
+    current_files_dict = {}
+
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
 
@@ -76,14 +80,13 @@ def createSR_menu():
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr')
+    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
+                           , required_docs=ui_doc_blueprints, current_files=current_files_dict)
 
 
-@sr_bp.route('/editSR/<token>', methods=['GET', 'POST'])
+@sr_bp.route('/editSR/<path:sr_no>', methods=['GET', 'POST'])
 @login_required
-def editSR_menu(token):
-    sr_no = tokenization.decrypt_token(token)
-
+def editSR_menu(sr_no):
     if not sr_no:
         flash("Invalid or corrupted edit link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
@@ -125,20 +128,59 @@ def editSR_menu(token):
 
     return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
-@sr_bp.route('/approval/<token>', methods=['GET', 'POST'])
+@sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
 @login_required
-def approveSR_menu(token):
-    sr_no = tokenization.decrypt_token(token)
+def confirmSR_menu(sr_no):
+    current_user = session.get('user', {}).get('nik', '')
+
+    eligibility_result = workflow_transaction.authorize_sr_access(
+        sr_no=sr_no,
+        user_nik=current_user,
+        intent='EDIT'
+    )
+
+    if not eligibility_result.get('status'):
+        flash(eligibility_result.get('msg'), "error")
+        return redirect(url_for('owh_sr.mySR_menu'))
+
+    sr_data = eligibility_result['data'][0]
+
+    if sr_data.get('req_id') != current_user:
+        flash("Hanya requester yang dapat mengkonfirmasi SR ini.", "error")
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
+
+    if sr_data.get('smk_id') != 101:
+        flash("SR ini sudah tidak dalam status Draft.", "warning")
+        return redirect(url_for('owh_sr.mySR_menu'))
+
+    advance_result = workflow_transaction.advance_sr_phase(
+        sr_no=sr_no,
+        current_smk_id=101,
+        next_smk_id=102,
+        action_by=current_user
+    )
+
+    if advance_result.get('status'):
+        flash("SR berhasil dikonfirmasi dan diteruskan ke atasan.", "success")
+        return redirect(url_for('owh_sr.mySR_menu'))
+    else:
+        flash(advance_result.get('msg', 'Gagal mengkonfirmasi SR.'), "error")
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
+
+
+@sr_bp.route('/approval/<path:sr_no>', methods=['GET', 'POST'])
+@login_required
+def approveSR_menu(sr_no):
 
     if not sr_no:
         flash("Invalid or corrupted approval link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
 
     current_user = session.get('user', {}).get('nik', '')
-
+    
     # 1. Eligibility Check (Reused perfectly!)
     eligibility_result = workflow_transaction.authorize_sr_access(
-        sr_no=sr_no, 
+        sr_no=sr_no,
         user_nik=current_user,
         intent='APPROVE'
     )
@@ -150,6 +192,8 @@ def approveSR_menu(token):
     sr_data = eligibility_result['data'][0]
 
     current_smk_id = sr_data.get('smk_id') 
+    
+    current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
 
     options = workflow_transaction.get_dropdown_options(current_smk_id)
     
@@ -189,13 +233,14 @@ def approveSR_menu(token):
             flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
             return redirect(request.url)
 
-    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_work', sr_data=sr_data, options=options)
+    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_work'
+                           , sr_data=sr_data, options=options, current_files=current_files_dict)
 
-@sr_bp.route('/projectDetails/<token>', methods=['GET'])
+@sr_bp.route('/projectDetails/<path:sr_no>', methods=['GET'])
 @login_required
-def project_details_menu(token):
+def project_details_menu(sr_no):
     # Jika token dari sidebar (biasanya string 'token' atau kosong), BYPASS pencarian DB
-    if token == 'token' or not token:
+    if not sr_no:
         # Langsung render HTML tanpa mencari ke database
         return render_template('page/project_detail.html', 
                                user=session.get('user', {}), 
@@ -204,7 +249,6 @@ def project_details_menu(token):
                                sr_no='SR-TESTING-001') # Data dummy
 
     # Logika asli Anda untuk mendekripsi token dan mencari ke database...
-    sr_no = tokenization.decrypt_token(token)
     
     # ... (Kode pencarian API/Database Anda) ...
     # Pastikan jika API gagal, jangan `return jsonify(api_response)`. 
