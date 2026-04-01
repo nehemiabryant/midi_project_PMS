@@ -1,7 +1,7 @@
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
 from ..models import sr_model, karyawan
-from ..utils.converters import parse_rows, parse_single_row
+from ..utils.converters import parse_rows, parse_single_row, convert_to_dicts
 from . import attachment_transaction
 
 Log = Logger()
@@ -147,3 +147,116 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str, current_smk_id: int) 
     except Exception as e:
         Log.error(f'Exception | Update SR Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
+    
+def get_full_dashboard_trx() -> dict:
+    """
+    Fetches both the top cards and the grid data, returning a complete 
+    package for the dashboard template.
+    """
+    try:
+        # 1. Fetch Top Cards
+        cards_result = sr_model.get_dashboard_top_cards()
+        top_cards = {'total_sr': 0, 'active_sr': 0, 'completed_sr': 0, 'overdue_sr': 0}
+        
+        if cards_result.get('status') and cards_result.get('data'):
+            headers = cards_result['data'][0]
+            row = cards_result['data'][1][0]
+            top_cards = dict(zip(headers, row))
+
+        # 2. Fetch and Shape the Grid
+        grid_result = sr_model.get_dashboard_grid()
+        dashboard_grid = {}
+        
+        if grid_result.get('status') and grid_result.get('data'):
+            headers = grid_result['data'][0]
+            rows = grid_result['data'][1]
+            flat_data = convert_to_dicts(rows, headers)
+            
+            for row in flat_data:
+                phase_key = row['phase_name'] 
+                
+                if phase_key not in dashboard_grid:
+                    dashboard_grid[phase_key] = {
+                        'phase_name': phase_key,
+                        'total_phase_tickets': 0,
+                        'divisions': []
+                    }
+                
+                dashboard_grid[phase_key]['divisions'].append({
+                    'name': row['division'],
+                    'count': row['ticket_count'],
+                    'progress': int(row['global_progress']) # The calculated 0-100%
+                })
+                
+                dashboard_grid[phase_key]['total_phase_tickets'] += row['ticket_count']
+
+        # 3. Return the ultimate package
+        return {
+            'status': True,
+            'top_cards': top_cards,
+            'grid': dashboard_grid
+        }
+        
+    except Exception as e:
+        Log.error(f"Exception | Full Dashboard Trx | Msg: {str(e)}")
+        return {'status': False, 'top_cards': {}, 'grid': {}}
+    
+def get_srs_by_phase_trx(phase_name: str) -> list:
+    """
+    Transforms the sidebar SQL results into a clean list of dictionaries.
+    Returns: [{'sr_no': 'SR-2026-001', 'app_name': '...', 'ticket_progress': 90, ...}]
+    """
+    try:
+        db_result = sr_model.get_srs_by_phase(phase_name)
+        
+        if not db_result.get('status') or not db_result.get('data'):
+            return [] # Safely return an empty list if no tickets match
+            
+        headers = db_result['data'][0]
+        rows = db_result['data'][1]
+        
+        # Use your standard converter utility
+        sr_list = convert_to_dicts(rows, headers)
+        
+        # Quick cleanup to ensure progress is a clean integer for the HTML width styles
+        for sr in sr_list:
+            sr['ticket_progress'] = int(sr['ticket_progress']) if sr['ticket_progress'] else 0
+            
+        return sr_list
+        
+    except Exception as e:
+        Log.error(f"Exception | Get SRs by Phase Trx | Msg: {str(e)}")
+        return []
+    
+def get_sr_detail_trx(sr_no: str) -> dict:
+    """
+    Transforms the detail SQL result into a single dictionary.
+    Returns: {'sr_no': '...', 'app_name': '...', ...} or None if not found.
+    """
+    try:
+        db_result = sr_model.get_sr_detail(sr_no)
+        
+        if not db_result.get('status') or not db_result.get('data'):
+            return None # Safely return None if ticket doesn't exist
+            
+        headers = db_result['data'][0]
+        rows = db_result['data'][1]
+        
+        if not rows:
+            return None
+            
+        # Convert the single row into a dictionary
+        sr_list = convert_to_dicts(rows, headers)
+        sr_detail = sr_list[0]
+        
+        # Clean up the progress integer
+        sr_detail['ticket_progress'] = int(sr_detail['ticket_progress']) if sr_detail.get('ticket_progress') else 0
+        
+        # You can add more data transformations here if needed 
+        # (e.g., fetching comments or attachments for this specific sr_no)
+            
+        return sr_detail
+        
+    except Exception as e:
+        Log.error(f"Exception | Get SR Detail Trx | Msg: {str(e)}")
+        return None
