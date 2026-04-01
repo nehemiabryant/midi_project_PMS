@@ -215,21 +215,32 @@
 										<svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 										<span class="drop-zone-text">Klik atau drag file</span>
 										<span class="drop-zone-hint">PDF, maks 10MB</span>
-										
-										{% if doc.attach_ctg in current_files %}
-											<span class="drop-zone-hint" style="color: green;">(Kosongkan jika tidak diubah)</span>
-										{% endif %}
 										<span class="drop-zone-filename"></span>
 									</label>
 
 									{% if doc.attach_ctg in current_files %}
-										<div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; text-align: center;">
-											<span style="font-size: 0.85em; color: #6c757d; display: block; margin-bottom: 4px;">File Saat Ini:</span>
-											<a href="{{ current_files[doc.attach_ctg] }}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold; font-size: 0.9em;">
-												📥 Download / View PDF
-											</a>
-										</div>
+										{% set existing_file = current_files[doc.attach_ctg] %}
+										
+										<a href="{{ existing_file.file_url }}" target="_blank" class="document-card" style="margin-top: 15px; display: flex; flex-direction: column; text-decoration: none; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; transition: all 0.2s ease-in-out; background: #fff;">
+											
+											<div class="thumbnail-container" style="height: 120px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #dee2e6; overflow: hidden;">
+												{% if existing_file.thumbnail_url %}
+													<img src="{{ existing_file.thumbnail_url }}" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
+												{% else %}
+													<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+														<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+														<polyline points="14 2 14 8 20 8"></polyline>
+													</svg>
+												{% endif %}
+											</div>
+											
+											<div class="details-container" style="padding: 8px; text-align: center;">
+												<span style="font-size: 0.8rem; color: #0d6efd; font-weight: 600;">Lihat PDF Saat Ini ↗</span>
+											</div>
+											
+										</a>
 									{% endif %}
+
 								</div>
 							{% endfor %}
 
@@ -237,7 +248,6 @@
 						<p class="upload-note">*file harus berupa PDF</p>
 					</div>
 				</div>
-			</div>
 
 			<div class="form-actions">
 				<a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Cancel</a>

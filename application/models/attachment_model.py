@@ -36,8 +36,8 @@ def get_next_iteration(sr_no: str, attach_ctg: int, shared_conn=None) -> int:
 
 def insert_attachment(db_params: dict, shared_conn=None) -> dict:
     sql = """
-        INSERT INTO public.sr_attachments (sr_no, attach_ctg, file_url, iteration)
-        VALUES (%(sr_no)s, %(attach_ctg)s, %(file_url)s, %(iteration)s)
+        INSERT INTO public.sr_attachments (sr_no, attach_ctg, file_url, iteration, thumbnail_url)
+        VALUES (%(sr_no)s, %(attach_ctg)s, %(file_url)s, %(iteration)s, %(thumbnail_url)s)
     """
 
     if shared_conn:
@@ -64,9 +64,10 @@ def insert_attachment(db_params: dict, shared_conn=None) -> dict:
 def get_latest_attachments(sr_no: str, shared_conn=None) -> dict:
     # A clever query to fetch ONLY the highest iteration for each category!
     sql = """
-        SELECT attach_ctg, file_url
+        SELECT a.attach_ctg, c.attach_details, a.file_url, a.thumbnail_url
         FROM public.sr_attachments a
-        WHERE sr_no = %(sr_no)s
+        JOIN public.sr_ms_attach_category c ON a.attach_ctg = c.attach_ctg
+        WHERE a.sr_no = %(sr_no)s
           AND iteration = (
               SELECT MAX(iteration)
               FROM public.sr_attachments b
@@ -101,7 +102,7 @@ def get_view_only_attachments(sr_no: str, shared_conn=None) -> dict:
     joined with the category name for the frontend UI.
     """
     sql = """
-        SELECT a.attach_ctg, c.attach_details, a.file_url
+        SELECT a.attach_ctg, c.attach_details, a.file_url, a.thumbnail_url
         FROM public.sr_attachments a
         JOIN public.sr_ms_attach_category c ON a.attach_ctg = c.attach_ctg
         WHERE a.sr_no = %(sr_no)s

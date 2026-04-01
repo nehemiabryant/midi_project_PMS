@@ -1,67 +1,181 @@
-{% extends "base.html" %}
-
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/project_detail.css') }}" />
-{% endblock %}
-
+{% extends 'base.html' %} 
 {% block content %}
-{% with header_title='Project Details' %}
-{% include 'components/header.html' %}
-{% endwith %}
-
-    <div class="project-details-wrapper">
-        
-        <div class="top-action-bar">
-            <div class="sr-id">SR-2026-001</div>
+<div class="master-detail-wrapper" style="background-color: #f8f9fa; min-height: calc(100vh - 60px); padding: 20px;">
+    
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <div>
+            <a href="/dashboard" style="text-decoration: none; color: #6b7280; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+                ← Kembali ke Dashboard
+            </a>
+            <h2 style="font-weight: 800; color: #111827; margin: 0;">Fase: {{ phase_name }}</h2>
         </div>
-
-        <div class="modern-card">
-            
-            <div class="card-header-info">
-                <div style="flex: 1;">
-                    <h2 class="project-id" style="font-size: 24px; margin-bottom: 10px;">Sistem Manajemen Inventaris Toko</h2>
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <span class="status-badge-orange">QA On Progress</span>
-                        <span class="status-tag status-purple">Approval IT GM</span>
-                    </div>
-                </div>
-                <div class="progress-section">
-                    <span style="font-size: 12px; color: #6c757d; font-weight: 500;">Progress:</span>
-                    <div class="progress-bar-container">
-                        <span class="progress-fill" style="width: 90%;"></span>
-                    </div>
-                    <span style="font-size: 13px; font-weight: 700; color: #198754;">90%</span>
-                </div>
-            </div>
-
-            <div class="custom-tabs">
-                <button class="tab-btn active" id="btn-detail" onclick="switchTab('detail')">Detail</button>
-                <button class="tab-btn" id="btn-timeline" onclick="switchTab('timeline')">Timeline/Timetable</button>
-            </div>
-
-            <div class="card-body-content">
-                
-                <div id="tab-detail" class="tab-content" style="display: block;">
-                    {% include 'page/projectdetail/detail.html' %}
-                </div>
-
-                <div id="tab-timeline" class="tab-content" style="display: none;">
-                    {% include 'page/projectdetail/timetable.html' %}
-                </div>
-
-            </div>
+        <div style="background: white; padding: 8px 15px; border-radius: 6px; border: 1px solid #e5e7eb; font-weight: 600; color: #374151;">
+            Total: {{ sr_list|length }} Tickets
         </div>
     </div>
 
-    <script>
-        function switchTab(tabName) {
-            document.getElementById('tab-detail').style.display = 'none';
-            document.getElementById('tab-timeline').style.display = 'none';
-            document.getElementById('btn-detail').classList.remove('active');
-            document.getElementById('btn-timeline').classList.remove('active');
+    <div style="display: flex; gap: 20px; align-items: flex-start; height: calc(100vh - 160px);">
+
+        <div class="master-list-panel" style="flex: 0 0 380px; height: 100%; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 15px;">
             
-            document.getElementById('tab-' + tabName).style.display = 'block';
-            document.getElementById('btn-' + tabName).classList.add('active');
+            {% for sr in sr_list %}
+                <div class="sr-card" data-sr-no="{{ sr.sr_no }}" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #3b82f6; background: #eff6ff; padding: 3px 8px; border-radius: 4px;">
+                            {{ sr.sr_no }}
+                        </span>
+                        <span style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;">
+                            {{ sr.division }}
+                        </span>
+                    </div>
+
+                    <h6 style="margin: 0 0 12px 0; font-weight: 700; color: #111827; font-size: 1.05rem; line-height: 1.3;">
+                        {{ sr.app_name }}
+                    </h6>
+
+                    <div style="font-size: 0.8rem; color: #4b5563; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #f59e0b;"></span>
+                        {{ sr.current_status }}
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="flex-grow: 1; height: 6px; background-color: #f3f4f6; border-radius: 3px; overflow: hidden;">
+                            <div style="height: 100%; width: {{ sr.ticket_progress }}%; background-color: #10b981; border-radius: 3px;"></div>
+                        </div>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #6b7280;">{{ sr.ticket_progress }}%</span>
+                    </div>
+
+                </div>
+            {% else %}
+                <div style="padding: 30px; text-align: center; background: white; border: 1px dashed #d1d5db; border-radius: 8px; color: #6b7280;">
+                    Tidak ada tiket aktif di fase ini.
+                </div>
+            {% endfor %}
+
+        </div>
+
+        <div class="detail-canvas-panel" style="flex: 1; height: 100%; background: white; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow-y: auto; position: relative;">
+            
+            <div id="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #9ca3af; text-align: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 15px; opacity: 0.5;">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+                <h4 style="font-weight: 600; color: #6b7280; margin-bottom: 5px;">Pilih Tiket</h4>
+                <p style="font-size: 0.9rem; max-width: 250px;">Klik salah satu tiket di sebelah kiri untuk melihat detail lengkap, progress, dan dokumen lampiran.</p>
+            </div>
+
+            <div id="detail-content" style="display: none; padding: 40px;">
+                </div>
+
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Hide scrollbar for cleaner UI, but keep functionality */
+    .master-list-panel::-webkit-scrollbar {
+        width: 6px;
+    }
+    .master-list-panel::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .master-list-panel::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 10px;
+    }
+
+    /* Card Hover & Active States */
+    .sr-card:hover {
+        border-color: #93c5fd !important;
+        transform: translateX(2px);
+    }
+    
+    .sr-card.active {
+        border-color: #3b82f6 !important;
+        border-left: 4px solid #3b82f6 !important;
+        background-color: #f8fafc !important;
+    }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const phaseName = "{{ phase_name }}";
+    // Get the initial SR No if the user navigated directly to the extended URL
+    const initialSrNo = "{{ current_sr_no or '' }}"; 
+    
+    const cards = document.querySelectorAll('.sr-card');
+    const emptyState = document.getElementById('empty-state');
+    const detailContent = document.getElementById('detail-content');
+
+    // Function to load details and handle UI updates
+    function loadTicketDetails(srNo, updateUrl = true) {
+        // 1. Update UI: Remove active class from all, add to clicked card
+        cards.forEach(c => c.classList.remove('active'));
+        const activeCard = document.querySelector(`.sr-card[data-sr-no="${srNo}"]`);
+        if (activeCard) {
+            activeCard.classList.add('active');
+            // Optional: scroll the active card into view
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
         }
-    </script>
+
+        // 2. Change the URL in the browser without reloading the page
+        if (updateUrl) {
+            const newUrl = `/project_details/${phaseName}/${srNo}`;
+            window.history.pushState({ srNo: srNo }, "", newUrl);
+        }
+
+        // 3. Update Detail Canvas states
+        emptyState.style.display = 'none';
+        detailContent.style.display = 'block';
+        detailContent.innerHTML = '<div style="text-align:center; padding: 40px; color:#6b7280;">Loading details...</div>';
+
+        // 4. Fetch the data via AJAX
+        fetch(`/api/get_sr_detail/${encodeURIComponent(srNo)}`)
+            .then(response => {
+                if (!response.ok) throw new Error("Network response was not ok");
+                return response.text(); // Assuming your API returns HTML snippet
+            })
+            .then(htmlContent => {
+                detailContent.innerHTML = htmlContent;
+            })
+            .catch(error => {
+                console.error("Error fetching SR details:", error);
+                detailContent.innerHTML = '<div style="color:red;">Failed to load ticket details.</div>';
+            });
+    }
+
+    // Attach click event listeners to all SR cards
+    cards.forEach(card => {
+        card.addEventListener('click', function() {
+            const srNo = this.getAttribute('data-sr-no');
+            // Only fetch if we are clicking a different card
+            if (!this.classList.contains('active')) {
+                loadTicketDetails(srNo);
+            }
+        });
+    });
+
+    // Auto-load a ticket if the URL already contains the sr_no on first load
+    if (initialSrNo) {
+        loadTicketDetails(initialSrNo, false);
+    }
+
+    // Handle browser back/forward buttons seamlessly
+    window.addEventListener("popstate", (event) => {
+        if (event.state && event.state.srNo) {
+            // User went back/forward to a specific ticket
+            loadTicketDetails(event.state.srNo, false);
+        } else {
+            // User went back to the base /project_details/<phase_name> URL
+            cards.forEach(c => c.classList.remove('active'));
+            emptyState.style.display = 'flex';
+            detailContent.style.display = 'none';
+        }
+    });
+});
+</script>
 {% endblock %}

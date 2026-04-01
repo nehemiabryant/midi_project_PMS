@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request
+from application.transactions import sr_transaction, my_work_transaction, assignment_transaction, workflow_transaction, attachment_transaction
 from ..helpers.decorators import login_required
-from ..transactions import my_work_transaction, assignment_transaction, workflow_transaction, attachment_transaction
 
 dashboard_bp = Blueprint('owh_dashboard', __name__, url_prefix='/', template_folder='../templates', static_folder='/static')
 
@@ -8,8 +8,15 @@ dashboard_bp = Blueprint('owh_dashboard', __name__, url_prefix='/', template_fol
 @dashboard_bp.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard_menu():
-    return render_template('/page/dashboard.html', user=session['user'], role=session['role'], active_menu='dashboard')
+    dashboard_data = sr_transaction.get_full_dashboard_trx()
+    return render_template('/page/dashboard.html', user=session['user'], role=session['role'], active_menu='dashboard'
+                           , top_cards=dashboard_data.get('top_cards', {}), dashboard_grid=dashboard_data.get('grid', {}))
 
+#BEING KEPT AS A REFERENCE IN CASE SOMETHING GOES WRONG
+@dashboard_bp.route('/dashboard-design', methods=['GET', 'POST'])
+@login_required
+def dashboard_design():
+    return render_template('/page/dashboard_design.html', user=session['user'], role=session['role'], active_menu='dashboard')
 
 @dashboard_bp.route('/myWork', methods=['GET'])
 @login_required

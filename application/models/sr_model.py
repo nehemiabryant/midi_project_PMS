@@ -216,3 +216,180 @@ def get_sr_requester(sr_no: str, shared_conn=None) -> str:
         if conn: conn.close()
 
     return None  # Return None if requester not found or error occurred
+
+def get_dashboard_top_cards(shared_conn=None) -> dict:
+    """Calculates the high-level totals for the top dashboard cards."""
+    sql = """
+        SELECT 
+            COUNT(*) AS total_sr,
+            COUNT(CASE WHEN m.phase != 'Takeout' AND m.phase != 'RO' THEN 1 END) AS active_sr,
+            COUNT(CASE WHEN m.phase = 'RO' THEN 1 END) AS completed_sr,
+            COUNT(CASE WHEN m.phase = 'Takeout' THEN 1 END) AS overdue_sr
+        FROM public.sr_request r
+        JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id;
+    """
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_dashboard_top_cards | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch SR'}
+    finally:
+        if conn: conn.close()
+
+def get_dashboard_grid(shared_conn=None) -> dict:
+    """
+    Uses a CTE to calculate global division progress (excluding 'Takeout'),
+    then groups active tickets by phase and division.
+    """
+    sql = """
+        WITH division_progress AS (
+            -- STEP A: Calculate global progress per division 
+            -- (smk_id - 100) gives us the current step out of 16.
+            SELECT 
+                r.division,
+                ROUND((SUM(r.smk_id - 100) / (COUNT(r.sr_no) * 16.0)) * 100) AS global_progress
+            FROM public.sr_request r
+            JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
+            WHERE m.phase != 'Takeout'
+            GROUP BY r.division
+        )
+        
+        -- STEP B & C: Group by phase and join the pre-calculated progress!
+        SELECT 
+            m.phase AS phase_name,
+            r.division,
+            COUNT(r.sr_no) AS ticket_count,
+            dp.global_progress
+        FROM public.sr_request r
+        JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
+        JOIN division_progress dp ON r.division = dp.division
+        WHERE m.phase != 'Takeout'
+        GROUP BY m.phase, r.division, dp.global_progress
+        ORDER BY m.phase ASC, r.division ASC;
+    """
+
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_dashboard_grid | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch SR'}
+    finally:
+        if conn: conn.close()
+
+def get_srs_by_phase(phase_name: str, shared_conn=None) -> dict:
+    """
+    Fetches lightweight SR data for the Master-Detail sidebar based on the macro-phase.
+    """
+    sql = """
+        SELECT 
+            r.sr_no,
+            r.name AS app_name,
+            r.division,
+            k.smk_ket AS current_status,
+            r.smk_id,
+            -- Calculate individual ticket progress (Step 1 to 16)
+            LEAST(GREATEST(ROUND(((r.smk_id - 100) / 16.0) * 100), 0), 100) AS ticket_progress
+        FROM public.sr_request r
+        JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
+        WHERE k.phase = %(phase_name)s
+        ORDER BY r.sr_no ASC; 
+    """
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {'phase_name': phase_name})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {'phase_name': phase_name})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_srs_by_phase | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch SR'}
+    finally:
+        if conn: conn.close()
+
+def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
+    """
+    Fetches the comprehensive details of a single SR ticket.
+    """
+    sql = """
+        SELECT 
+            r.sr_no,
+            r.name AS app_name,
+            r.ctg_id,
+            c.category AS ctg_name,
+            r.req_id,
+            ka.nama AS requester_name,
+            r.division,
+            r.module,
+            r.purpose,
+            r.details,
+            r.frequency,
+            r.value,
+            r.value_det,
+            r.num_user,
+            k.smk_ket AS current_status,
+            r.smk_id,
+            LEAST(GREATEST(ROUND(((r.smk_id - 100) / 16.0) * 100), 0), 100) AS ticket_progress
+        FROM public.sr_request r
+        JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
+        JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        JOIN public.karyawan_all ka ON r.req_id = ka.nik
+        WHERE r.sr_no = %(sr_no)s
+        LIMIT 1;
+    """
+    
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {'sr_no': sr_no})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_sr_detail | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch SR detail'}
+    finally:
+        if conn: conn.close()
