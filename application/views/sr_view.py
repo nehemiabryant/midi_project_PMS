@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from application.transactions import sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction
+from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction
 from ..helpers.decorators import login_required
 
 Log = Logger()
@@ -25,20 +25,6 @@ def listSR_menu():
         sr_data = sr_list.get('data', [])
 
     return render_template('/page/list_sr.html', user=session['user'], role=session['role'], active_menu='list_sr', sr_data=sr_data)
-
-@sr_bp.route('/mySR', methods=['GET'])
-@login_required
-def mySR_menu():
-    current_user = session.get('user', {}).get('nik', '') 
-    my_sr_list = sr_transaction.get_my_sr_trx(current_user)
-
-    if not my_sr_list.get('status'):
-        flash(f"Error fetching your Service Requests: {my_sr_list.get('msg')}", "error")
-        sr_data = []
-    else:
-        sr_data = my_sr_list.get('data', [])
-
-    return render_template('/page/my_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr', sr_data=sr_data)
 
 @sr_bp.route('/createSR', methods=['GET', 'POST'])
 @login_required
@@ -75,12 +61,12 @@ def createSR_menu():
             else:
                 flash(f"SR Saved, but workflow error: {log_result.get('msg')}", "warning")
 
-            return redirect(url_for('owh_sr.mySR_menu'))
+            return redirect(url_for('owh_dashboard.myWork_menu'))
         else:
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
+    return render_template('/page/sr_form.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
                            , required_docs=ui_doc_blueprints, current_files=current_files_dict)
 
 
@@ -132,7 +118,7 @@ def editSR_menu(sr_no):
             flash(f"Error: {trx_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/create_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
+    return render_template('/page/sr_form.html', mode='edit', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
                            , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict)
 
 @sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
@@ -148,7 +134,7 @@ def confirmSR_menu(sr_no):
 
     if not eligibility_result.get('status'):
         flash(eligibility_result.get('msg'), "error")
-        return redirect(url_for('owh_sr.mySR_menu'))
+        return redirect(url_for('owh_dashboard.myWork_menu'))
 
     sr_data = eligibility_result['data'][0]
 
@@ -158,7 +144,7 @@ def confirmSR_menu(sr_no):
 
     if sr_data.get('smk_id') != 101:
         flash("SR ini sudah tidak dalam status Draft.", "warning")
-        return redirect(url_for('owh_sr.mySR_menu'))
+        return redirect(url_for('owh_dashboard.myWork_menu'))
 
     advance_result = workflow_transaction.advance_sr_phase(
         sr_no=sr_no,
@@ -169,7 +155,7 @@ def confirmSR_menu(sr_no):
 
     if advance_result.get('status'):
         flash("SR berhasil dikonfirmasi dan diteruskan ke atasan.", "success")
-        return redirect(url_for('owh_sr.mySR_menu'))
+        return redirect(url_for('owh_dashboard.myWork_menu'))
     else:
         flash(advance_result.get('msg', 'Gagal mengkonfirmasi SR.'), "error")
         return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
@@ -182,6 +168,10 @@ def approveSR_menu(sr_no):
     if not sr_no:
         flash("Invalid or corrupted approval link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
+    
+    if not my_work_transaction.can_approve_sr_trx(sr_no, session.get('user', {}).get('nik', '')).get('status'):
+        flash('You do not have permission to view this SR.', 'error')
+        return redirect(url_for('dashboard.myWork_menu'))
 
     current_user = session.get('user', {}).get('nik', '')
     
@@ -212,7 +202,7 @@ def approveSR_menu(sr_no):
         # ==========================================
         # PART A: UPDATE THE EDITABLE DATA
         # ==========================================
-        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
+        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no, current_smk_id)
 
         if not trx_result.get('status'):
             flash(f"Error saving data: {trx_result.get('msg')}", "error")
@@ -240,7 +230,7 @@ def approveSR_menu(sr_no):
             flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
             return redirect(request.url)
 
-    return render_template('/page/approve_sr.html', user=session.get('user'), role=session.get('role'), active_menu='my_work'
+    return render_template('/page/sr_form.html', mode='approve', user=session.get('user'), role=session.get('role'), active_menu='my_work'
                            , sr_data=sr_data, options=options, current_files=current_files_dict)
 
 @sr_bp.route('/project_details/<string:phase_name>', defaults={'sr_no': None}, methods=['GET'])

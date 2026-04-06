@@ -151,7 +151,6 @@ def upload_attachment(sr_no):
 
     return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
 
-
 @dashboard_bp.route('/uploadDraft', methods=['GET', 'POST'])
 @login_required
 def uploadDraft_menu():
