@@ -1,6 +1,6 @@
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
-from ..models import sr_model, karyawan
+from ..models import sr_model, karyawan, assignment_model
 from ..utils.converters import parse_rows, parse_single_row, convert_to_dicts
 from . import attachment_transaction
 
@@ -58,7 +58,9 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
         if data.get('status'):
             new_sr_no = data['data'][0][0]
 
-            attachment_transaction.upload_and_record_files(new_sr_no, files, 101, shared_conn)
+            attachment_transaction.upload_and_record_files(new_sr_no, files, db_params['smk_id'], shared_conn)
+            assignments = [{'nik': db_params['req_id'], 'it_role_id': 9}]
+            assignment_model.insert_assignments_model(new_sr_no, assignments, db_params['maker_id'], shared_conn)
 
         if shared_conn:
             shared_conn._conn.commit()

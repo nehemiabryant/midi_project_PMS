@@ -71,11 +71,11 @@
 
                 <div class="form-group">
                     <label class="form-label">Divisi <span style="color: #ef4444;">*</span></label>
-                    <select class="form-input form-select" id="division" name="division" required>
-                        <option value="IT Division" {% if sr_data and sr_data.division == 'IT Division' %}selected{% endif %}>IT Division</option>
-                        <option value="Finance" {% if sr_data and sr_data.division == 'Finance' %}selected{% endif %}>Finance</option>
-                        <option value="HR" {% if sr_data and sr_data.division == 'HR' %}selected{% endif %}>HR</option>
-                    </select>
+
+					<div class="form-field">
+						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" style="background-color: #f3f4f6; cursor: not-allowed;" readonly/>
+					</div>
+				
                 </div>
 
                 <div class="form-group full-width">
@@ -88,19 +88,10 @@
                     <textarea class="form-input richtext" id="detail_permohonan" name="detail_permohonan" required>{{ sr_data.details if sr_data else '' }}</textarea>
                 </div>
 
-<<<<<<< HEAD
                 <div class="form-group full-width">
                     <label class="form-label">Frequency <span style="color: #ef4444;">*</span></label>
                     <textarea class="form-input richtext" id="frequency" name="frequency" required>{{ sr_data.frequency if sr_data else '' }}</textarea>
                 </div>
-=======
-				<div class="form-row">
-					<div class="form-label">Divisi</div>
-					<div class="form-field">
-						<input type="text" class="form-input" id="division" name="division" value="{{ sr_data.division if sr_data else '' }}" style="background-color: #f3f4f6; cursor: not-allowed;" readonly/>
-					</div>
-				</div>
->>>>>>> 34c7e73a6880351f4df592589838f2b26a441f10
 
                 <div class="form-group">
                     <label class="form-label">Values</label>
@@ -120,91 +111,8 @@
                 <div class="form-group full-width" style="margin-top: 10px;">
                     <label class="form-label" style="font-size: 15px;">Lampiran</label>
                     <div class="lampiran-grid">
-                        
-                        <div class="lampiran-col">
-                            <div class="lampiran-title">Alur Proses</div>
-                            <label class="drop-zone" data-input="attachment_ctg_1">
-                                <input type="file" name="attachment_ctg_1" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 1 not in sr_data.attachments%}required{% endif %}>
-                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
-                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
-                                {% if sr_data %}
-                                    <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
-                                {% endif %}
-                                <span class="drop-zone-filename"></span>
-                            </label>
-                            {% if sr_data and sr_data.attachments and 1 in sr_data.attachments %}
-                                <div class="lampiran-current">
-                                    <span>File Saat Ini:</span>
-                                    <a href="{{ sr_data.attachments[1] }}" target="_blank">📥 View PDF</a>
-                                </div>
-                            {% endif %}
-                        </div>
 
-                        <div class="lampiran-col">
-                            <div class="lampiran-title">Desain Aplikasi</div>
-                            <label class="drop-zone" data-input="attachment_ctg_2">
-                                <input type="file" name="attachment_ctg_2" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 2 not in sr_data.attachments%}required{% endif %}/>
-                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
-                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
-                                {% if sr_data %}
-                                    <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
-                                {% endif %}
-                                <span class="drop-zone-filename"></span>
-                            </label>
-                            {% if sr_data and sr_data.attachments and 2 in sr_data.attachments %}
-                                <div class="lampiran-current">
-                                    <span>File Saat Ini:</span>
-                                    <a href="{{ sr_data.attachments[2] }}" target="_blank">📥 View PDF</a>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="lampiran-col">
-                            <div class="lampiran-title">Report</div>
-                            <label class="drop-zone" data-input="attachment_ctg_3">
-                                <input type="file" name="attachment_ctg_3" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 3 not in sr_data.attachments%}required{% endif %}/>
-                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
-                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
-                                {% if sr_data %}
-                                    <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
-                                {% endif %}
-                                <span class="drop-zone-filename"></span>
-                            </label>
-                            {% if sr_data and sr_data.attachments and 3 in sr_data.attachments %}
-                                <div class="lampiran-current">
-                                    <span>File Saat Ini:</span>
-                                    <a href="{{ sr_data.attachments[3] }}" target="_blank">📥 View PDF</a>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                    </div>
-                    <span style="font-size: 11px; color: #94a3b8; font-weight: 400; display: block; margin-top: 10px;">*File harus berupa PDF</span>
-                </div>
-
-<<<<<<< HEAD
-            </div> 
-            
-            <div class="form-actions">
-                <a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Cancel</a>
-                <button type="submit" class="btn btn-create">{{ 'Update' if sr_data else 'Create' }}</button>
-            </div>
-        </form>
-    </div>
-=======
-				<div class="form-row">
-					<div class="form-label">Number of User</div>
-					<div class="form-field">
-						<input type="text" class="form-input" id="number_of_user" name="number_of_user" value="{{ sr_data.num_user if sr_data else '' }}" required />
-					</div>
-				</div>
-
-				<div class="form-row form-row--lampiran">
-					<div class="form-label">Lampiran</div>
-					<div class="form-field">
-						<div class="lampiran-grid">
-							
-							{% for doc in required_docs %}
+                        {% for doc in required_docs %}
 								<div class="lampiran-col">
 									<div class="lampiran-title">{{ doc.attach_details }}</div>
 									
@@ -244,10 +152,9 @@
 								</div>
 							{% endfor %}
 
-						</div>
-						<p class="upload-note">*file harus berupa PDF</p>
-					</div>
-				</div>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8; font-weight: 400; display: block; margin-top: 10px;">*File harus berupa PDF</span>
+                </div>
 
 			<div class="form-actions">
 				<a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Cancel</a>
@@ -267,7 +174,6 @@
 		</form>
 		{% endif %}
 	</div>
->>>>>>> 34c7e73a6880351f4df592589838f2b26a441f10
 </div>
 {% endblock %}
 
@@ -311,13 +217,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     li.style.borderBottom = "1px solid #f1f5f9";
                     li.innerHTML = `<strong style="color: #0f172a;">${item.nik}</strong> - <span style="color: #334155; font-weight: 500;">${item.nama}</span> <br><small style="color:#64748b;">${item.jabatan}</small>`; 
                     
-<<<<<<< HEAD
-                    li.onmouseover = () => li.style.backgroundColor = "#f8fafc";
-=======
                     li.innerHTML = `<strong>${item.nik}</strong> - ${item.nama} <br><small style="color:gray;">${item.jabatan}</small>`; 
                     
                     li.onmouseover = () => li.style.backgroundColor = "#f3f4f6";
->>>>>>> 34c7e73a6880351f4df592589838f2b26a441f10
                     li.onmouseout = () => li.style.backgroundColor = "white";
 
                     li.onclick = () => {
