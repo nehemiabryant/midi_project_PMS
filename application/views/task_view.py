@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, render_template, request, session
 from ..helpers.decorators import login_required
 from ..transactions import task_transaction
 from common.midiconnectserver.midilog import Logger
@@ -61,3 +61,18 @@ def delete_task(task_id):
         return jsonify({'status': 'F', 'data': [], 'msg': result.get('msg')}), 400
 
     return jsonify({'status': 'T', 'data': [], 'msg': result.get('msg')}), 200
+
+
+@task_bp.route('/timeline/<path:sr_no>', methods=['GET'])
+@login_required
+def task_timeline(sr_no):
+    """Halaman timeline task untuk satu SR. Bisa diakses semua user yang login."""
+    result = task_transaction.get_timeline_trx(sr_no)
+    tasks = result.get('data', [])
+    return render_template(
+        '/page/task_timeline.html',
+        user=session['user'],
+        role=session['role'],
+        sr_no=sr_no,
+        tasks=tasks
+    )

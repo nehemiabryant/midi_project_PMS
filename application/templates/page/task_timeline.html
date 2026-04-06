@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Timeline Task - {{ sr_no }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+    <div class="page-header">
+        <h2 class="page-title">
+            Timeline Task
+            <span class="badge-sr">{{ sr_no }}</span>
+        </h2>
+    </div>
+
+    <div class="detail-card">
+        <h3 class="section-title">Daftar Task</h3>
+
+        {% if tasks %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%; text-align: center;">#</th>
+                    <th style="width: 12%;">Role</th>
+                    <th style="width: 20%;">PIC</th>
+                    <th style="width: 35%;">Task Detail</th>
+                    <th style="width: 14%;">Target Date</th>
+                    <th style="width: 14%;">Actual Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tasks %}
+                <tr>
+                    <td style="text-align: center; color: #94a3b8;">{{ loop.index }}</td>
+                    <td>
+                        <span class="badge-role" style="font-size: 12px; padding: 4px 12px;">
+                            {{ t.it_role_detail }}
+                        </span>
+                    </td>
+                    <td style="font-weight: 600;">
+                        {{ t.assigned_user_name or t.assigned_user }}
+                        <br>
+                        <span style="font-size: 12px; color: #94a3b8; font-weight: 400;">{{ t.assigned_user }}</span>
+                    </td>
+                    <td>{{ t.task_detail }}</td>
+                    <td style="color: #64748b;">
+                        {{ t.target_date.strftime('%d %b %Y') if t.target_date else '-' }}
+                    </td>
+                    <td style="color: {% if t.actual_date %}#16a34a{% else %}#94a3b8{% endif %};">
+                        {{ t.actual_date.strftime('%d %b %Y') if t.actual_date else '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+            <p>Belum ada task untuk SR ini.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
