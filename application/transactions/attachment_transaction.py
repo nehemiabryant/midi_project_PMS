@@ -4,6 +4,7 @@ from ..helpers.pdf_upload import s3_client, BUCKET_NAME, PUBLIC_URL
 from ..utils.converters import parse_rows, convert_to_dicts
 import os
 import uuid
+from ..helpers.pdf_thumbnail import generate_pdf_thumbnail
 from werkzeug.utils import secure_filename
 
 Log = Logger()
@@ -34,8 +35,21 @@ def upload_and_record_files(reference_no: str, files_dict: dict, current_smk_id:
         if file and file.filename:
             safe_filename = secure_filename(file.filename)
             unique_filename = f"{reference_no.replace('/', '_')}/{uuid.uuid4().hex}_{safe_filename}"
+            unique_thumb_name = f"{reference_no.replace('/', '_')}/thumb_{uuid.uuid4().hex}.jpg"
             
             try:
+                # ==========================================
+                # THE THUMBNAIL INTERCEPTOR
+                # ==========================================
+                # 1. Read the raw bytes from the Flask file object
+                file_bytes = file.read()
+                
+                # 2. Generate the thumbnail!
+                thumb_bytes = generate_pdf_thumbnail(file_bytes)
+                
+                # 3. CRITICAL: Rewind the file cursor so Boto3 can upload the PDF
+                file.seek(0)
+
                 s3_client.upload_fileobj(
                     file, 
                     bucket_name, 
@@ -43,6 +57,15 @@ def upload_and_record_files(reference_no: str, files_dict: dict, current_smk_id:
                     ExtraArgs={'ContentType': 'application/pdf'}
                 )
                 file_url = f"{public_url_base}/{unique_filename}"
+
+                thumb_url = None
+                if thumb_bytes:
+                    s3_client.put_object(
+                        Bucket=bucket_name, Key=unique_thumb_name, 
+                        Body=thumb_bytes, ContentType='image/jpeg'
+                    )
+                    thumb_url = f"{public_url_base}/{unique_thumb_name}"
+
             except Exception as e:
                 print(f"R2 Upload Failed for {field_name}: {str(e)}")
                 continue 
@@ -53,7 +76,8 @@ def upload_and_record_files(reference_no: str, files_dict: dict, current_smk_id:
                 'sr_no': reference_no,
                 'attach_ctg': ctg_id,
                 'iteration': next_iter,
-                'file_url': file_url
+                'file_url': file_url,
+                'thumbnail_url': thumb_url
             }
             attachment_model.insert_attachment(attach_params, shared_conn)
 
@@ -64,7 +88,14 @@ def get_latest_attachments_trx(sr_no: str, shared_conn=None) -> dict:
     if not rows:
         return {}
 
-    return {row['attach_ctg']: row['file_url'] for row in rows}
+    return {
+        row['attach_ctg']: {
+            'file_url': row['file_url'],
+            'thumbnail_url': row['thumbnail_url'],
+            'attach_details': row['attach_details']
+        } 
+        for row in rows
+    }
 
 # In attachment_transaction.py
 def get_attachments_for_view(sr_no: str, shared_conn=None) -> list:
