@@ -105,6 +105,65 @@
     </div>
     {% endif %}
 
+    {% if is_gm %}
+    <div class="detail-card">
+        {% if can_assign_sm %}
+        <h3 class="section-title">Assign IT Senior Manager</h3>
+        <span class="helper-text">Pilih IT SM yang akan bertanggung jawab atas SR ini. Setelah dikonfirmasi, status SR akan otomatis berpindah ke <strong>Backlog Scrum (105)</strong>.</span>
+
+        <form method="POST" action="{{ url_for('owh_dashboard.submit_sm_assignment', sr_no=sr_detail.sr_no) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <table class="modern-table" style="margin-top: 16px;">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">Pilih</th>
+                        <th>NIK</th>
+                        <th>Nama</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sm in gm_assign_data.sm_options %}
+                    <tr>
+                        <td style="text-align: center;">
+                            <input type="radio" name="selected_sm_nik" value="{{ sm.nik }}" required>
+                        </td>
+                        <td style="color: #64748b;">{{ sm.nik }}</td>
+                        <td style="font-weight: 600;">{{ sm.nama }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div style="text-align: right; margin-top: 16px;">
+                <button type="submit" class="btn-action btn-submit" onclick="return confirm('Yakin ingin assign IT SM ini? Status SR akan berpindah ke Backlog Scrum.')">
+                    Konfirmasi Assign IT SM
+                </button>
+            </div>
+        </form>
+
+        {% else %}
+        <h3 class="section-title">Assignment IT SM (Locked)</h3>
+        {% if gm_assign_data.current_sm %}
+        <div class="alert-locked">IT SM sudah di-assign untuk SR ini.</div>
+        <table class="modern-table" style="margin-top: 12px;">
+            <thead>
+                <tr><th>NIK</th><th>Nama</th></tr>
+            </thead>
+            <tbody>
+                {% for sm in gm_assign_data.current_sm %}
+                <tr>
+                    <td style="color: #64748b;">{{ sm.assigned_user }}</td>
+                    <td style="font-weight: 600;">{{ sm.nama }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert-locked">SR sudah melewati tahap ini.</div>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% if is_sm %}
     <div class="detail-card">
         {% if can_assign %}

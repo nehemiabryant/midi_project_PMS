@@ -58,22 +58,8 @@ def sr_detail_menu(sr_no):
 
     page_data = result['data']
 
-    # IT GM → render detail_gm.html (info SR + assign IT SM)
-    if page_data['is_gm']:
-        return render_template(
-            '/page/detail_gm.html',
-            user=session['user'],
-            role=session['role'],
-            active_menu='my_work',
-            sr_detail=page_data['sr_detail'],
-            user_roles=page_data['user_roles'],
-            all_assignments=page_data['all_assignments'],
-            can_assign_sm=page_data['can_assign_sm'],
-            gm_assign_data=page_data['gm_assign_data'],
-        )
-
-    # PIC (SCM/DEV/QA/RO) yang bukan SM → render detail_pic.html
-    if page_data['is_pic'] and not page_data['is_sm']:
+    # PIC (SCM/DEV/QA/RO) yang bukan SM/GM → render detail_pic.html
+    if page_data['is_pic'] and not page_data['is_sm'] and not page_data['is_gm']:
         return render_template(
             '/page/detail_pic.html',
             user=session['user'],
@@ -84,7 +70,7 @@ def sr_detail_menu(sr_no):
             pic_sections=page_data['pic_sections'],
         )
 
-    # IT SM → render detail_sr.html (info SR + assign PIC)
+    # IT GM dan IT SM → render detail_sr.html (template bersama dengan kondisi is_gm/is_sm)
     return render_template(
         '/page/detail_sr.html',
         user=session['user'],
@@ -95,8 +81,11 @@ def sr_detail_menu(sr_no):
         all_assignments=page_data['all_assignments'],
         assignments_by_role=page_data['assignments_by_role'],
         is_sm=page_data['is_sm'],
+        is_gm=page_data['is_gm'],
         can_assign=page_data['can_assign'],
+        can_assign_sm=page_data['can_assign_sm'],
         assignment_data=page_data['assignment_data'],
+        gm_assign_data=page_data['gm_assign_data'],
     )
 
 
