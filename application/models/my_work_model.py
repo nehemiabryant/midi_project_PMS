@@ -9,11 +9,14 @@ Log = Logger()
 # TODO: Pindahkan ke tabel sr_ms_role_territory ketika skema DB diperluas.
 _OVERSIGHT_TERRITORY = {
     1: [104],                                                                     # IT GM
-    2: [103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116],  # IT PM
+    2: [103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120],  # IT PM
     3: [105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116],             # IT SM
     8: [102],                                                                     # Atasan (Manager)
     9: [101],
 }
+
+APPROVER_ROLES = (1, 2, 8) 
+APPROVAL_PHASES = (102, 103, 104)
 
 def get_role_territory_model() -> dict:
     """
@@ -99,7 +102,7 @@ def get_my_work_items_model(nik: str) -> dict:
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.assigned_user = %(nik)s
           AND {territory_filter}
-        ORDER BY r.created_at DESC
+        ORDER BY r.sr_no ASC
     """
     conn = None
     try:
@@ -183,6 +186,44 @@ def get_user_role_on_sr_model(sr_no: str, nik: str) -> dict:
         return conn.selectDataHeader(sql, {'sr_no': sr_no, 'nik': nik})
     except Exception as e:
         Log.error(f'DB Exception | get_user_role_on_sr | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def can_approve_sr(nik: str, sr_no: str) -> bool:
+    # Define your business constants (these could also be imported from a config file)
+
+    sql = """
+        SELECT 1
+        FROM sr_request r
+        JOIN sr_assignments sa ON r.sr_no = sa.sr_no
+        WHERE r.sr_no = %(sr_no)s
+          AND sa.assigned_user = %(nik)s
+          AND sa.it_role_id IN %(approver_role_ids)s
+          AND r.smk_id IN %(approval_ids)s
+        LIMIT 1;
+    """
+    
+    params = {
+        'nik': nik,
+        'sr_no': sr_no,
+        'approver_role_ids': APPROVER_ROLES,
+        'approval_ids': APPROVAL_PHASES
+    }
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+            
+        result = conn.selectDataHeader(sql, params)
+        
+        # If the query returns any rows, the result is valid
+        return len(result.get('data', [])) > 0
+        
+    except Exception as e:
+        Log.error(f'DB Exception | can_approve_sr | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()

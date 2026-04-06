@@ -184,13 +184,14 @@ def get_full_dashboard_trx() -> dict:
                         'divisions': []
                     }
                 
-                dashboard_grid[phase_key]['divisions'].append({
-                    'name': row['division'],
-                    'count': row['ticket_count'],
-                    'progress': int(row['global_progress']) # The calculated 0-100%
-                })
-                
-                dashboard_grid[phase_key]['total_phase_tickets'] += row['ticket_count']
+                if row['division']:
+                    dashboard_grid[phase_key]['divisions'].append({
+                        'name': row['division'],
+                        'count': row['ticket_count'],
+                        'progress': int(row['global_progress']) # The calculated 0-100%
+                    })
+                    
+                    dashboard_grid[phase_key]['total_phase_tickets'] += row['ticket_count']
 
         # 3. Return the ultimate package
         return {

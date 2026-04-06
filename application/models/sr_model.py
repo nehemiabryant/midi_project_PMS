@@ -256,9 +256,17 @@ def get_dashboard_grid(shared_conn=None) -> dict:
     then groups active tickets by phase and division.
     """
     sql = """
-        WITH division_progress AS (
-            -- STEP A: Calculate global progress per division 
-            -- (smk_id - 100) gives us the current step out of 16.
+        WITH all_phases AS (
+            -- STEP 1: Get the master list of phases AND a sorting key
+            SELECT 
+                phase AS phase_name,
+                MIN(smk_id) AS phase_sort_order  -- Grabs the lowest ID for this phase to use for sorting
+            FROM public.sr_ms_ket
+            WHERE phase != 'Takeout'
+            GROUP BY phase
+        ),
+        division_progress AS (
+            -- STEP 2: Calculate global progress per division 
             SELECT 
                 r.division,
                 ROUND((SUM(r.smk_id - 100) / (COUNT(r.sr_no) * 16.0)) * 100) AS global_progress
@@ -266,20 +274,29 @@ def get_dashboard_grid(shared_conn=None) -> dict:
             JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
             WHERE m.phase != 'Takeout'
             GROUP BY r.division
+        ),
+        active_data AS (
+            -- STEP 3: Group active tickets by phase and division
+            SELECT 
+                m.phase AS phase_name,
+                r.division,
+                COUNT(r.sr_no) AS ticket_count,
+                dp.global_progress
+            FROM public.sr_request r
+            JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
+            JOIN division_progress dp ON r.division = dp.division
+            WHERE m.phase != 'Takeout'
+            GROUP BY m.phase, r.division, dp.global_progress
         )
-        
-        -- STEP B & C: Group by phase and join the pre-calculated progress!
+        -- STEP 4: LEFT JOIN and sort by the numeric ID instead of alphabetical text
         SELECT 
-            m.phase AS phase_name,
-            r.division,
-            COUNT(r.sr_no) AS ticket_count,
-            dp.global_progress
-        FROM public.sr_request r
-        JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
-        JOIN division_progress dp ON r.division = dp.division
-        WHERE m.phase != 'Takeout'
-        GROUP BY m.phase, r.division, dp.global_progress
-        ORDER BY m.phase ASC, r.division ASC;
+            p.phase_name,
+            a.division,
+            COALESCE(a.ticket_count, 0) AS ticket_count,
+            COALESCE(a.global_progress, 0) AS global_progress
+        FROM all_phases p
+        LEFT JOIN active_data a ON p.phase_name = a.phase_name
+        ORDER BY p.phase_sort_order ASC, a.division ASC;
     """
 
     if shared_conn:
