@@ -171,7 +171,7 @@ def approveSR_menu(sr_no):
     
     if not my_work_transaction.can_approve_sr_trx(sr_no, session.get('user', {}).get('nik', '')).get('status'):
         flash('You do not have permission to view this SR.', 'error')
-        return redirect(url_for('dashboard.myWork_menu'))
+        return redirect(url_for('owh_dashboard.myWork_menu'))
 
     current_user = session.get('user', {}).get('nik', '')
     

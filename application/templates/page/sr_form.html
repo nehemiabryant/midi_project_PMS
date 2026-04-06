@@ -231,6 +231,89 @@
 <script src="{{ url_for('static', filename='js/components/ckeditor-init.js') }}"></script>
 <script src="{{ url_for('static', filename='js/components/file-upload.js') }}"></script>
 <script>
-    // ... [Paste your EXACT javascript here from the create/edit page] ...
+document.addEventListener('DOMContentLoaded', function() {
+    const displayInput = document.getElementById('req_display');
+    const hiddenInput = document.getElementById('req_id');
+    const suggestionBox = document.getElementById('req_suggestions');
+    
+    // 1. Grab the division input element
+    const divisionInput = document.getElementById('division');
+
+    function debounce(func, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    const fetchSuggestions = debounce(async (query) => {
+        if (query.length < 2) {
+            suggestionBox.style.display = 'none';
+            return;
+        }
+        try {
+            const response = await fetch(`/karyawan/search?q=${encodeURIComponent(query)}`);
+            const json = await response.json(); 
+            const results = json.data || []; 
+
+            suggestionBox.innerHTML = ''; 
+
+            if (results.length > 0) {
+                results.forEach(item => {
+                    const li = document.createElement('li');
+                    li.style.padding = "10px 14px";
+                    li.style.cursor = "pointer";
+                    li.style.borderBottom = "1px solid #f1f5f9";
+                    li.innerHTML = `<strong style="color: #0f172a;">${item.nik}</strong> - <span style="color: #334155; font-weight: 500;">${item.nama}</span> <br><small style="color:#64748b;">${item.jabatan}</small>`; 
+                    
+                    li.innerHTML = `<strong>${item.nik}</strong> - ${item.nama} <br><small style="color:gray;">${item.jabatan}</small>`; 
+                    
+                    li.onmouseover = () => li.style.backgroundColor = "#f3f4f6";
+                    li.onmouseout = () => li.style.backgroundColor = "white";
+
+                    li.onclick = () => {
+                        displayInput.value = `${item.nik} - ${item.nama}`;
+                        hiddenInput.value = item.nik; 
+                        
+                        // 2. Set the division value when clicked!
+                        if (divisionInput) {
+                            // Ensure we don't print "undefined" if data is missing
+                            divisionInput.value = item.divisi || ''; 
+                        }
+
+                        suggestionBox.style.display = 'none';
+                    };
+                    suggestionBox.appendChild(li);
+                });
+                suggestionBox.style.display = 'block';
+            } else {
+                suggestionBox.style.display = 'none';
+            }
+        } catch (error) {
+            console.error("Error fetching suggestions:", error);
+            suggestionBox.style.display = 'none';
+        }
+    }, 300); 
+
+    if (displayInput) {
+        displayInput.addEventListener('input', (e) => {
+            if (e.target.value === '') {
+                hiddenInput.value = ''; 
+                // 3. Optional: Clear the division if the user deletes the requester name
+                if (divisionInput) {
+                    divisionInput.value = '';
+                }
+            }
+            fetchSuggestions(e.target.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== displayInput && e.target !== suggestionBox) {
+                suggestionBox.style.display = 'none';
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
