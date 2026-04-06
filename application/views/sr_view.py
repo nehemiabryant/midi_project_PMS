@@ -212,7 +212,7 @@ def approveSR_menu(sr_no):
         # ==========================================
         # PART A: UPDATE THE EDITABLE DATA
         # ==========================================
-        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no)
+        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no, current_smk_id)
 
         if not trx_result.get('status'):
             flash(f"Error saving data: {trx_result.get('msg')}", "error")
