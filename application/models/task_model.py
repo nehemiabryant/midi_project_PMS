@@ -139,3 +139,28 @@ def delete_task_model(task_id: int) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def get_all_tasks_by_sr_model(sr_no: str) -> dict:                                                                                                        
+    """Ambil SEMUA task pada SR tertentu dari semua role, diurutkan berdasarkan target_date."""                                                           
+    sql = """                                                                                                                                             
+        SELECT t.task_id, t.assign_id, t.task_detail, t.target_date, t.actual_date,                                                                       
+                sa.assigned_user, k.nama AS assigned_user_name,                                                                                            
+                it.it_role_detail                                                                                                                          
+        FROM sr_task t
+        JOIN sr_assignments sa ON t.assign_id = sa.assign_id                                                                                              
+        LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik                                                                                              
+        JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id                                                                                                 
+        WHERE sa.sr_no = %(sr_no)s                                                                                                                        
+        ORDER BY t.target_date ASC NULLS LAST, t.task_id ASC                                                                                              
+    """         
+    conn = None                                                                                                                                           
+    try:        
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):                                                                                                                 
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}                                                                           
+        return conn.selectDataHeader(sql, {'sr_no': sr_no})                                                                                               
+    except Exception as e:                                                                                                                                
+        Log.error(f'DB Exception | get_all_tasks_by_sr | Msg: {str(e)}')                                                                                  
+        return {'status': False, 'data': [], 'msg': str(e)}                                                                                               
+    finally:
+        if conn: conn.close()  
