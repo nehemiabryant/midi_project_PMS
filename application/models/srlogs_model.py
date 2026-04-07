@@ -193,3 +193,37 @@ def get_active_log_id(sr_no: str, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
+def get_phase_logs(sr_no: str, shared_conn=None) -> dict:
+    sql = """
+        SELECT 
+            sr_no,
+            smk_id,  -- Added smk_id to distinguish each phase
+            (ARRAY_AGG(started_at ORDER BY logs_id ASC))[1] AS first_iteration_start,
+            (ARRAY_AGG(finished_at ORDER BY logs_id DESC))[1] AS last_iteration_finish
+        FROM public.sr_logs
+        WHERE smk_id IN (106, 109, 111, 113, 115, 116)
+          AND sr_no = %(sr_no)s
+        GROUP BY sr_no, smk_id  -- Group by both!
+        ORDER BY smk_id ASC;  -- Optional: keeps them in a predictable order
+    """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, {'sr_no': sr_no})
+        return result
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectData(sql, {'sr_no': sr_no})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return None
+    except Exception as e:
+        Log.error(f'DB Exception | get_phase_logs | Msg: {str(e)}')
+        return None
+    finally:
+        if conn: conn.close()

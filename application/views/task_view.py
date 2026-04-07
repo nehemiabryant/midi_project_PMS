@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, render_template, request, session
 from ..helpers.decorators import login_required
-from ..transactions import task_transaction
+from ..transactions import task_transaction, srlogs_transaction
 from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
@@ -67,12 +67,16 @@ def delete_task(task_id):
 @login_required
 def task_timeline(sr_no):
     """Halaman timeline task untuk satu SR. Bisa diakses semua user yang login."""
-    result = task_transaction.get_timeline_trx(sr_no)
-    tasks = result.get('data', [])
+    task_result = task_transaction.get_timeline_trx(sr_no)
+    tasks = task_result.get('data', [])
+
+    actual_date_result = srlogs_transaction.get_phase_logs_trx(sr_no)
+    actual_dates = actual_date_result.get('data', [])
     return render_template(
         '/page/task_timeline.html',
         user=session['user'],
         role=session['role'],
         sr_no=sr_no,
-        tasks=tasks
+        tasks=tasks,
+        actual_dates=actual_dates
     )
