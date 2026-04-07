@@ -204,13 +204,9 @@ def can_approve_sr_trx(sr_no: str, nik: str) -> dict:
     - Status SR harus di 102, 103, atau 104 (Review/Approved/Rejected)
     """
     try:
-        result = my_work_model.can_approve_sr_model(sr_no, nik)
-        rows = parse_rows(result)
-        if not rows:
-            return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses untuk approve SR ini.'}
+        result = my_work_model.can_approve_sr(sr_no, nik)
 
-        can_approve = rows[0].get('can_approve', False)
-        if can_approve:
+        if result:
             return {'status': True, 'data': [], 'msg': 'Anda dapat approve SR ini.'}
         else:
             return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses untuk approve SR ini.'}
