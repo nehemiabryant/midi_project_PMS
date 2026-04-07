@@ -195,3 +195,25 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
     except Exception as e:
         Log.error(f'Exception | get_sr_detail_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
+
+def can_approve_sr_trx(sr_no: str, nik: str) -> dict:
+    """
+    Cek apakah user ini bisa approve SR ini.
+    Syarat:
+    - User harus ter-assign pada SR ini sebagai IT SM atau Atasan (Manager)
+    - Status SR harus di 102, 103, atau 104 (Review/Approved/Rejected)
+    """
+    try:
+        result = my_work_model.can_approve_sr_model(sr_no, nik)
+        rows = parse_rows(result)
+        if not rows:
+            return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses untuk approve SR ini.'}
+
+        can_approve = rows[0].get('can_approve', False)
+        if can_approve:
+            return {'status': True, 'data': [], 'msg': 'Anda dapat approve SR ini.'}
+        else:
+            return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses untuk approve SR ini.'}
+    except Exception as e:
+        Log.error(f'Exception | can_approve_sr_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}

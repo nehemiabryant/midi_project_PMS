@@ -145,3 +145,13 @@ def delete_task_trx(task_id: int, nik: str) -> dict:
     except Exception as e:
         Log.error(f'Exception | delete_task_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
+
+def get_timeline_trx(sr_no: str) -> dict:
+    """Ambil semua task untuk SR tertentu untuk keperluan timeline. Tidak ada validasi akses."""                                                          
+    try:                                                                                                                                                  
+        result = task_model.get_all_tasks_by_sr_model(sr_no)
+        tasks = parse_rows(result)                                                                                                                        
+        return {'status': True, 'data': tasks}                                                                                                            
+    except Exception as e:
+        Log.error(f'Exception | get_timeline_trx | Msg: {str(e)}')                                                                                        
+        return {'status': False, 'data': [], 'msg': str(e)}

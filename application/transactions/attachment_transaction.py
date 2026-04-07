@@ -104,7 +104,7 @@ def get_attachments_for_view(sr_no: str, shared_conn=None) -> list:
     Returns: [{'attach_ctg': 1, 'attach_details': 'Alur Proses', 'file_url': 'https...'}]
     """
     try:
-        db_result = attachment_model.get_view_only_attachments(sr_no, shared_conn)
+        db_result = attachment_model.get_latest_attachments(sr_no, shared_conn)
         
         if not db_result.get('status') or not db_result.get('data') or len(db_result['data']) < 2:
             return [] # Return an empty list safely if no docs exist

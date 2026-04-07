@@ -45,7 +45,7 @@ def myWork_menu():
     )
 
 
-@dashboard_bp.route('/myWork/detail/<path:sr_no>', methods=['GET'])
+@dashboard_bp.route('/myWork/detail/<path:sr_no>', methods=['GET', 'POST'])
 @login_required
 def sr_detail_menu(sr_no):
     """Halaman detail SR — termasuk section assignment untuk IT SM."""
@@ -57,9 +57,43 @@ def sr_detail_menu(sr_no):
         return redirect(url_for('owh_dashboard.myWork_menu'))
 
     page_data = result['data']
+    sr_detail = page_data.get('sr_detail', {})
+
+    is_pic = page_data.get('is_pic')
+    is_sm = page_data.get('is_sm')
+    is_gm = page_data.get('is_gm')
+
+    current_smk_id = sr_detail.get('smk_id')
+
+    docs_res = attachment_transaction.get_required_docs_for_phase_trx(current_smk_id)
+    required_docs = docs_res.get('data', [])
+
+    current_files_dict = attachment_transaction.get_latest_attachments_trx(sr_no)
+
+    if request.method == 'POST':
+        # Security: Only PICs can upload
+        if is_pic and not is_sm and not is_gm:
+            # Capture the entire files dictionary because inputs are named dynamically 
+            # e.g., 'dynamic_doc_BRD', 'dynamic_doc_UAT'
+            files = request.files 
+            form_smk_id = request.form.get('smk_id', current_smk_id) 
+
+            if files:
+                try:
+                    attachment_transaction.upload_and_record_files(sr_no, files, form_smk_id)
+                    flash('File berhasil diunggah.', 'success')
+                except Exception as e:
+                    flash(f'Gagal mengunggah file: {str(e)}', 'error')
+            else:
+                flash('Tidak ada file yang dipilih.', 'warning')
+        else:
+            flash('Anda tidak memiliki otorisasi untuk mengunggah file.', 'error')
+
+        return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
 
     # PIC (SCM/DEV/QA/RO) yang bukan SM/GM → render detail_pic.html
-    if page_data['is_pic'] and not page_data['is_sm'] and not page_data['is_gm']:
+    if is_pic and not is_sm and not is_gm:
+        
         return render_template(
             '/page/detail_pic.html',
             user=session['user'],
@@ -68,6 +102,8 @@ def sr_detail_menu(sr_no):
             sr_detail=page_data['sr_detail'],
             user_roles=page_data['user_roles'],
             pic_sections=page_data['pic_sections'],
+            required_docs=required_docs,
+            current_files=current_files_dict
         )
 
     # IT GM dan IT SM → render detail_sr.html (template bersama dengan kondisi is_gm/is_sm)
@@ -139,7 +175,6 @@ def upload_attachment(sr_no):
         flash(result.get('msg', 'Attachment berhasil diunggah.'), 'success')
 
     return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
-
 
 @dashboard_bp.route('/uploadDraft', methods=['GET', 'POST'])
 @login_required

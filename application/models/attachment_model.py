@@ -64,15 +64,15 @@ def insert_attachment(db_params: dict, shared_conn=None) -> dict:
 def get_latest_attachments(sr_no: str, shared_conn=None) -> dict:
     # A clever query to fetch ONLY the highest iteration for each category!
     sql = """
-        SELECT a.attach_ctg, c.attach_details, a.file_url, a.thumbnail_url
+        SELECT DISTINCT ON (a.attach_ctg) 
+            a.attach_ctg, 
+            c.attach_details, 
+            a.file_url, 
+            a.thumbnail_url
         FROM public.sr_attachments a
         JOIN public.sr_ms_attach_category c ON a.attach_ctg = c.attach_ctg
         WHERE a.sr_no = %(sr_no)s
-          AND iteration = (
-              SELECT MAX(iteration)
-              FROM public.sr_attachments b
-              WHERE b.sr_no = a.sr_no AND b.attach_ctg = a.attach_ctg
-          )
+        ORDER BY a.attach_ctg ASC, a.iteration DESC;
     """
 
     if shared_conn:
@@ -92,44 +92,6 @@ def get_latest_attachments(sr_no: str, shared_conn=None) -> dict:
             return {'status': False, 'data': [], 'msg': result.get('msg')}
     except Exception as e:
         Log.error(f'DB Exception | get_latest_attachments | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': 'Gagal Koneksi Database!'}
-    finally:
-        if conn: conn.close()
-
-def get_view_only_attachments(sr_no: str, shared_conn=None) -> dict:
-    """
-    Fetches the highest iteration for each category, 
-    joined with the category name for the frontend UI.
-    """
-    sql = """
-        SELECT a.attach_ctg, c.attach_details, a.file_url, a.thumbnail_url
-        FROM public.sr_attachments a
-        JOIN public.sr_ms_attach_category c ON a.attach_ctg = c.attach_ctg
-        WHERE a.sr_no = %(sr_no)s
-          AND a.iteration = (
-              SELECT MAX(iteration)
-              FROM public.sr_attachments b
-              WHERE b.sr_no = a.sr_no AND b.attach_ctg = a.attach_ctg
-          )
-        ORDER BY a.attach_ctg ASC;
-    """
-    
-    if shared_conn:
-        return shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
-    
-    conn = None
-    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
-
-    try:
-        conn = DatabasePG("supabase")
-        if conn:
-            result = conn.selectDataHeader(sql, {'sr_no': sr_no})
-            return result
-        else:
-            Log.error(f'DB Error | Msg: {result.get("msg")}')
-            return {'status': False, 'data': [], 'msg': result.get('msg')}
-    except Exception as e:
-        Log.error(f'DB Exception | get_view_only_attachments | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': 'Gagal Koneksi Database!'}
     finally:
         if conn: conn.close()

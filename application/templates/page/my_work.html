@@ -53,9 +53,16 @@
                 <td>{{ item.created_at }}</td>
                 <td>{{ item.updated_at }}</td>
                 <td>
-                  <a href="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
-                  <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
-                </td>
+                  {% if 9 in item.role_ids and item.smk_id == 101 %}
+                      <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Edit</a>
+                      
+                  {% elif (1 in item.role_ids or 2 in item.role_ids or 8 in item.role_ids) and item.smk_id in [102, 103, 104] %}
+                      <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
+                      
+                  {% else %}
+                      <a href="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
+                  {% endif %}
+              </td>
               </tr>
             {% endfor %}
           {% else %}
