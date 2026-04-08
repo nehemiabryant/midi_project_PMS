@@ -163,6 +163,29 @@ def get_it_role_on_sr_model(sr_no: str, nik: str) -> dict:
         if conn: conn.close()
 
 
+def check_role_assignment_model(sr_no: str, nik: str, it_role_id: int) -> bool:
+    """Cek apakah nik ter-assign pada SR ini dengan role tertentu. Return True/False."""
+    sql = """
+        SELECT 1 FROM sr_assignments
+        WHERE sr_no = %(sr_no)s
+          AND assigned_user = %(nik)s
+          AND it_role_id = %(it_role_id)s
+        LIMIT 1
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return False
+        result = conn.selectData(sql, {'sr_no': sr_no, 'nik': nik, 'it_role_id': it_role_id})
+        return bool(result.get('status') and result.get('data'))
+    except Exception as e:
+        Log.error(f'DB Exception | check_role_assignment | Msg: {str(e)}')
+        return False
+    finally:
+        if conn: conn.close()
+
+
 def get_sr_detail_with_status_model(sr_no: str) -> dict:
     """Ambil detail SR beserta status untuk halaman assignment."""
     sql = """
@@ -211,12 +234,12 @@ def get_sm_options_model(nik_list: list) -> dict:
 def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, shared_conn=None) -> dict:
     """
     Insert semua assignment pada SR.
-    assignments = list of {'nik': str, 'it_role_id': int}
+    assignments = list of {'nik': str, 'it_role_id': int, 'is_active': bool (opsional, default True)}
     Jika shared_conn diberikan, pakai koneksi tersebut (tidak commit/rollback sendiri).
     """
     insert_sql = """
-        INSERT INTO sr_assignments (sr_no, assigned_user, assigned_by, it_role_id, assigned_at)
-        VALUES (%(sr_no)s, %(assigned_user)s, %(assigned_by)s, %(it_role_id)s, NOW())
+        INSERT INTO sr_assignments (sr_no, assigned_user, assigned_by, it_role_id, assigned_at, is_active)
+        VALUES (%(sr_no)s, %(assigned_user)s, %(assigned_by)s, %(it_role_id)s, NOW(), %(is_active)s)
         ON CONFLICT DO NOTHING
     """
 
@@ -226,7 +249,8 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
                 'sr_no': sr_no,
                 'assigned_user': a['nik'],
                 'assigned_by': assigned_by,
-                'it_role_id': a['it_role_id']
+                'it_role_id': a['it_role_id'],
+                'is_active': a.get('is_active', True)
             })
             if not result.get('status'):
                 return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal insert assignment')}
@@ -243,7 +267,8 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
                 'sr_no': sr_no,
                 'assigned_user': a['nik'],
                 'assigned_by': assigned_by,
-                'it_role_id': a['it_role_id']
+                'it_role_id': a['it_role_id'],
+                'is_active': a.get('is_active', True)
             })
             if not result.get('status'):
                 raise Exception(result.get('msg', 'Gagal insert assignment'))
@@ -260,3 +285,149 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def get_assignment_by_id_model(assign_id: int) -> dict:
+    """Ambil detail satu assignment berdasarkan assign_id."""
+    sql = """
+        SELECT assign_id, sr_no, assigned_user, it_role_id, is_active
+        FROM sr_assignments
+        WHERE assign_id = %(assign_id)s
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'assign_id': assign_id})
+    except Exception as e:
+        Log.error(f'DB Exception | get_assignment_by_id | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+def get_active_pic_on_sr_model(sr_no: str, nik: str) -> dict:
+    """Ambil assignment dimana user is_active=TRUE pada SR ini."""
+    sql = """
+        SELECT sa.assign_id, sa.it_role_id, sa.is_active, it.it_role_detail
+        FROM sr_assignments sa
+        JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
+        WHERE sa.sr_no = %(sr_no)s
+          AND sa.assigned_user = %(nik)s
+          AND sa.is_active = TRUE
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'nik': nik})
+    except Exception as e:
+        Log.error(f'DB Exception | get_active_pic_on_sr | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+def get_pic_handover_candidates_model(sr_no: str, it_role_id: int, exclude_nik: str) -> dict:
+    """Ambil user lain di role yang sama yang is_active=FALSE — kandidat penerima handover."""
+    sql = """
+        SELECT sa.assign_id, sa.assigned_user, COALESCE(k.nama, sa.assigned_user) AS nama
+        FROM sr_assignments sa
+        LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
+        WHERE sa.sr_no = %(sr_no)s
+          AND sa.it_role_id = %(it_role_id)s
+          AND sa.assigned_user != %(exclude_nik)s
+          AND sa.is_active = FALSE
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'it_role_id': it_role_id, 'exclude_nik': exclude_nik})
+    except Exception as e:
+        Log.error(f'DB Exception | get_pic_handover_candidates | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+def get_all_handover_candidates_model(sr_no: str, active_role_ids: list, exclude_nik: str) -> dict:
+    """
+    Ambil semua kandidat handover untuk semua active role sekaligus (batch).
+    Return kolom: assign_id, assigned_user, nama, it_role_id, it_role_detail
+    """
+    if not active_role_ids:
+        return {'status': True, 'data': [[], []]}
+    sql = """
+        SELECT sa.assign_id, sa.assigned_user, COALESCE(k.nama, sa.assigned_user) AS nama,
+               sa.it_role_id, it.it_role_detail
+        FROM sr_assignments sa
+        LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
+        JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
+        WHERE sa.sr_no = %(sr_no)s
+          AND sa.it_role_id IN %(role_ids)s
+          AND sa.assigned_user != %(exclude_nik)s
+          AND sa.is_active = FALSE
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {
+            'sr_no': sr_no,
+            'role_ids': tuple(active_role_ids),
+            'exclude_nik': exclude_nik
+        })
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_handover_candidates | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+def toggle_active_pic_model(sr_no: str, it_role_id: int, target_assign_id: int, shared_conn=None) -> dict:
+    """
+    Toggle is_active: non-aktifkan semua user di role ini pada SR, lalu aktifkan target_assign_id.
+    Harus dijalankan dalam satu transaksi agar tidak ada state di mana semua FALSE atau dua TRUE.
+    """
+    sql_deactivate = """
+        UPDATE sr_assignments SET is_active = FALSE
+        WHERE sr_no = %(sr_no)s AND it_role_id = %(it_role_id)s
+    """
+    sql_activate = """
+        UPDATE sr_assignments SET is_active = TRUE
+        WHERE assign_id = %(assign_id)s
+    """
+    owns_conn = shared_conn is None
+    if owns_conn:
+        shared_conn = DatabasePG("supabase", autocommit=False)
+
+    try:
+        if not shared_conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': shared_conn.status.get('msg')}
+
+        r1 = shared_conn.executeDataNoCommit(sql_deactivate, {'sr_no': sr_no, 'it_role_id': it_role_id})
+        if not r1.get('status'):
+            raise Exception(r1.get('msg', 'Gagal deactivate'))
+
+        r2 = shared_conn.executeDataNoCommit(sql_activate, {'assign_id': target_assign_id})
+        if not r2.get('status'):
+            raise Exception(r2.get('msg', 'Gagal activate'))
+
+        if owns_conn:
+            shared_conn._conn.commit()
+        return {'status': True, 'data': [], 'msg': 'Toggle is_active berhasil.'}
+    except Exception as e:
+        if owns_conn:
+            try:
+                shared_conn._conn.rollback()
+            except Exception:
+                pass
+        Log.error(f'DB Exception | toggle_active_pic | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if owns_conn and shared_conn:
+            shared_conn.close()

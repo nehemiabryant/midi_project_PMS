@@ -23,6 +23,7 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
         # 1. Get the rule from your newly simplified table
         rule_res = workflow_model.get_workflow_rule(current_smk_id, next_smk_id)
         if not rule_res.get('status') or not rule_res.get('data'):
+            Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Invalid transition {current_smk_id}→{next_smk_id}')
             return {'status': False, 'msg': 'Invalid workflow transition.'}
 
         rule_id = rule_res['data'][0][0]
@@ -40,31 +41,37 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
             if allowed_role == 9:
                 requester_nik = sr_model.get_sr_requester(sr_no)
                 if action_by != requester_nik:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Bukan requester (expected: {requester_nik})')
                     return {'status': False, 'msg': 'Only the original requester can execute this step.'}
 
             elif allowed_role == 8:
                 requester_nik = sr_model.get_sr_requester(sr_no)
                 required_manager_nik = karyawan.get_karyawan_nik_up(requester_nik)
                 if action_by != required_manager_nik:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Bukan manager requester (expected: {required_manager_nik})')
                     return {'status': False, 'msg': 'Only the direct supervisor (nik_up) of the requester can approve this step.'}
 
             elif allowed_role == 1:
                 if action_by != IT_GM_NIK:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Bukan IT GM')
                     return {'status': False, 'msg': 'Only the IT General Manager can approve this step.'}
 
             elif allowed_role == 2:
                 if action_by != IT_PM_NIK:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Bukan IT PM')
                     return {'status': False, 'msg': 'Only the IT Project Manager can approve this step.'}
 
             elif allowed_role == 3:
                 if action_by not in IT_SM_NIKS:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Bukan IT SM')
                     return {'status': False, 'msg': 'Only an IT Senior Manager can approve this step.'}
 
             elif allowed_role in [4, 5, 6, 7]:
-                assigned_role = assignment_model.get_it_role_on_sr_model(sr_no, action_by)
-
-                if not assigned_role or assigned_role != allowed_role:
+                is_assigned = assignment_model.check_role_assignment_model(sr_no, action_by, allowed_role)
+                if not is_assigned:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Tidak ter-assign dengan role {allowed_role}')
                     return {'status': False, 'msg': 'You must be specifically assigned to this ticket to execute this phase.'}
+
             # ==========================================
             # 4. Validate Mandatory Documents
             # ==========================================
@@ -82,6 +89,7 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                 missing_docs = [doc for doc in mandatory_docs if doc not in uploaded_docs]
 
                 if missing_docs:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Dokumen wajib belum lengkap: {missing_docs}')
                     return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
 
         # ==========================================
@@ -281,17 +289,71 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
         Log.error(f"Exception | Validate SR Action | Msg: {str(e)}")
         return {'status': False, 'msg': 'An error occurred while verifying permissions.', 'data': []}
     
-def get_dropdown_options(current_smk_id: int) -> list:
-    """Fetches valid transitions and converts them to a list of dicts for Jinja."""
+def _get_handover_options(sr_no: str, nik: str) -> list:
+    """
+    Bangun opsi handover untuk dropdown jika user is_active=TRUE dan ada kandidat.
+    Return list opsi handover atau [] jika tidak ada kandidat.
+    Private — hanya dipanggil dari get_dropdown_options.
+    """
+    try:
+        active_result = assignment_model.get_active_pic_on_sr_model(sr_no, nik)
+        if not active_result.get('status') or not active_result.get('data'):
+            return []
+
+        headers = active_result['data'][0]
+        rows = active_result['data'][1]
+        active_rows = converters.convert_to_dicts(rows, headers)
+
+        # Ambil semua kandidat sekaligus (1 query batch) lalu group by role di Python
+        active_role_ids = [a['it_role_id'] for a in active_rows]
+        role_detail_map = {a['it_role_id']: a['it_role_detail'] for a in active_rows}
+
+        candidates_result = assignment_model.get_all_handover_candidates_model(sr_no, active_role_ids, nik)
+        if not candidates_result.get('status') or not candidates_result.get('data'):
+            return []
+
+        c_headers = candidates_result['data'][0]
+        c_rows = candidates_result['data'][1]
+        all_candidates = converters.convert_to_dicts(c_rows, c_headers)
+
+        handover_opts = []
+        for c in all_candidates:
+            role_detail = role_detail_map.get(c['it_role_id'], '')
+            handover_opts.append({
+                'action_type': 'handover',
+                'next_smk_id': None,
+                'rule_detail': f"Oper ke {c['nama']} ({role_detail})",
+                'target_assign_id': c['assign_id']
+            })
+
+        return handover_opts
+    except Exception as e:
+        Log.error(f"Exception | _get_handover_options | Msg: {str(e)}")
+        return []
+
+
+def get_dropdown_options(current_smk_id: int, sr_no: str = None, nik: str = None) -> list:
+    """
+    Ambil opsi dropdown untuk transisi status SR.
+    Jika sr_no dan nik diberikan, inject opsi handover jika user is_active dan ada kandidat.
+    Backwards compatible — caller lama yang tidak kirim sr_no/nik tidak terpengaruh.
+    """
     try:
         db_result = workflow_model.get_next_allowed_phases(current_smk_id)
-        
+        options = []
+
         if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
             headers = db_result['data'][0]
             rows = db_result['data'][1]
-            return converters.convert_to_dicts(rows, headers)
-            
-        return []
+            for opt in converters.convert_to_dicts(rows, headers):
+                opt['action_type'] = 'advance'
+                options.append(opt)
+
+        if sr_no and nik:
+            handover_opts = _get_handover_options(sr_no, nik)
+            options.extend(handover_opts)
+
+        return options
     except Exception as e:
         Log.error(f"Exception | Get Dropdown Options | Msg: {str(e)}")
-        return {'status': False, 'msg': 'An error occurred while retrieving dropdown options.', 'data': []}
+        return []

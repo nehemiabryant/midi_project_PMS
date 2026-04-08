@@ -163,16 +163,24 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
             if r['it_role_id'] in assignable_role_ids
             and current_smk_id in territory_map.get(r['it_role_id'], [])
         ]
+        # Ambil semua tasks sekaligus (1 query), lalu group by role di Python
+        all_tasks_result = task_model.get_all_tasks_by_sr_model(sr_no)
+        all_tasks = parse_rows(all_tasks_result)
+        tasks_by_role = {}
+        for t in all_tasks:
+            rid = t['it_role_id']
+            if rid not in tasks_by_role:
+                tasks_by_role[rid] = []
+            tasks_by_role[rid].append(t)
+
         pic_sections = []
         for pr in pic_roles:
             role_id = pr['it_role_id']
-            tasks_result = task_model.get_tasks_by_sr_and_role_model(sr_no, role_id)
-            tasks = parse_rows(tasks_result)
             pic_sections.append({
                 'it_role_id': role_id,
                 'it_role_detail': pr['it_role_detail'],
                 'assign_id': pr['assign_id'],
-                'tasks': tasks,
+                'tasks': tasks_by_role.get(role_id, []),
             })
 
         return {

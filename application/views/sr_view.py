@@ -191,7 +191,8 @@ def approveSR_menu(sr_no):
     current_smk_id = sr_data.get('smk_id') 
     
     current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
-    options = workflow_transaction.get_dropdown_options(current_smk_id)
+
+    options = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, current_user)
     
     if request.method == 'POST':
         # ONLY process the workflow advancement. No data updates.
