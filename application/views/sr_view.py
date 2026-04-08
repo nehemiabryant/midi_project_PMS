@@ -169,13 +169,14 @@ def approveSR_menu(sr_no):
         flash("Invalid or corrupted approval link.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
     
-    if not my_work_transaction.can_approve_sr_trx(sr_no, session.get('user', {}).get('nik', '')).get('status'):
+    current_user = session.get('user', {}).get('nik', '')
+    
+    # 1. Bouncer Check (Checks if they have the right to view AND approve)
+    if not my_work_transaction.can_approve_sr_trx(sr_no, current_user).get('status'):
         flash('You do not have permission to view this SR.', 'error')
         return redirect(url_for('owh_dashboard.myWork_menu'))
 
-    current_user = session.get('user', {}).get('nik', '')
-    
-    # 1. Eligibility Check (Reused perfectly!)
+    # 2. Eligibility Check (Ensures it is their turn in the workflow)
     eligibility_result = workflow_transaction.authorize_sr_access(
         sr_no=sr_no,
         user_nik=current_user,
@@ -187,35 +188,16 @@ def approveSR_menu(sr_no):
         return redirect(url_for('owh_dashboard.myWork_menu'))
 
     sr_data = eligibility_result['data'][0]
-
     current_smk_id = sr_data.get('smk_id') 
     
     current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
 
     options = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, current_user)
     
-
     if request.method == 'POST':
-        raw_form_data = request.form.to_dict()
-        files = request.files
-
-        # ==========================================
-        # PART A: UPDATE THE EDITABLE DATA
-        # ==========================================
-        trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no, current_smk_id)
-
-        if not trx_result.get('status'):
-            flash(f"Error saving data: {trx_result.get('msg')}", "error")
-            return redirect(request.url)
-
-        # ==========================================
-        # PART B: FIGURE OUT THE WORKFLOW STATE
-        # ==========================================
+        # ONLY process the workflow advancement. No data updates.
         next_smk_id = int(request.form.get('intended_next_smk_id'))
         
-        # ==========================================
-        # PART C: ADVANCE THE PHASE
-        # ==========================================
         advance_result = workflow_transaction.advance_sr_phase(
             sr_no=sr_no,
             current_smk_id=current_smk_id,
@@ -227,11 +209,17 @@ def approveSR_menu(sr_no):
             flash("Service Request updated and approved successfully!", "success")
             return redirect(url_for('owh_dashboard.dashboard_menu'))
         else:
-            flash(f"Data saved, but phase failed to advance: {advance_result.get('msg')}", "warning")
+            flash(f"Approval failed: {advance_result.get('msg')}", "error")
             return redirect(request.url)
 
-    return render_template('/page/sr_form.html', mode='approve', user=session.get('user'), role=session.get('role'), active_menu='my_work'
-                           , sr_data=sr_data, options=options, current_files=current_files_dict)
+    # Pointing to the new read-only approval template
+    return render_template('/page/sr_approve.html', 
+                           user=session.get('user'), 
+                           role=session.get('role'), 
+                           active_menu='my_work',
+                           sr_data=sr_data, 
+                           options=options, 
+                           current_files=current_files_dict)
 
 @sr_bp.route('/project_details/<string:phase_name>', defaults={'sr_no': None}, methods=['GET'])
 @sr_bp.route('/project_details/<string:phase_name>/<path:sr_no>', methods=['GET'])
