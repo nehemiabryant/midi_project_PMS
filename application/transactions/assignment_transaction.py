@@ -138,15 +138,21 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                     'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."
                 }
 
-        # 6. Insert assignments + advance phase (atomic, satu transaksi)
+        # 6. Tentukan is_active: user pertama per role = TRUE, selanjutnya = FALSE
+        seen_roles = set()
+        for a in assignments:
+            a['is_active'] = a['it_role_id'] not in seen_roles
+            seen_roles.add(a['it_role_id'])
+
+        # 7. Insert assignments + advance phase (atomic, satu transaksi)
         shared_conn = DatabasePG("supabase", autocommit=False)
         try:
-            # 6a. Insert semua assignment
+            # 7a. Insert semua assignment
             insert_result = assignment_model.insert_assignments_model(sr_no, assignments, nik, shared_conn)
             if not insert_result.get('status'):
                 raise Exception(insert_result.get('msg', 'Gagal insert assignment'))
 
-            # 6b. Advance phase 105→106 via workflow rules (logs + status update)
+            # 7b. Advance phase 105→106 via workflow rules (logs + status update)
             advance_result = workflow_transaction.advance_sr_phase(
                 sr_no=sr_no,
                 current_smk_id=assignment_model.STATUS_BACKLOG_SCRUM,
@@ -303,6 +309,42 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=
 
     except Exception as e:
         Log.error(f'Exception | submit_sm_assignment_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def handover_pic_trx(sr_no: str, nik: str, target_assign_id: int) -> dict:
+    """
+    Oper SR ke user lain di role yang sama.
+    Validasi: user yang trigger harus is_active=TRUE di role ini pada SR ini.
+    Hanya mengubah is_active — smk_id SR tidak berubah.
+    """
+    try:
+        # 1. Ambil info target assignment
+        target_result = assignment_model.get_assignment_by_id_model(target_assign_id)
+        target = parse_single_row(target_result)
+        if not target:
+            return {'status': False, 'data': [], 'msg': 'Target assignment tidak ditemukan.'}
+
+        if target['sr_no'] != sr_no:
+            return {'status': False, 'data': [], 'msg': 'Target assignment tidak sesuai dengan SR ini.'}
+
+        it_role_id = target['it_role_id']
+
+        # 2. Validasi: user yang trigger harus is_active=TRUE di role ini
+        active_result = assignment_model.get_active_pic_on_sr_model(sr_no, nik)
+        active_rows = parse_rows(active_result)
+        active_role = next((a for a in active_rows if a['it_role_id'] == it_role_id), None)
+        if not active_role:
+            return {'status': False, 'data': [], 'msg': 'Anda tidak sedang aktif mengerjakan role ini pada SR ini.'}
+
+        # 3. Toggle is_active
+        toggle_result = assignment_model.toggle_active_pic_model(sr_no, it_role_id, target_assign_id)
+        if not toggle_result.get('status'):
+            return {'status': False, 'data': [], 'msg': toggle_result.get('msg', 'Gagal mengoper SR.')}
+
+        return {'status': True, 'data': [], 'msg': 'SR berhasil dioper ke PIC lain.'}
+    except Exception as e:
+        Log.error(f'Exception | handover_pic_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     
 def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_id: int, next_smk_id: int) -> dict:

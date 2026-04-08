@@ -204,10 +204,8 @@ def approveSR_menu(sr_no):
             gm_assign_data = gm_page_result.get('data', {})
 
     current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
-    options = workflow_transaction.get_dropdown_options(current_smk_id)
 
-    # actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
-    # ticket_actors = actors_result.get('data', {})
+    options = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, current_user)
     
     if request.method == 'POST':
         next_smk_id = int(request.form.get('intended_next_smk_id'))

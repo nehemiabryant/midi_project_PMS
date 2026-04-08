@@ -17,6 +17,31 @@
     </table>
 </div>
 
+{% if dropdown_options %}
+<div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+    <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 700; color: #374151;">Lanjutkan / Oper SR</h4>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <select id="workflow-select" style="flex: 1; min-width: 220px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; background: white;">
+            <option value="" disabled selected>-- Pilih Aksi --</option>
+            {% for opt in dropdown_options %}
+                <option
+                    value="{{ loop.index0 }}"
+                    data-action-type="{{ opt.action_type }}"
+                    data-next-smk-id="{{ opt.next_smk_id or '' }}"
+                    data-target-assign-id="{{ opt.target_assign_id or '' }}"
+                    data-current-smk-id="{{ sr_detail.smk_id }}">
+                    {{ opt.rule_detail }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="button" onclick="submitWorkflowAction()" style="padding: 8px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+            Jalankan
+        </button>
+    </div>
+    <div id="workflow-msg" style="margin-top: 8px; font-size: 0.85rem; display: none;"></div>
+</div>
+{% endif %}
+
 <form method="POST" action="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=sr_detail.sr_no) }}" enctype="multipart/form-data">
     
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -139,6 +164,61 @@
 <script src="{{ url_for('static', filename='js/components/file-upload.js') }}"></script>
 <script>
 const SR_NO = "{{ sr_detail.sr_no }}";
+
+function submitWorkflowAction() {
+    const select = document.getElementById('workflow-select');
+    const msgEl = document.getElementById('workflow-msg');
+    const selected = select.options[select.selectedIndex];
+
+    if (!selected || !selected.value && selected.value !== '0') {
+        showWorkflowMsg('Pilih aksi terlebih dahulu.', 'error');
+        return;
+    }
+
+    const actionType = selected.dataset.actionType;
+    const payload = { action_type: actionType };
+
+    if (actionType === 'handover') {
+        payload.target_assign_id = parseInt(selected.dataset.targetAssignId);
+    } else {
+        payload.current_smk_id = parseInt(selected.dataset.currentSmkId);
+        payload.next_smk_id = parseInt(selected.dataset.nextSmkId);
+    }
+
+    const confirmMsg = actionType === 'handover'
+        ? `Yakin ingin mengoper SR ini ke ${selected.text}?`
+        : `Yakin ingin melanjutkan status SR: "${selected.text}"?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+    fetch(`/myWork/detail/${SR_NO}/workflow`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'T') {
+            showWorkflowMsg(data.msg, 'success');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            showWorkflowMsg(data.msg || 'Gagal.', 'error');
+        }
+    })
+    .catch(() => showWorkflowMsg('Terjadi kesalahan koneksi.', 'error'));
+}
+
+function showWorkflowMsg(msg, type) {
+    const el = document.getElementById('workflow-msg');
+    el.style.display = 'block';
+    el.style.color = type === 'success' ? '#16a34a' : '#dc2626';
+    el.textContent = msg;
+}
 
 function showAddTaskForm(roleId) {
     document.getElementById('add-task-form-' + roleId).style.display = '';
