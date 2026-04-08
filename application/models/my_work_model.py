@@ -15,7 +15,7 @@ _OVERSIGHT_TERRITORY = {
     9: [101],
 }
 
-APPROVER_ROLES = (1, 2, 8) 
+APPROVER_ROLES = (1, 2, 8)
 APPROVAL_PHASES = (102, 103, 104)
 
 def get_role_territory_model() -> dict:
