@@ -260,3 +260,62 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def get_sr_origins(sr_no: str, shared_conn=None) -> dict:
+    """Fetches the requester and maker of the SR."""
+    sql = """
+        SELECT r.sr_no, r.req_id, ka_req.nama AS requester_name, 
+               r.maker_id, ka_maker.nama AS maker_name
+        FROM public.sr_request r
+        LEFT JOIN public.karyawan_all ka_req ON r.req_id = ka_req.nik
+        LEFT JOIN public.karyawan_all ka_maker ON r.maker_id = ka_maker.nik
+        WHERE r.sr_no = %(sr_no)s;
+    """
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no})
+    except Exception as e:
+        Log.error(f'DB Exception | get_sr_origins | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
+def get_sr_approvers(sr_no: str, shared_conn=None) -> dict:
+    """Fetches the active approvers for the SR based on defined roles."""
+    sql = """
+        SELECT 
+            sa.it_role_id, 
+            smi.it_role_detail, 
+            sa.assigned_user AS approver_nik, 
+            ka.nama AS approver_name
+        FROM public.sr_assignments sa
+        JOIN public.karyawan_all ka ON sa.assigned_user = ka.nik
+        JOIN public.sr_request sr ON sa.sr_no = sr.sr_no
+        JOIN public.sr_ms_ket smk ON sr.smk_id = smk.smk_id
+        JOIN public.sr_ms_it smi ON sa.it_role_id = smi.it_role_id  -- NEW JOIN
+        WHERE sa.sr_no = %(sr_no)s 
+          AND smk.workflow = 'approval'
+          AND sa.it_role_id IN (1, 2, 3, 8) -- Keep this if you still want to whitelist roles
+        ORDER BY array_position(ARRAY[8, 2, 1, 3], sa.it_role_id);
+    """
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no})
+    except Exception as e:
+        Log.error(f'DB Exception | get_sr_approvers | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()

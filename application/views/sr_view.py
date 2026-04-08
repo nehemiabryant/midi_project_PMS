@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction
+from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction
 from ..helpers.decorators import login_required
 
 Log = Logger()
@@ -171,12 +171,12 @@ def approveSR_menu(sr_no):
     
     current_user = session.get('user', {}).get('nik', '')
     
-    # 1. Bouncer Check (Checks if they have the right to view AND approve)
+    # 1. Bouncer Check
     if not my_work_transaction.can_approve_sr_trx(sr_no, current_user).get('status'):
         flash('You do not have permission to view this SR.', 'error')
         return redirect(url_for('owh_dashboard.myWork_menu'))
 
-    # 2. Eligibility Check (Ensures it is their turn in the workflow)
+    # 2. Eligibility Check
     eligibility_result = workflow_transaction.authorize_sr_access(
         sr_no=sr_no,
         user_nik=current_user,
@@ -189,36 +189,82 @@ def approveSR_menu(sr_no):
 
     sr_data = eligibility_result['data'][0]
     current_smk_id = sr_data.get('smk_id') 
+    user_it_role = sr_data.get('user_it_role') 
     
+    is_gm = (user_it_role == 1)
+    gm_assign_data = {}
+    
+    actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
+    ticket_actors = actors_result.get('data', [])
+    
+
+    if is_gm:
+        gm_page_result = assignment_transaction.get_gm_assign_page_data_trx(sr_no, current_user)
+        if gm_page_result.get('status'):
+            gm_assign_data = gm_page_result.get('data', {})
+
     current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
     options = workflow_transaction.get_dropdown_options(current_smk_id)
+
+    # actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
+    # ticket_actors = actors_result.get('data', {})
     
     if request.method == 'POST':
-        # ONLY process the workflow advancement. No data updates.
         next_smk_id = int(request.form.get('intended_next_smk_id'))
         
-        advance_result = workflow_transaction.advance_sr_phase(
-            sr_no=sr_no,
-            current_smk_id=current_smk_id,
-            next_smk_id=next_smk_id,
-            action_by=current_user
-        )
-
-        if advance_result.get('status'):
-            flash("Service Request updated and approved successfully!", "success")
-            return redirect(url_for('owh_dashboard.dashboard_menu'))
+        # ==========================================
+        # GM-SPECIFIC LOGIC: Assign SM & Advance together
+        # ==========================================
+        if is_gm and next_smk_id > current_smk_id:
+            if not request.form.get('selected_sm_nik'):
+                flash("Anda harus memilih IT SM sebelum menyetujui SR ini.", "error")
+                return redirect(request.url)
+            
+            # Call a unified transaction function to handle everything safely
+            process_result = assignment_transaction.process_gm_approval_trx(
+                sr_no=sr_no,
+                nik=current_user,
+                form_data=request.form,
+                current_smk_id=current_smk_id,
+                next_smk_id=next_smk_id
+            )
+            
+            if process_result.get('status'):
+                flash("IT SM assigned and SR approved successfully!", "success")
+                return redirect(url_for('owh_dashboard.dashboard_menu'))
+            else:
+                flash(f"Approval failed: {process_result.get('msg')}", "error")
+                return redirect(request.url)
+                
+        # ==========================================
+        # STANDARD PHASE ADVANCEMENT (For everyone else, or GM Rejecting)
+        # ==========================================
         else:
-            flash(f"Approval failed: {advance_result.get('msg')}", "error")
-            return redirect(request.url)
+            advance_result = workflow_transaction.advance_sr_phase(
+                sr_no=sr_no,
+                current_smk_id=current_smk_id,
+                next_smk_id=next_smk_id,
+                action_by=current_user
+            )
 
-    # Pointing to the new read-only approval template
-    return render_template('/page/sr_approve.html', 
+            if advance_result.get('status'):
+                flash("Service Request approved successfully!", "success")
+                return redirect(url_for('owh_dashboard.dashboard_menu'))
+            else:
+                flash(f"Approval failed: {advance_result.get('msg')}", "error")
+                return redirect(request.url)
+
+    #CHANGE TO sr_approve later
+    return render_template('/page/sr_approve_data.html', 
                            user=session.get('user'), 
                            role=session.get('role'), 
                            active_menu='my_work',
                            sr_data=sr_data, 
                            options=options, 
-                           current_files=current_files_dict)
+                           current_files=current_files_dict,
+                           is_gm=is_gm,
+                           gm_assign_data=gm_assign_data,
+                           ticket_actors=ticket_actors)
 
 @sr_bp.route('/project_details/<string:phase_name>', defaults={'sr_no': None}, methods=['GET'])
 @sr_bp.route('/project_details/<string:phase_name>/<path:sr_no>', methods=['GET'])
