@@ -210,21 +210,34 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
     
 def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_id: int=104) -> dict:
     """
-    Fetches the SR data and checks if a user can dynamically modify an SR.
+    Get the SR data and checks if a user can dynamically modify an SR.
     """
     try:
         # ==========================================
-        # 1. FETCH THE FULL DATA (Including Attachments!)
+        # 1. FETCH DATA BASED ON INTENT
         # ==========================================
-        fetch_result = sr_transaction.get_edit_sr_trx(sr_no) 
-        
-        if not fetch_result.get('status') or not fetch_result.get('data'):
-            # If the SR isn't found, pass the error straight back to the route
-            return fetch_result 
+        if intent in ['VIEW', 'APPROVE']:
+            # Fetch the lightweight detail view
+            # Note: adjust the prefix (e.g., sr_transaction.) if this function is in another module
+            sr_dict = sr_transaction.get_sr_detail_trx(sr_no) 
             
-        # Extract the dictionary (your get_edit_sr_trx returns it in a list)
-        sr_dict = fetch_result['data'][0] 
-        
+            if not sr_dict:
+                return {'status': False, 'msg': 'SR data not found or an error occurred.', 'data': []}
+                
+        elif intent == 'EDIT':
+            # Fetch THE FULL DATA (Including Attachments!)
+            get_edit_result = sr_transaction.get_edit_sr_trx(sr_no) 
+            
+            if not get_edit_result.get('status') or not get_edit_result.get('data'):
+                # If the SR isn't found or errors out, pass it straight back
+                return get_edit_result 
+                
+            sr_dict = get_edit_result['data'][0] 
+            
+        else:
+            return {'status': False, 'msg': 'System Error: Unknown intent.'}
+
+        # Extract context variables from the fetched dictionary
         current_smk_id = sr_dict.get('smk_id')
         requester_nik = sr_dict.get('req_id')
 
@@ -248,10 +261,10 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
             return {'status': False, 'msg': 'Unauthorized: You have no assigned role for this Service Request.'}
 
         sr_dict['user_it_role'] = user_it_role
+        
         # ==========================================
         # 3. THE PHASE THRESHOLD CHECK 
         # ==========================================
-
         if user_it_role == 2:
             return {'status': True, 'msg': 'God Mode granted.', 'data': [sr_dict]}
         
@@ -279,10 +292,8 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
                     'status': False, 
                     'msg': 'Access Denied: This ticket has already been processed or is waiting on another department.'
                 }
-        else:
-            return {'status': False, 'msg': 'System Error: Unknown intent.'}      
 
-        # If they survive the Bouncer, hand them the FULL data (attachments included)!
+        # If they survive the Bouncer, hand them the data!
         return {'status': True, 'msg': 'Access granted.', 'data': [sr_dict]}
 
     except Exception as e:

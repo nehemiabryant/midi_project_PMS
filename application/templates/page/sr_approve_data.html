@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% with header_title='Service Request Approval' %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+<style>
+    /* Clean, read-only styling */
+    .form-input[readonly], .form-input:disabled {
+        background-color: #f8fafc;
+        color: #475569;
+        border-color: #e2e8f0;
+        cursor: not-allowed;
+    }
+    .document-card-readonly:hover {
+        border-color: #0d6efd !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        transform: translateY(-2px);
+    }
+    /* Render raw HTML for richtext fields without the editor */
+    .readonly-richtext {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 12px 16px;
+        color: #475569;
+        min-height: 80px;
+    }
+</style>
+
+<h2>SR Details</h2>
+
+<p><strong>Nama Aplikasi:</strong> {{ sr_data.app_name }}</p>
+<p><strong>SR Number:</strong> {{ sr_data.sr_no }}</p>
+<p><strong>Current Status:</strong> {{ sr_data.current_status }}</p>
+<p><strong>Ticket Progress:</strong> {{ sr_data.ticket_progress }}%</p>
+<p><strong>Requester:</strong> {{ sr_data.req_id }} - {{ sr_data.requester_name }}</p>
+<p><strong>Kategori SR:</strong> {{ sr_data.ctg_name }}</p>
+<p><strong>Modul:</strong> {{ sr_data.module }}</p>
+<p><strong>Divisi:</strong> {{ sr_data.division }}</p>
+
+<div>
+    <strong>Tujuan:</strong>
+    <div>{{ sr_data.purpose | safe }}</div>
+</div>
+
+<div>
+    <strong>Detail Permohonan:</strong>
+    <div>{{ sr_data.details | safe }}</div>
+</div>
+
+<div>
+    <strong>Frequency:</strong>
+    <div>{{ sr_data.frequency | safe }}</div>
+</div>
+
+<p><strong>Values:</strong> {{ sr_data.value }}</p>
+<p><strong>Number of User:</strong> {{ sr_data.num_user }}</p>
+
+<div>
+    <strong>Keterangan Values:</strong>
+    <div>{{ sr_data.value_det | safe }}</div>
+</div>
+
+<h3>Lampiran</h3>
+{% if current_files and current_files|length > 0 %}
+    <ul>
+        {% for doc in current_files %}
+            <li>
+                <strong>{{ doc.attach_details }}</strong><br>
+                <a href="{{ doc.file_url }}" target="_blank">Lihat File PDF</a>
+                {% if doc.thumbnail_url %}
+                    <img src="{{ doc.thumbnail_url }}" alt="Thumbnail">
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Tidak ada dokumen yang dilampirkan.</p>
+{% endif %}
+
+
+<h3>Approval Action</h3>
+<form id="srApproveForm" method="POST" action="">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    
+    {% if is_gm and gm_assign_data %}
+        <fieldset>
+            <legend>Assign IT Senior Manager</legend>
+            
+            {% if not gm_assign_data.is_locked %}
+                <p>Pilih IT SM yang akan bertanggung jawab:</p>
+                <ul>
+                    {% for sm in gm_assign_data.sm_options %}
+                        <li>
+                            <input type="radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
+                            <label for="sm_{{ sm.nik }}">{{ sm.nik }} - {{ sm.nama }}</label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Assignment IT SM sudah terkunci.</p>
+                {% if gm_assign_data.current_sm %}
+                    <ul>
+                        {% for sm in gm_assign_data.current_sm %}
+                            <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endif %}
+        </fieldset>
+    {% endif %}
+
+    <label for="action-select">Select Action *</label>
+    <select name="intended_next_smk_id" id="action-select" required>
+        <option value="" disabled selected>-- Choose next step --</option>
+        {% for opt in options %}
+            <option value="{{ opt.next_smk_id }}" data-is-forward="{% if opt.next_smk_id > sr_data.smk_id %}true{% else %}false{% endif %}">
+                {{ opt.rule_detail }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <a href="{{ url_for('owh_dashboard.myWork_menu') }}">Cancel</a>
+    <button type="submit" id="submitBtn">Confirm & Submit</button>
+</form>
+
+{% if ticket_actors and ticket_actors.origins %}
+    <div class="origins-section">
+        <h4>Creators</h4>
+        <p><strong>Requester:</strong> {{ ticket_actors.origins.requester.nik }} - {{ ticket_actors.origins.requester.name }}</p>
+        <p><strong>Maker:</strong> {{ ticket_actors.origins.maker.nik }} - {{ ticket_actors.origins.maker.name }}</p>
+    </div>
+
+    <div class="approvers-section">
+        <h4>Active Approvers</h4>
+        
+        {% for role_name, users in ticket_actors.approvers.items() %}
+            <h5>{{ role_name }}:</h5>
+            <ul>
+            {% for user in users %}
+                <li>{{ user.nik }} - {{ user.name }}</li>
+            {% endfor %}
+            </ul>
+        {% endfor %}
+        
+        {% if not ticket_actors.approvers %}
+            <p><em>No active approvers found for this stage.</em></p>
+        {% endif %}
+    </div>
+{% else %}
+    <p><em>Stakeholder data is currently unavailable.</em></p>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const actionSelect = document.getElementById('action-select');
+        const smRadios = document.querySelectorAll('.sm-radio');
+
+        if (actionSelect && smRadios.length > 0) {
+            actionSelect.addEventListener('change', function() {
+                // Determine if the selected action moves the phase forward
+                const selectedOption = this.options[this.selectedIndex];
+                const isForward = selectedOption.getAttribute('data-is-forward') === 'true';
+
+                // If moving forward, require SM selection. If rejecting, don't.
+                smRadios.forEach(radio => {
+                    if (isForward) {
+                        radio.setAttribute('required', 'required');
+                    } else {
+                        radio.removeAttribute('required');
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
