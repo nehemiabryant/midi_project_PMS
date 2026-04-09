@@ -192,7 +192,10 @@ def approveSR_menu(sr_no):
     user_it_role = sr_data.get('user_it_role') 
     
     is_gm = (user_it_role == 1)
+    is_sm = (user_it_role == 3)
+
     gm_assign_data = {}
+    assignment_data = {}
     
     actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
     ticket_actors = actors_result.get('data', [])
@@ -202,6 +205,11 @@ def approveSR_menu(sr_no):
         gm_page_result = assignment_transaction.get_gm_assign_page_data_trx(sr_no, current_user)
         if gm_page_result.get('status'):
             gm_assign_data = gm_page_result.get('data', {})
+
+    if is_sm:
+        sm_page_result = assignment_transaction.get_assign_page_data_trx(sr_no, current_user)
+        if sm_page_result.get('status'):
+            assignment_data = sm_page_result.get('data', {})
 
     current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
 
@@ -233,6 +241,22 @@ def approveSR_menu(sr_no):
             else:
                 flash(f"Approval failed: {process_result.get('msg')}", "error")
                 return redirect(request.url)
+            
+        elif is_sm and next_smk_id > current_smk_id:
+            process_result = assignment_transaction.process_sm_approval_trx(
+                sr_no=sr_no,
+                nik=current_user,
+                form_data=request.form,
+                current_smk_id=current_smk_id,
+                next_smk_id=next_smk_id
+            )
+            
+            if process_result.get('status'):
+                flash("Tim PIC berhasil di-assign dan SR disetujui!", "success")
+                return redirect(url_for('owh_dashboard.dashboard_menu'))
+            else:
+                flash(f"Gagal Assign PIC: {process_result.get('msg')}", "error")
+                return redirect(request.url)
                 
         # ==========================================
         # STANDARD PHASE ADVANCEMENT (For everyone else, or GM Rejecting)
@@ -262,6 +286,8 @@ def approveSR_menu(sr_no):
                            current_files=current_files_dict,
                            is_gm=is_gm,
                            gm_assign_data=gm_assign_data,
+                           is_sm=is_sm,
+                           assignment_data=assignment_data,
                            ticket_actors=ticket_actors)
 
 @sr_bp.route('/project_details/<string:phase_name>', defaults={'sr_no': None}, methods=['GET'])

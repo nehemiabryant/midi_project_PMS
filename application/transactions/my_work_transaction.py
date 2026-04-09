@@ -82,18 +82,10 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
         return {'status': False, 'data': [], 'total': 0, 'msg': str(e)}
 
 
-def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
+def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
     """
-    Ambil semua data untuk halaman detail SR.
+    Ambil semua data untuk halaman detail SR (Hanya untuk View & PIC Task).
     Validasi: user harus ter-assign pada SR ini.
-
-    Return data:
-    - sr_detail: info lengkap SR
-    - user_roles: role user pada SR ini (bisa multiple)
-    - all_assignments: semua assignment pada SR (grouped by role)
-    - is_sm: apakah user adalah IT SM pada SR ini
-    - can_assign: apakah user bisa assign PIC (SM + status 105)
-    - assignment_data: data untuk form assignment (jika is_sm)
     """
     try:
         # 1. Cek apakah user ter-assign pada SR ini
@@ -108,11 +100,11 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
 
-        # 3. Ambil semua assignment pada SR
+        # 3. Ambil semua assignment pada SR (Hanya untuk View)
         assignments_result = my_work_model.get_all_sr_assignments_model(sr_no)
         all_assignments_raw = parse_rows(assignments_result)
 
-        # Group assignments by role
+        # Group assignments by role for display
         assignments_by_role = {}
         for a in all_assignments_raw:
             role_detail = a.get('it_role_detail', 'Unknown')
@@ -120,42 +112,16 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 assignments_by_role[role_detail] = []
             assignments_by_role[role_detail].append(a)
 
-        # 4. Ambil PIC role IDs dari DB (digunakan di beberapa tempat di bawah)
+        # 4. Ambil PIC role IDs dari DB
         picroles_result = assignment_model.get_assignable_picroles_model()
         picroles = parse_rows(picroles_result)
         assignable_role_ids = {r['it_role_id'] for r in picroles}
 
-        # 5. Tentukan role user berdasarkan nama role (bukan hardcoded ID)
+        # 5. Tentukan role user
         is_sm = any(r['it_role_detail'] == 'IT SM' for r in user_roles)
         is_gm = any(r['it_role_detail'] == 'IT GM' for r in user_roles)
 
-        # 6. Apakah bisa assign? (SM + status masih 105 | GM + status masih 104)
-        can_assign = is_sm and sr_detail.get('smk_id') == assignment_model.STATUS_BACKLOG_SCRUM
-        can_assign_sm = is_gm and sr_detail.get('smk_id') == assignment_model.STATUS_IT_GM_REVIEW
-
-        # 7. Jika SM, siapkan data assignment (picroles + it_users)
-        assignment_data = {}
-        if is_sm:
-            users_result = assignment_model.get_it_users_model()
-            it_users = parse_rows(users_result)
-
-            # Assignment yang sudah ada (hanya PIC roles dari DB)
-            pic_assignments = [a for a in all_assignments_raw if a.get('it_role_id') in assignable_role_ids]
-
-            assignment_data = {
-                'picroles': picroles,
-                'it_users': it_users,
-                'current_assignments': pic_assignments,
-            }
-
-        # 7b. Jika GM, siapkan data assignment IT SM
-        gm_assign_data = {}
-        if is_gm:
-            gm_page = assignment_transaction.get_gm_assign_page_data_trx(sr_no, nik)
-            if gm_page.get('status'):
-                gm_assign_data = gm_page['data']
-
-        # 8. Jika PIC, ambil tasks — hanya role yang teritorinya match smk_id SR saat ini
+        # 6. Jika PIC, ambil tasks
         current_smk_id = sr_detail.get('smk_id')
         territory_map = my_work_model.get_role_territory_model()
         pic_roles = [
@@ -163,7 +129,7 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
             if r['it_role_id'] in assignable_role_ids
             and current_smk_id in territory_map.get(r['it_role_id'], [])
         ]
-        # Ambil semua tasks sekaligus (1 query), lalu group by role di Python
+        
         all_tasks_result = task_model.get_all_tasks_by_sr_model(sr_no)
         all_tasks = parse_rows(all_tasks_result)
         tasks_by_role = {}
@@ -192,10 +158,6 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
                 'assignments_by_role': assignments_by_role,
                 'is_sm': is_sm,
                 'is_gm': is_gm,
-                'can_assign': can_assign,
-                'can_assign_sm': can_assign_sm,
-                'assignment_data': assignment_data,
-                'gm_assign_data': gm_assign_data,
                 'is_pic': len(pic_roles) > 0,
                 'pic_sections': pic_sections,
             }
@@ -203,13 +165,10 @@ def get_sr_detail_trx(sr_no: str, nik: str) -> dict:
     except Exception as e:
         Log.error(f'Exception | get_sr_detail_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
-
+    
 def can_approve_sr_trx(sr_no: str, nik: str) -> dict:
     """
     Cek apakah user ini bisa approve SR ini.
-    Syarat:
-    - User harus ter-assign pada SR ini sebagai IT SM atau Atasan (Manager)
-    - Status SR harus di 102, 103, atau 104 (Review/Approved/Rejected)
     """
     try:
         result = my_work_model.can_approve_sr(sr_no, nik)

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_wtf.csrf import CSRFProtect
 
 from application.views.auth_view import auth_bp
@@ -39,38 +39,83 @@ def create_app(config_filename=None):
     # Error Handlers
     @app.errorhandler(400)
     def bad_request(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server tidak dapat memproses permintaan dari client karena terdapat kesalahan pada permintaan'}), 400
+        return render_template(
+            'page/error_page.html', 
+            error_code="400", 
+            error_title="Permintaan Tidak Valid",
+            error_message="Server tidak dapat memproses permintaan dari client karena terdapat kesalahan pada permintaan."
+        ), 400
 
     @app.errorhandler(403)
     def forbidden(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server menolak permintaan dari client karena client tidak memiliki akses yang diizinkan ke konten yang diminta'}), 403
+        return render_template(
+            'page/error_page.html', 
+            error_code="403", 
+            error_title="Akses Ditolak",
+            error_message="Server menolak permintaan dari client karena client tidak memiliki akses yang diizinkan ke konten yang diminta."
+        ), 403
 
     @app.errorhandler(404)
     def page_not_found(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server tidak dapat menemukan konten yang diminta oleh client'}), 404
+        return render_template(
+            'page/error_page.html', 
+            error_code="404", 
+            error_title="Halaman Tidak Ditemukan",
+            error_message="Server tidak dapat menemukan konten yang diminta oleh client."
+        ), 404
 
     @app.errorhandler(405)
     def method_not_allowed(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server tidak dapat memproses permintaan dari client karena metode yang digunakan tidak diizinkan'}), 405
+        return render_template(
+            'page/error_page.html', 
+            error_code="405", 
+            error_title="Metode Tidak Diizinkan",
+            error_message="Server tidak dapat memproses permintaan dari client karena metode yang digunakan tidak diizinkan."
+        ), 405
 
     @app.errorhandler(408)
     def request_timeout(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server tidak dapat memproses permintaan dari client karena waktu permintaan telah habis'}), 408
+        return render_template(
+            'page/error_page.html', 
+            error_code="408", 
+            error_title="Waktu Permintaan Habis",
+            error_message="Server tidak dapat memproses permintaan dari client karena waktu permintaan telah habis."
+        ), 408
 
     @app.errorhandler(413)
     def request_entity_too_large(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server tidak dapat memproses permintaan karena terlalu besar untuk server tangani'}), 413
+        return render_template(
+            'page/error_page.html', 
+            error_code="413", 
+            error_title="Data Terlalu Besar",
+            error_message="Server tidak dapat memproses permintaan karena terlalu besar untuk server tangani."
+        ), 413
 
     @app.errorhandler(415)
     def request_not_supported(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Tipe media tidak didukung'}), 415
+        return render_template(
+            'page/error_page.html', 
+            error_code="415", 
+            error_title="Format Tidak Didukung",
+            error_message="Tipe media tidak didukung oleh server."
+        ), 415
 
     @app.errorhandler(429)
     def request_too_many(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server menolak permintaan dari client karena terlalu banyak permintaan yang dilakukan dalam waktu yang singkat'}), 429
+        return render_template(
+            'page/error_page.html', 
+            error_code="429", 
+            error_title="Terlalu Banyak Permintaan",
+            error_message="Server menolak permintaan dari client karena terlalu banyak permintaan yang dilakukan dalam waktu yang singkat."
+        ), 429
 
     @app.errorhandler(500)
     def internal_server_error(e):
-        return jsonify({'status': 'F', 'data': [], 'msg': 'Server mengalami kesalahan saat memproses permintaan dari client'}), 500
+        return render_template(
+            'page/error_page.html', 
+            error_code="500", 
+            error_title="Kesalahan Server",
+            error_message="Server mengalami kesalahan saat memproses permintaan dari client."
+        ), 500
 
     return app

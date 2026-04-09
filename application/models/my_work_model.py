@@ -15,9 +15,6 @@ _OVERSIGHT_TERRITORY = {
     9: [101],
 }
 
-APPROVER_ROLES = (1, 2, 8)
-APPROVAL_PHASES = (102, 103, 104)
-
 def get_role_territory_model() -> dict:
     """
     Bangun mapping {it_role_id: [smk_ids]} dari dua sumber:
@@ -190,40 +187,49 @@ def get_user_role_on_sr_model(sr_no: str, nik: str) -> dict:
     finally:
         if conn: conn.close()
 
-def can_approve_sr(nik: str, sr_no: str) -> bool:
-    # Define your business constants (these could also be imported from a config file)
-
+def can_approve_sr(sr_no: str, nik: str) -> bool:
+    # Use PostgreSQL tuple comparison to enforce exact Role -> Phase pairings.
+    # This prevents Role 1 from approving Phase 102, for example.
     sql = """
         SELECT 1
         FROM sr_request r
         JOIN sr_assignments sa ON r.sr_no = sa.sr_no
         WHERE r.sr_no = %(sr_no)s
           AND sa.assigned_user = %(nik)s
-          AND sa.it_role_id IN %(approver_role_ids)s
-          AND r.smk_id IN %(approval_ids)s
+          AND (sa.it_role_id, r.smk_id) IN (
+              (1, 104),
+              (2, 103),
+              (3, 105),
+              (3, 107),
+              (8, 102)
+          )
         LIMIT 1;
     """
     
+    # We no longer need to pass the roles/phases as separate parameters 
+    # since the exact strict pairings are defined in the query logic.
     params = {
         'nik': nik,
-        'sr_no': sr_no,
-        'approver_role_ids': APPROVER_ROLES,
-        'approval_ids': APPROVAL_PHASES
+        'sr_no': sr_no
     }
 
     conn = None
     try:
         conn = DatabasePG("supabase")
+        
         if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+            Log.error(f"DB Connection Failed: {conn.status.get('msg')}")
+            return False 
             
         result = conn.selectDataHeader(sql, params)
         
-        # If the query returns any rows, the result is valid
+        # If the query returns any rows, the exact pairing was found
         return len(result.get('data', [])) > 0
         
     except Exception as e:
         Log.error(f'DB Exception | can_approve_sr | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
+        return False
+        
     finally:
-        if conn: conn.close()
+        if conn: 
+            conn.close()

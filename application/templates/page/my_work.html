@@ -56,7 +56,11 @@
                   {% if 9 in item.role_ids and item.smk_id == 101 %}
                       <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Edit</a>
                       
-                  {% elif (1 in item.role_ids or 2 in item.role_ids or 8 in item.role_ids) and item.smk_id in [102, 103, 104] %}
+                  {% elif (1 in item.role_ids and item.smk_id == 104) or 
+                          (2 in item.role_ids and item.smk_id == 103) or 
+                          (3 in item.role_ids and item.smk_id == 105) or 
+                          (3 in item.role_ids and item.smk_id == 107) or 
+                          (8 in item.role_ids and item.smk_id == 102) %}
                       <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
                       
                   {% else %}
