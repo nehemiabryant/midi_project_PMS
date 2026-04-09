@@ -94,7 +94,7 @@
                 <ul>
                     {% for sm in gm_assign_data.sm_options %}
                         <li>
-                            <input type="radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
+                            <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
                             <label for="sm_{{ sm.nik }}">{{ sm.nik }} - {{ sm.nama }}</label>
                         </li>
                     {% endfor %}
@@ -109,6 +109,45 @@
                     </ul>
                 {% endif %}
             {% endif %}
+        </fieldset>
+    {% endif %}
+
+    {% if is_sm and assignment_data %}
+        <fieldset>
+            <legend>Assign PIC Tim</legend>
+            <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
+            
+            <table id="assign-table" style="width: 100%; margin-bottom: 10px; text-align: left;">
+                <thead>
+                    <tr>
+                        <th style="width: 45%;">User</th>
+                        <th style="width: 45%;">Role</th>
+                        <th style="width: 10%;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <select name="assign_user[]" class="sm-dynamic-input" style="width: 95%;">
+                                <option value="">-- Pilih User --</option>
+                                {% for u in assignment_data.it_users %}
+                                    <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <select name="assign_role[]" class="sm-dynamic-input" style="width: 95%;">
+                                <option value="">-- Pilih Role --</option>
+                                {% for role in assignment_data.picroles %}
+                                    <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
         </fieldset>
     {% endif %}
 
@@ -154,25 +193,53 @@
 {% endif %}
 
 <script>
+    // Handles adding new rows for the SM assignment table
+    function addAssignRow() {
+        const tbody = document.querySelector('#assign-table tbody');
+        if (!tbody) return; // Guard clause if table doesn't exist
+        
+        const firstRow = tbody.querySelector('tr');
+        const newRow = firstRow.cloneNode(true);
+        
+        // Reset inputs
+        newRow.querySelectorAll('select').forEach(s => s.value = '');
+        
+        // Add delete button
+        const lastTd = newRow.querySelector('td:last-child');
+        lastTd.innerHTML = `<button type="button" onclick="this.closest('tr').remove()">Hapus</button>`;
+        
+        tbody.appendChild(newRow);
+        
+        // Re-run validation logic for new row if a forward action is already selected
+        applyRequiredLogic();
+    }
+
+    // Handles the "required" validation for both GM and SM fields
+    function applyRequiredLogic() {
+        const actionSelect = document.getElementById('action-select');
+        if (!actionSelect) return;
+
+        const selectedOption = actionSelect.options[actionSelect.selectedIndex];
+        if (!selectedOption || selectedOption.value === "") return;
+
+        const isForward = selectedOption.getAttribute('data-is-forward') === 'true';
+
+        // Target GM Radio Buttons
+        document.querySelectorAll('.sm-radio').forEach(radio => {
+            isForward ? radio.setAttribute('required', 'required') : radio.removeAttribute('required');
+        });
+
+        // Target SM Dynamic Selects
+        document.querySelectorAll('.sm-dynamic-input').forEach(select => {
+            isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
+        });
+    }
+
+    // Initialize the event listener
     document.addEventListener('DOMContentLoaded', function() {
         const actionSelect = document.getElementById('action-select');
-        const smRadios = document.querySelectorAll('.sm-radio');
-
-        if (actionSelect && smRadios.length > 0) {
-            actionSelect.addEventListener('change', function() {
-                // Determine if the selected action moves the phase forward
-                const selectedOption = this.options[this.selectedIndex];
-                const isForward = selectedOption.getAttribute('data-is-forward') === 'true';
-
-                // If moving forward, require SM selection. If rejecting, don't.
-                smRadios.forEach(radio => {
-                    if (isForward) {
-                        radio.setAttribute('required', 'required');
-                    } else {
-                        radio.removeAttribute('required');
-                    }
-                });
-            });
+        if (actionSelect) {
+            actionSelect.addEventListener('change', applyRequiredLogic);
         }
     });
 </script>
