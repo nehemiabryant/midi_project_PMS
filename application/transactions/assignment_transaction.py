@@ -62,7 +62,6 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         Log.error(f'Exception | get_assign_page_data_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-
 def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
     """
     Submit assignment PIC pada SR (Tanpa advance phase).

@@ -115,39 +115,54 @@
     {% if is_sm and assignment_data %}
         <fieldset>
             <legend>Assign PIC Tim</legend>
-            <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
             
-            <table id="assign-table" style="width: 100%; margin-bottom: 10px; text-align: left;">
-                <thead>
-                    <tr>
-                        <th style="width: 45%;">User</th>
-                        <th style="width: 45%;">Role</th>
-                        <th style="width: 10%;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <select name="assign_user[]" class="sm-dynamic-input" style="width: 95%;">
-                                <option value="">-- Pilih User --</option>
-                                {% for u in assignment_data.it_users %}
-                                    <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="assign_role[]" class="sm-dynamic-input" style="width: 95%;">
-                                <option value="">-- Pilih Role --</option>
-                                {% for role in assignment_data.picroles %}
-                                    <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-            <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
+            {% if not assignment_data.is_locked %}
+                <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
+                
+                <table id="assign-table" style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">User</th>
+                            <th style="width: 45%;">Role</th>
+                            <th style="width: 10%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <select name="assign_user[]" class="sm-dynamic-input" style="width: 95%;">
+                                    <option value="">-- Pilih User --</option>
+                                    {% for u in assignment_data.it_users %}
+                                        <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="assign_role[]" class="sm-dynamic-input" style="width: 95%;">
+                                    <option value="">-- Pilih Role --</option>
+                                    {% for role in assignment_data.picroles %}
+                                        <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
+            
+            {% else %}
+                <p>Assignment PIC Tim sudah terkunci.</p>
+                {% if assignment_data.current_assignments %}
+                    <ul>
+                        {% for pic in assignment_data.current_assignments %}
+                            <li><strong>{{ pic.it_role_detail }}</strong>: {{ pic.assigned_user }} - {{ pic.nama }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p><em>Belum ada PIC yang di-assign.</em></p>
+                {% endif %}
+            {% endif %}
         </fieldset>
     {% endif %}
 

@@ -614,12 +614,9 @@ def get_sr_approvers(sr_no: str, shared_conn=None) -> dict:
             ka.nama AS approver_name
         FROM public.sr_assignments sa
         JOIN public.karyawan_all ka ON sa.assigned_user = ka.nik
-        JOIN public.sr_request sr ON sa.sr_no = sr.sr_no
-        JOIN public.sr_ms_ket smk ON sr.smk_id = smk.smk_id
-        JOIN public.sr_ms_it smi ON sa.it_role_id = smi.it_role_id  -- NEW JOIN
+        JOIN public.sr_ms_it smi ON sa.it_role_id = smi.it_role_id
         WHERE sa.sr_no = %(sr_no)s 
-          AND smk.workflow = 'approval'
-          AND sa.it_role_id IN (1, 2, 3, 8) -- Keep this if you still want to whitelist roles
+          AND sa.it_role_id IN (1, 2, 3, 8) 
         ORDER BY array_position(ARRAY[8, 2, 1, 3], sa.it_role_id);
     """
     if shared_conn:
