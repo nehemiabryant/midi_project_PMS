@@ -93,13 +93,6 @@
                     <label class="form-label">Frequency <span style="color: #ef4444;">*</span></label>
                     <textarea class="form-input richtext" id="frequency" name="frequency" required>{{ sr_data.frequency if sr_data else '' }}</textarea>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Values</label>
-                    <input type="text" class="form-input" id="values" name="values" value="{{ sr_data.value if sr_data else '' }}" />
-                </div>
-
-                <div class="form-group">
                     <label class="form-label">Number of User</label>
                     <input type="text" class="form-input" id="number_of_user" name="number_of_user" value="{{ sr_data.num_user if sr_data else '' }}" />
                 </div>
@@ -112,8 +105,81 @@
                 <div class="form-group full-width" style="margin-top: 10px;">
                     <label class="form-label" style="font-size: 15px;">Lampiran</label>
                     <div class="lampiran-grid">
+                        
+                        <div class="lampiran-col">
+                            <div class="lampiran-title">Alur Proses</div>
+                            <label class="drop-zone" data-input="attachment_ctg_1">
+                                <input type="file" name="attachment_ctg_1" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 1 not in sr_data.attachments%}required{% endif %}>
+                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
+                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
+                                {% if sr_data %}
+                                    <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
+                                {% endif %}
+                                <span class="drop-zone-filename"></span>
+                            </label>
+                            {% if sr_data and sr_data.attachments and 1 in sr_data.attachments %}
+                                <div class="lampiran-current">
+                                    <span>File Saat Ini:</span>
+                                    <a href="{{ sr_data.attachments[1] }}" target="_blank">📥 View PDF</a>
+                                </div>
+                            {% endif %}
+                        </div>
 
-                        {% for doc in required_docs %}
+                        <div class="lampiran-col">
+                            <div class="lampiran-title">Desain Aplikasi</div>
+                            <label class="drop-zone" data-input="attachment_ctg_2">
+                                <input type="file" name="attachment_ctg_2" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 2 not in sr_data.attachments%}required{% endif %}/>
+                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
+                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
+                                {% if sr_data %}
+                                    <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
+                                {% endif %}
+                                <span class="drop-zone-filename"></span>
+                            </label>
+                            {% if sr_data and sr_data.attachments and 2 in sr_data.attachments %}
+                                <div class="lampiran-current">
+                                    <span>File Saat Ini:</span>
+                                    <a href="{{ sr_data.attachments[2] }}" target="_blank">📥 View PDF</a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="lampiran-col">
+                            <div class="lampiran-title">Report</div>
+                            <label class="drop-zone" data-input="attachment_ctg_3">
+                                <input type="file" name="attachment_ctg_3" accept=".pdf" hidden {%if not sr_data or not sr_data.attachments or 3 not in sr_data.attachments%}required{% endif %}/>
+                                <span class="drop-zone-text">Pilih file atau drag kesini</span>
+                                <span class="drop-zone-hint">PDF, maks 10 mb</span>
+                                {% if sr_data %}
+                                    <span class="drop-zone-hint" style="color: #10b981;">(Kosongkan jika tidak diubah)</span>
+                                {% endif %}
+                                <span class="drop-zone-filename"></span>
+                            </label>
+                            {% if sr_data and sr_data.attachments and 3 in sr_data.attachments %}
+                                <div class="lampiran-current">
+                                    <span>File Saat Ini:</span>
+                                    <a href="{{ sr_data.attachments[3] }}" target="_blank">📥 View PDF</a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8; font-weight: 400; display: block; margin-top: 10px;">*File harus berupa PDF</span>
+                </div>
+
+				<div class="form-row">
+					<div class="form-label">Number of User</div>
+					<div class="form-field">
+						<input type="text" class="form-input" id="number_of_user" name="number_of_user" value="{{ sr_data.num_user if sr_data else '' }}" required />
+					</div>
+				</div>
+
+				<div class="form-row form-row--lampiran">
+					<div class="form-label">Lampiran</div>
+					<div class="form-field">
+						<div class="lampiran-grid">
+							
+							{% for doc in required_docs %}
 								<div class="lampiran-col">
 									<div class="lampiran-title">{{ doc.attach_details }}</div>
 									

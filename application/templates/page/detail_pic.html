@@ -1,163 +1,189 @@
 {% extends "base.html" %}
+
 {% block title %}Detail Project - {{ sr_detail.sr_no }}{% endblock %}
+
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/detail_pic.css') }}" />
 
-<a href="{{ url_for('owh_dashboard.myWork_menu') }}">&larr; Kembali ke My Work</a>
-
-<!-- Informasi Project -->
-<div>
-    <h3>Informasi Project</h3>
-    <table>
-        <tr><td><strong>No SR</strong></td><td>{{ sr_detail.sr_no }}</td></tr>
-        <tr><td><strong>Nama Aplikasi</strong></td><td>{{ sr_detail.name }}</td></tr>
-        <tr><td><strong>Modul</strong></td><td>{{ sr_detail.module }}</td></tr>
-        <tr><td><strong>Status</strong></td><td>{{ sr_detail.smk_ket }}</td></tr>
-        <tr><td><strong>Created</strong></td><td>{{ sr_detail.created_at }}</td></tr>
-        <tr><td><strong>Role Anda</strong></td><td>{% for sec in pic_sections %}{{ sec.it_role_detail }}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
-    </table>
-</div>
-
-{% if dropdown_options %}
-<div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-    <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 700; color: #374151;">Lanjutkan / Oper SR</h4>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <select id="workflow-select" style="flex: 1; min-width: 220px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; background: white;">
-            <option value="" disabled selected>-- Pilih Aksi --</option>
-            {% for opt in dropdown_options %}
-                <option
-                    value="{{ loop.index0 }}"
-                    data-action-type="{{ opt.action_type }}"
-                    data-next-smk-id="{{ opt.next_smk_id or '' }}"
-                    data-target-assign-id="{{ opt.target_assign_id or '' }}"
-                    data-current-smk-id="{{ sr_detail.smk_id }}">
-                    {{ opt.rule_detail }}
-                </option>
-            {% endfor %}
-        </select>
-        <button type="button" onclick="submitWorkflowAction()" style="padding: 8px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-            Jalankan
-        </button>
+<div class="page-content">
+    
+    <div class="page-header">
+        <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn-back">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Kembali ke My Work
+        </a>
+        <h2 class="page-title">Detail Project <span class="badge-sr">{{ sr_detail.sr_no }}</span></h2>
     </div>
-    <div id="workflow-msg" style="margin-top: 8px; font-size: 0.85rem; display: none;"></div>
-</div>
-{% endif %}
 
-<form method="POST" action="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=sr_detail.sr_no) }}" enctype="multipart/form-data">
-    
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <input type="hidden" name="smk_id" value="{{ sr_detail.smk_id }}">
-
-    <div class="form-group full-width" style="margin-top: 10px;">
-        <label class="form-label" style="font-size: 15px;">Lampiran</label>
-        
-        <div class="lampiran-grid">
-            {% for doc in required_docs %}
-                <div class="lampiran-col">
-                    <div class="lampiran-title">{{ doc.attach_details }}</div>
-                    
-                    <label class="drop-zone" data-input="dynamic_doc_{{ doc.attach_ctg }}">
-                        <input type="file" name="dynamic_doc_{{ doc.attach_ctg }}" accept=".pdf" hidden 
-                            {% if doc.attach_ctg not in current_files %}required{% endif %}>
-                        
-                        <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        <span class="drop-zone-text">Klik atau drag file</span>
-                        <span class="drop-zone-hint">PDF, maks 10MB</span>
-                        <span class="drop-zone-filename"></span>
-                    </label>
-
-                    {% if doc.attach_ctg in current_files %}
-                        {% set existing_file = current_files[doc.attach_ctg] %}
-                        <a href="{{ existing_file.file_url }}" target="_blank" class="document-card" style="margin-top: 15px; display: flex; flex-direction: column; text-decoration: none; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; transition: all 0.2s ease-in-out; background: #fff;">
-                            <div class="thumbnail-container" style="height: 120px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #dee2e6; overflow: hidden;">
-                                {% if existing_file.thumbnail_url %}
-                                    <img src="{{ existing_file.thumbnail_url }}" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
-                                {% else %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <polyline points="14 2 14 8 20 8"></polyline>
-                                    </svg>
-                                {% endif %}
-                            </div>
-                            <div class="details-container" style="padding: 8px; text-align: center;">
-                                <span style="font-size: 0.8rem; color: #0d6efd; font-weight: 600;">Lihat PDF Saat Ini ↗</span>
-                            </div>
-                        </a>
+    <div class="detail-card">
+        <h3 class="section-title">Informasi Project</h3>
+        <div class="info-grid">
+            <div class="info-group">
+                <span class="info-label">Nama Aplikasi</span>
+                <span class="info-value">{{ sr_detail.name }}</span>
+            </div>
+            <div class="info-group">
+                <span class="info-label">Modul</span>
+                <span class="info-value">{{ sr_detail.module }}</span>
+            </div>
+            <div class="info-group">
+                <span class="info-label">Status</span>
+                <span class="info-value" style="color: #2563eb; background: #eff6ff; border-color: #bfdbfe; display: inline-block; padding: 4px 12px; border-radius: 6px; width: fit-content; border: 1px solid;">{{ sr_detail.smk_ket }}</span>
+            </div>
+            <div class="info-group">
+                <span class="info-label">Created At</span>
+                <span class="info-value">{{ sr_detail.created_at }}</span>
+            </div>
+            <div class="info-group full-width">
+                <span class="info-label">Role Anda</span>
+                <div class="role-badges" style="margin-top: 6px;">
+                    {% if pic_sections %}
+                        {% for sec in pic_sections %}
+                            <span class="badge-role">{{ sec.it_role_detail }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="font-size: 14px; color: #94a3b8;">-</span>
                     {% endif %}
                 </div>
-            {% endfor %}
-            
-            <span style="font-size: 11px; color: #94a3b8; font-weight: 400; display: block; margin-top: 10px; grid-column: 1 / -1;">*File harus berupa PDF</span>
+            </div>
         </div>
     </div>
 
-    <div class="submit-container" style="margin-top: 20px; text-align: right;">
-        <button type="submit" style="padding: 8px 24px; background-color: #0d6efd; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Upload Lampiran</button>
+    {% if dropdown_options %}
+    <div class="detail-card" style="background: #f8fafc;">
+        <h3 class="section-title" style="border-bottom: none; margin-bottom: 12px; padding-bottom: 0;">Lanjutkan / Oper SR</h3>
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <select id="workflow-select" class="form-select-modern" style="max-width: 320px;">
+                <option value="" disabled selected>-- Pilih Aksi --</option>
+                {% for opt in dropdown_options %}
+                    <option
+                        value="{{ loop.index0 }}"
+                        data-action-type="{{ opt.action_type }}"
+                        data-next-smk-id="{{ opt.next_smk_id or '' }}"
+                        data-target-assign-id="{{ opt.target_assign_id or '' }}"
+                        data-current-smk-id="{{ sr_detail.smk_id }}">
+                        {{ opt.rule_detail }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="button" onclick="submitWorkflowAction()" class="btn-submit" style="margin-top: 0;">
+                Jalankan
+            </button>
+        </div>
+        <div id="workflow-msg" style="margin-top: 12px; font-size: 14px; font-weight: 500; display: none;"></div>
     </div>
-</form>
+    {% endif %}
 
-<!-- Task List per Role -->
-{% for section in pic_sections %}
-<div>
-    <h3>Task List — {{ section.it_role_detail }} ({{ section.tasks|length }})</h3>
+    <div class="detail-card">
+        <h3 class="section-title">Lampiran Dokumen</h3>
+        <form method="POST" action="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=sr_detail.sr_no) }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="smk_id" value="{{ sr_detail.smk_id }}">
 
-    <button type="button" onclick="showAddTaskForm('{{ section.it_role_id }}')">+ Tambah Task</button>
+            <div class="lampiran-grid">
+                {% for doc in required_docs %}
+                    <div class="lampiran-col">
+                        <div class="lampiran-title" style="margin-bottom: 8px;">{{ doc.attach_details }}</div>
+                        
+                        <label class="drop-zone" data-input="dynamic_doc_{{ doc.attach_ctg }}" style="min-height: 100px;">
+                            <input type="file" name="dynamic_doc_{{ doc.attach_ctg }}" accept=".pdf" hidden {% if doc.attach_ctg not in current_files %}required{% endif %}>
+                            <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span class="drop-zone-text" style="font-size: 12px;">Klik atau drag file</span>
+                            <span class="drop-zone-hint">PDF, maks 10MB</span>
+                            <span class="drop-zone-filename"></span>
+                        </label>
 
-    <!-- Form Tambah Task -->
-    <div id="add-task-form-{{ section.it_role_id }}" style="display:none;">
-        <input type="text" id="new-task-detail-{{ section.it_role_id }}" placeholder="Detail task...">
-        <input type="date" id="new-task-target-{{ section.it_role_id }}">
-        <button type="button" onclick="createTask('{{ section.it_role_id }}')">Simpan</button>
-        <button type="button" onclick="hideAddTaskForm('{{ section.it_role_id }}')">Batal</button>
+                        {% if doc.attach_ctg in current_files %}
+                            {% set existing_file = current_files[doc.attach_ctg] %}
+                            <a href="{{ existing_file.file_url }}" target="_blank" class="document-card" style="margin-top: 10px; display: flex; flex-direction: column; text-decoration: none; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; transition: all 0.2s ease-in-out; background: #fff;">
+                                <div class="thumbnail-container" style="height: 100px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #dee2e6; overflow: hidden;">
+                                    {% if existing_file.thumbnail_url %}
+                                        <img src="{{ existing_file.thumbnail_url }}" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
+                                    {% else %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    {% endif %}
+                                </div>
+                                <div class="details-container" style="padding: 8px; text-align: center;">
+                                    <span style="font-size: 0.8rem; color: #0d6efd; font-weight: 600;">Lihat PDF Saat Ini ↗</span>
+                                </div>
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 400; margin-top: 16px;">*File harus berupa PDF</div>
+
+            <div style="margin-top: 24px; text-align: right; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <button type="submit" class="btn-submit" style="margin: 0; border: none; cursor: pointer;">Upload Lampiran</button>
+            </div>
+        </form>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Nama Task</th>
-                <th>Target</th>
-                <th>Realisasi</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if section.tasks %}
-            {% for task in section.tasks %}
-            <tr class="task-row" data-task-id="{{ task.task_id }}">
-                <td>{{ loop.index }}</td>
-                <td>
-                    <span class="task-name-display">{{ task.task_detail }}</span>
-                    <input class="task-name-edit" type="text" value="{{ task.task_detail }}" style="display:none;">
-                </td>
-                <td>
-                    <span class="task-target-display">{{ task.target_date if task.target_date else '-' }}</span>
-                    <input class="task-target-edit" type="date" value="{{ task.target_date if task.target_date else '' }}" style="display:none;">
-                </td>
-                <td>
-                    <span class="task-actual-display">{{ task.actual_date if task.actual_date else '-' }}</span>
-                    <input class="task-actual-edit" type="date" value="{{ task.actual_date if task.actual_date else '' }}" style="display:none;">
-                </td>
-                <td>
-                    <button class="btn-edit" onclick="toggleEdit(this)">Edit</button>
-                    <button class="btn-save" onclick="saveTask(this)" style="display:none;">Simpan</button>
-                    <button class="btn-cancel" onclick="cancelEdit(this)" style="display:none;">Batal</button>
-                    <button onclick="deleteTask({{ task.task_id }})">Hapus</button>
-                </td>
-            </tr>
-            {% endfor %}
-            {% else %}
-            <tr><td colspan="5">Belum ada task.</td></tr>
-            {% endif %}
-        </tbody>
-    </table>
+    {% for section in pic_sections %}
+    <div class="detail-card">
+        <h3 class="section-title">Task List — {{ section.it_role_detail }} <span class="badge-role" style="margin-left: 12px; background: #e0e7ff; color: #3730a3;">{{ section.tasks|length }} Task</span></h3>
+
+        <button type="button" class="btn-action btn-add" onclick="showAddTaskForm('{{ section.it_role_id }}')" style="margin-bottom: 16px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Tambah Task
+        </button>
+
+        <div id="add-task-form-{{ section.it_role_id }}" style="display:none; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <input type="text" class="form-select-modern" id="new-task-detail-{{ section.it_role_id }}" placeholder="Detail task..." style="flex: 2; min-width: 200px;">
+                <input type="date" class="form-select-modern" id="new-task-target-{{ section.it_role_id }}" style="flex: 1; min-width: 150px;">
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-action" style="background: #10b981; color: white;" onclick="createTask('{{ section.it_role_id }}')">Simpan</button>
+                    <button type="button" class="btn-action" style="background: #e2e8f0; color: #475569;" onclick="hideAddTaskForm('{{ section.it_role_id }}')">Batal</button>
+                </div>
+            </div>
+        </div>
+
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 35%;">Nama Task</th>
+                    <th style="width: 15%;">Target</th>
+                    <th style="width: 15%;">Realisasi</th>
+                    <th style="width: 30%; text-align: center;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if section.tasks %}
+                {% for task in section.tasks %}
+                <tr class="task-row" data-task-id="{{ task.task_id }}">
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <span class="task-name-display" style="font-weight: 600;">{{ task.task_detail }}</span>
+                        <input class="form-select-modern task-name-edit" type="text" value="{{ task.task_detail }}" style="display:none; padding: 6px 10px;">
+                    </td>
+                    <td>
+                        <span class="task-target-display">{{ task.target_date if task.target_date else '-' }}</span>
+                        <input class="form-select-modern task-target-edit" type="date" value="{{ task.target_date if task.target_date else '' }}" style="display:none; padding: 6px 10px;">
+                    </td>
+                    <td>
+                        <span class="task-actual-display">{{ task.actual_date if task.actual_date else '-' }}</span>
+                        <input class="form-select-modern task-actual-edit" type="date" value="{{ task.actual_date if task.actual_date else '' }}" style="display:none; padding: 6px 10px;">
+                    </td>
+                    <td style="text-align: center; display: flex; justify-content: center; gap: 6px; align-items: center;">
+                        <button class="btn-action" style="background: #eef2ff; color: #3b82f6;" onclick="toggleEdit(this)">Edit</button>
+                        <button class="btn-action" style="background: #10b981; color: white; display:none;" onclick="saveTask(this)">Simpan</button>
+                        <button class="btn-action" style="background: #f1f5f9; color: #475569; display:none;" onclick="cancelEdit(this)">Batal</button>
+                        <button class="btn-action btn-remove" onclick="deleteTask({{ task.task_id }})">Hapus</button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr><td colspan="5" style="text-align: center; color: #94a3b8; font-style: italic;">Belum ada task.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
 </div>
-{% endfor %}
-
 {% endblock %}
 
 {% block scripts %}
@@ -229,17 +255,19 @@ function hideAddTaskForm(roleId) {
     document.getElementById('add-task-form-' + roleId).style.display = 'none';
     document.getElementById('new-task-detail-' + roleId).value = '';
     document.getElementById('new-task-target-' + roleId).value = '';
+    document.getElementById('new-task-actual-' + roleId).value = '';
 }
 
 function createTask(roleId) {
     const detail = document.getElementById('new-task-detail-' + roleId).value.trim();
     const target = document.getElementById('new-task-target-' + roleId).value;
+    const actual = document.getElementById('new-task-actual-' + roleId).value;
     if (!detail) { alert('Task detail tidak boleh kosong.'); return; }
 
     fetch('/task/create/' + SR_NO, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: null, it_role_id: parseInt(roleId) })
+        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: actual || null, it_role_id: parseInt(roleId) })
     })
     .then(r => r.json())
     .then(data => {
