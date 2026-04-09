@@ -34,7 +34,45 @@ a {
   color: inherit;
 }
 
-/* ── Flash Toast Notifications ── */
+/* ========================================================= */
+/* LAYOUT KONTEN UTAMA (Dinamis Mengikuti Sidebar)           */
+/* ========================================================= */
+
+.main-wrapper {
+  margin-left: var(--sidebar-width); /* Mengambil 260px dari root */
+  transition: margin-left 0.3s ease; /* Transisi mulus menyamai sidebar */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+}
+
+.content {
+  flex: 1;
+  padding: 24px; /* Memberikan jarak nyaman di sekeliling konten */
+}
+
+/* --- Saat Sidebar Mengecil (Collapsed) --- */
+.sidebar.collapsed ~ .main-wrapper {
+  margin-left: 70px; /* Sisakan ruang hanya untuk icon sidebar */
+}
+
+/* --- Responsif untuk layar HP/Tablet --- */
+@media (max-width: 768px) {
+  .main-wrapper,
+  .sidebar.collapsed ~ .main-wrapper {
+    margin-left: 0; /* Di HP, konten memenuhi layar penuh */
+  }
+  
+  .content {
+    padding: 16px; /* Padding sedikit dikecilkan untuk HP */
+  }
+}
+
+
+/* ========================================================= */
+/* FLASH TOAST NOTIFICATIONS                                 */
+/* ========================================================= */
 #flash-toast-wrapper {
   position: fixed;
   top: 20px;

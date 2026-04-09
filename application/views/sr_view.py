@@ -1,7 +1,8 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
-from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction
+from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
 from ..helpers.decorators import login_required
+import urllib.parse
 
 Log = Logger()
 
@@ -192,7 +193,10 @@ def approveSR_menu(sr_no):
     user_it_role = sr_data.get('user_it_role') 
     
     is_gm = (user_it_role == 1)
+    is_sm = (user_it_role == 3)
+
     gm_assign_data = {}
+    assignment_data = {}
     
     actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
     ticket_actors = actors_result.get('data', [])
@@ -202,6 +206,11 @@ def approveSR_menu(sr_no):
         gm_page_result = assignment_transaction.get_gm_assign_page_data_trx(sr_no, current_user)
         if gm_page_result.get('status'):
             gm_assign_data = gm_page_result.get('data', {})
+
+    if is_sm:
+        sm_page_result = assignment_transaction.get_assign_page_data_trx(sr_no, current_user)
+        if sm_page_result.get('status'):
+            assignment_data = sm_page_result.get('data', {})
 
     current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
 
@@ -233,6 +242,22 @@ def approveSR_menu(sr_no):
             else:
                 flash(f"Approval failed: {process_result.get('msg')}", "error")
                 return redirect(request.url)
+            
+        elif is_sm and next_smk_id > current_smk_id:
+            process_result = assignment_transaction.process_sm_approval_trx(
+                sr_no=sr_no,
+                nik=current_user,
+                form_data=request.form,
+                current_smk_id=current_smk_id,
+                next_smk_id=next_smk_id
+            )
+            
+            if process_result.get('status'):
+                flash("Tim PIC berhasil di-assign dan SR disetujui!", "success")
+                return redirect(url_for('owh_dashboard.dashboard_menu'))
+            else:
+                flash(f"Gagal Assign PIC: {process_result.get('msg')}", "error")
+                return redirect(request.url)
                 
         # ==========================================
         # STANDARD PHASE ADVANCEMENT (For everyone else, or GM Rejecting)
@@ -262,6 +287,8 @@ def approveSR_menu(sr_no):
                            current_files=current_files_dict,
                            is_gm=is_gm,
                            gm_assign_data=gm_assign_data,
+                           is_sm=is_sm,
+                           assignment_data=assignment_data,
                            ticket_actors=ticket_actors)
 
 @sr_bp.route('/project_details/<string:phase_name>', defaults={'sr_no': None}, methods=['GET'])
@@ -301,16 +328,26 @@ def project_details_design_menu(sr_no):
                            role=session.get('role'), 
                            active_menu='project_details',
                            sr_no=sr_no)
-
 @sr_bp.route('/api/get_sr_detail/<path:sr_no>', methods=['GET'])
 @login_required
 def api_get_sr_detail(sr_no):
-    sr_data = sr_transaction.get_sr_detail_trx(sr_no)
+    # 1. Ini akan mengubah %2F kembali menjadi garis miring (/)
+    clean_sr_no = urllib.parse.unquote(sr_no).strip()
     
-    if not sr_data:
-        flash("Invalid or corrupted link.", "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
+    # 2. PASTIKAN SEMUA MENGGUNAKAN clean_sr_no
+    sr_data = sr_transaction.get_sr_detail_trx(clean_sr_no)
+    current_files_dict = attachment_transaction.get_attachments_for_view(clean_sr_no)
     
-    current_files_dict = attachment_transaction.get_attachments_for_view(sr_no)
+    task_result = task_transaction.get_timeline_trx(clean_sr_no)
+    tasks = task_result.get('data', []) if isinstance(task_result, dict) else []
 
-    return render_template('/partials/_sr_detail_content.html', sr=sr_data, current_files_dict=current_files_dict)
+    actual_date_result = srlogs_transaction.get_phase_logs_trx(clean_sr_no)
+    actual_dates = actual_date_result.get('data', []) if isinstance(actual_date_result, dict) else []
+
+    return render_template(
+        '/partials/_sr_detail_content.html', 
+        sr=sr_data, 
+        current_files_dict=current_files_dict,
+        tasks=tasks, 
+        actual_dates=actual_dates 
+    )

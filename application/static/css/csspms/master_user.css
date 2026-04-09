@@ -23,7 +23,6 @@
 #userTable{
     width: 100%;
     border-collapse: collapse;
-
     background: white;
     table-layout: fixed;
 }
@@ -62,73 +61,105 @@
 
 #userTable th:nth-child(3),
 #userTable td:nth-child(3){
-    width: 40%;
+    width: 35%; /* Sedikit dikurangi agar tombol muat */
 }
 
 #userTable th:nth-child(4),
 #userTable td:nth-child(4){
-    width: 20%;
+    width: 14%;
 }
 
 /* Kolom Aksi */
 #userTable th:nth-child(5),
 #userTable td:nth-child(5){
-    width: 14%;
+    width: 25%; /* Diperlebar agar 3 tombol bisa sejajar */
     text-align: center;
 }
 
-/* tombol aksi rata tengah */
-#userTable td:nth-child(10){
+/* ========================================= */
+/* TOMBOL AKSI TABEL (Modern Style)          */
+/* ========================================= */
+
+/* Container pembungkus tombol agar sejajar dan berjarak rapi */
+.action-buttons-group {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
-
-/* EDIT */
-.btn-edit{
-    background:#17a2b8;
-    color:white;
-    border:none;
-    padding:6px 12px;
-    border-radius:5px;
-    cursor:pointer;
-    margin-right:5px;
+/* Pengaturan dasar untuk semua tombol aksi */
+.btn-edit, 
+.btn-permissions,
+.btn-delete {
+    padding: 8px 16px;
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.btn-edit:hover{
-    background:#138496;
+/* --- TOMBOL EDIT --- */
+.btn-edit {
+    background-color: #eef2ff;
+    color: #3b82f6;
 }
 
-/* pop up edit */
-.modal-overlay{
+.btn-edit:hover {
+    background-color: #e0e7ff;
+    color: #2563eb;
+}
+
+/* --- TOMBOL PERMISSIONS --- */
+.btn-permissions {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+.btn-permissions:hover {
+    background-color: #f8fafc;
+}
+
+/* --- TOMBOL HAPUS --- */
+.btn-delete {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+.btn-delete:hover {
+    background-color: #e2e8f0;
+}
+
+/* ========================================= */
+/* MODAL POP UP (EDIT, ASSIGN, HAPUS)        */
+/* ========================================= */
+
+.modal-overlay,
+#modalAssign,
+#modalHapus {
     position: fixed;
     top:0;
     left:0;
-
     width:100%;
     height:100%;
-
     background: rgba(0,0,0,0.45);
-
     display:none;
-
     justify-content:center;
     align-items:center;
-
     z-index:999;
 }
 
-/* Modal box */
+/* Modal Box */
 .modal-content{
     background:white;
     width:420px;
     border-radius:8px;
     padding:25px;
-
     box-shadow:0 10px 30px rgba(0,0,0,0.25);
-
     animation: popupFade .2s ease;
 }
 
@@ -144,64 +175,15 @@
     }
 }
 
-/* ===== Delete Button ===== */
-.btn-delete{
-    background: #ffc107;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 13px;
-}
-
-.btn-delete:hover{
-    background: #e0a800;
-}
-
-/* ===== Modal Background ===== */
-#modalAssign,
-#modalHapus{
-    position: fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background: rgba(0,0,0,0.45);
-
-    display:none;
-    justify-content:center;
-    align-items:center;
-    z-index:999;
-}
-
-/* ===== Modal Box ===== */
-.modal-content{
-    background:white;
-    width:420px;
-    border-radius:8px;
-    padding:25px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.2);
-    animation: popupFade .2s ease;
-}
-
-@keyframes popupFade{
-    from{
-        transform:translateY(-20px);
-        opacity:0;
-    }
-    to{
-        transform:translateY(0);
-        opacity:1;
-    }
-}
-
-/* ===== Modal Title ===== */
+/* Modal Title */
 .modal-content h5{
+    margin-top: 0;
     margin-bottom:20px;
     font-size:18px;
+    font-weight: 600;
 }
 
-/* ===== Form Group ===== */
+/* ===== Form Group dalam Modal ===== */
 .form-group{
     margin-bottom:15px;
 }
@@ -210,17 +192,20 @@
     display:block;
     margin-bottom:6px;
     font-size:13px;
+    font-weight: 500;
 }
 
 .form-group input,
 .form-group select{
     width:100%;
-    padding:8px;
+    padding:8px 12px;
     border-radius:5px;
     border:1px solid #ccc;
+    box-sizing: border-box;
+    font-family: inherit;
 }
 
-/* ===== Suggestion Box ===== */
+/* ===== Suggestion Box (Pencarian NIK) ===== */
 #nikSuggestions{
     background:white;
     border:1px solid #ddd;
@@ -231,8 +216,9 @@
 }
 
 .suggestion-item{
-    padding:8px;
+    padding:8px 12px;
     cursor:pointer;
+    font-size: 13px;
 }
 
 .suggestion-item:hover{
@@ -244,28 +230,47 @@
     display:flex;
     justify-content:flex-end;
     gap:10px;
-    margin-top:20px;
+    margin-top:24px;
 }
 
 .modal-actions button{
-    padding:8px 14px;
+    padding:8px 16px;
     border:none;
     border-radius:5px;
     cursor:pointer;
+    font-weight: 500;
+    transition: 0.2s;
 }
 
 #btnBatalAssign,
-#btnBatalHapus{
-    background:#6c757d;
+#btnBatalHapus,
+.btn-cancel-modal { /* Tambahan class umum untuk batal */
+    background:#e2e8f0;
+    color:#475569;
+}
+
+#btnBatalAssign:hover,
+#btnBatalHapus:hover,
+.btn-cancel-modal:hover {
+    background:#cbd5e1;
+}
+
+#btnSimpanAssign,
+.btn-save-modal {
+    background:#3b82f6; /* Disamakan biru modern */
     color:white;
 }
 
-#btnSimpanAssign{
-    background:#28a745;
-    color:white;
+#btnSimpanAssign:hover,
+.btn-save-modal:hover {
+    background:#2563eb;
 }
 
 .modal-actions button[type="submit"]{
-    background:#dc3545;
+    background:#ef4444; /* Merah modern untuk hapus */
     color:white;
+}
+
+.modal-actions button[type="submit"]:hover{
+    background:#dc2626;
 }

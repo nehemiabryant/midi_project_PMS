@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% with header_title='Service Request Approval' %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+<style>
+/* --- WADAH UTAMA --- */
+.approval-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* --- HEADER --- */
+.approval-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.app-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 4px 0 0 0;
+}
+
+/* --- TYPOGRAPHY COMPACT --- */
+.compact-label {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.compact-value {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    display: block;
+}
+
+.badge-kategori {
+    display: inline-block;
+    background-color: #f1f5f9;
+    color: #334155;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Teks Persentase Progress */
+.progress-text-green {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #059669; /* Hijau yang solid dan modern */
+    display: block;
+}
+
+/* --- GRID 3 KOLOM --- */
+.compact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.info-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-block.full-width {
+    grid-column: 1 / -1;
+}
+
+/* --- READONLY RICH TEXT --- */
+.readonly-richtext-compact {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* --- LAMPIRAN COMPACT --- */
+.compact-attachment-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.compact-doc-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.compact-doc-item:hover {
+    border-color: #3b82f6;
+    background: #f8fafc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.doc-icon {
+    width: 36px;
+    height: 36px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.doc-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.doc-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.doc-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.doc-link {
+    font-size: 11px;
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+.empty-doc-compact {
+    font-size: 12px;
+    color: #64748b;
+    font-style: italic;
+    padding: 8px 0;
+}
+
+/* --- PANEL ACTION APPROVAL --- */
+.approval-action-panel {
+    margin-top: 32px;
+    padding: 20px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.compact-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+    background-color: #ffffff;
+    outline: none;
+    cursor: pointer;
+}
+
+.compact-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.action-buttons-group {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-compact-cancel {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.btn-compact-cancel:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.btn-compact-submit {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #3b82f6;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-compact-submit:hover {
+    background: #2563eb;
+}
+
+/* Responsif HP */
+@media (max-width: 768px) {
+    .compact-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    #srApproveForm {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .action-buttons-group {
+        justify-content: flex-end;
+    }
+}
+@media (max-width: 480px) {
+    .compact-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="page-content">
+    <div class="approval-card">
+        
+        <div class="approval-header">
+            <span class="compact-label">Nama Aplikasi</span>
+            <h2 class="app-title">{{ sr_data.name }}</h2>
+        </div>
+
+        <div class="compact-grid">
+            <div class="info-block">
+                <span class="compact-label">Requester</span>
+                <span class="compact-value">{{ sr_data.user_info.requester.nik }} - {{ sr_data.user_info.requester.name }}</span>
+            </div>
+
+            <div class="info-block">
+                <span class="compact-label">Kategori SR</span>
+                <span class="compact-value badge-kategori">
+                    {% if sr_data.ctg_id == 1 %}MSM
+                    {% elif sr_data.ctg_id == 2 %}Divisional
+                    {% elif sr_data.ctg_id == 3 %}SAT
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="info-block">
+                <span class="compact-label">Modul</span>
+                <span class="compact-value">{{ sr_data.module }}</span>
+            </div>
+
+            <div class="info-block">
+                <span class="compact-label">Values</span>
+                <span class="compact-value">{{ sr_data.value if sr_data.value else '-' }}</span>
+            </div>
+
+            <div class="info-block">
+                <span class="compact-label">Number of User</span>
+                <span class="compact-value">{{ sr_data.num_user if sr_data.num_user else '-' }}</span>
+            </div>
+
+            <div class="info-block">
+                <span class="compact-label">Progress</span>
+                <span class="progress-text-green">{{ sr_data.ticket_progress | default('0') }}%</span>
+            </div>
+        </div>
+
+        <div class="info-block full-width" style="margin-top: 16px;">
+            <span class="compact-label">Frequency</span>
+            <div class="readonly-richtext-compact">{{ sr_data.frequency | safe }}</div>
+        </div>
+            
+        <div class="info-block full-width" style="margin-top: 24px;">
+            <span class="compact-label" style="margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Dokumen Lampiran</span>
+            
+            <div class="compact-attachment-list">
+                {% if current_files and current_files|length > 0 %}
+                    {% for doc in current_files %}
+                        <a href="{{ doc.file_url }}" target="_blank" class="compact-doc-item">
+                            <div class="doc-icon">
+                                {% if doc.thumbnail_url %}
+                                    <img src="{{ doc.thumbnail_url }}" alt="Thumb">
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="doc-info">
+                                <span class="doc-title">{{ doc.attach_details }}</span>
+                                <span class="doc-link">Lihat PDF ↗</span>
+                            </div>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-doc-compact">Tidak ada dokumen yang dilampirkan.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="approval-action-panel">
+            <form id="srApproveForm" method="POST" action="" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; justify-content: space-between; width: 100%;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="action-input-group" style="flex: 1; min-width: 250px;">
+                    <label for="action-select" class="compact-label" style="color: #1e293b;">Select Action <span style="color: #ef4444;">*</span></label>
+                    <select name="intended_next_smk_id" id="action-select" class="compact-select" required>
+                        <option value="" disabled selected>-- Choose next step --</option>
+                        {% for opt in options %}
+                            <option value="{{ opt.next_smk_id }}">{{ opt.rule_detail }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="action-buttons-group">
+                    <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn-compact-cancel">Cancel</a>
+                    <button type="submit" class="btn-compact-submit">Confirm & Submit</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

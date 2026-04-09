@@ -63,21 +63,9 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
 
 
-def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
+def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
     """
-    Submit assignment PIC pada SR.
-
-    Validasi:
-    1. User harus IT SM pada SR ini
-    2. SR harus masih status BACKLOG SCRUM (105)
-    3. Minimal 1 user per role (semua PIC roles dari DB)
-    4. Semua NIK yang di-assign harus valid (ada di daftar IT users)
-
-    form_data format dari HTML form:
-    {
-        'assign_user[]': ['nik1', 'nik2', 'nik3', ...],
-        'assign_role[]': ['4', '5', '6', ...]
-    }
+    Submit assignment PIC pada SR (Tanpa advance phase).
     """
     try:
         # 1. Validasi: user harus IT SM pada SR ini
@@ -94,27 +82,24 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
         if sr_detail.get('smk_id') != assignment_model.STATUS_BACKLOG_SCRUM:
             return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status Backlog Scrum.'}
 
-        # 3. Parse form: assign_user[] dan assign_role[] (paired by index)
+        # 3. Parse form: assign_user[] dan assign_role[]
         user_list = form_data.getlist('assign_user[]') if hasattr(form_data, 'getlist') else form_data.get('assign_user[]', [])
         role_list = form_data.getlist('assign_role[]') if hasattr(form_data, 'getlist') else form_data.get('assign_role[]', [])
 
-        if isinstance(user_list, str):
-            user_list = [user_list]
-        if isinstance(role_list, str):
-            role_list = [role_list]
+        if isinstance(user_list, str): user_list = [user_list]
+        if isinstance(role_list, str): role_list = [role_list]
 
         assignments = []
         for user_nik, role_id_str in zip(user_list, role_list):
             user_nik = user_nik.strip() if user_nik else ''
             role_id_str = role_id_str.strip() if role_id_str else ''
-            if not user_nik or not role_id_str:
-                continue
+            if not user_nik or not role_id_str: continue
             assignments.append({'nik': user_nik, 'it_role_id': int(role_id_str)})
 
         if not assignments:
             return {'status': False, 'data': [], 'msg': 'Tidak ada assignment yang diisi.'}
 
-        # 4. Validasi: minimal 1 user per role (semua PIC roles dari DB)
+        # 4. Validasi: minimal 1 user per role
         picroles_result = assignment_model.get_assignable_picroles_model()
         picroles = parse_rows(picroles_result)
         role_map = {r['it_role_id']: r['it_role_detail'] for r in picroles}
@@ -122,66 +107,50 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
         assigned_roles = {a['it_role_id'] for a in assignments}
         for it_role_id, role_name in role_map.items():
             if it_role_id not in assigned_roles:
-                return {
-                    'status': False, 'data': [],
-                    'msg': f'Minimal 1 user harus di-assign untuk role {role_name}.'
-                }
+                return {'status': False, 'data': [], 'msg': f'Minimal 1 user harus di-assign untuk role {role_name}.'}
 
-        # 5. Validasi: semua NIK harus ada di daftar IT users
+        # 5. Validasi: NIK harus ada di daftar IT users
         users_result = assignment_model.get_it_users_model()
         it_users = parse_rows(users_result)
         valid_niks = {u['nik'] for u in it_users}
         for a in assignments:
             if a['nik'] not in valid_niks:
-                return {
-                    'status': False, 'data': [],
-                    'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."
-                }
+                return {'status': False, 'data': [], 'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."}
 
-        # 6. Tentukan is_active: user pertama per role = TRUE, selanjutnya = FALSE
+        # 6. Tentukan is_active
         seen_roles = set()
         for a in assignments:
             a['is_active'] = a['it_role_id'] not in seen_roles
             seen_roles.add(a['it_role_id'])
 
-        # 7. Insert assignments + advance phase (atomic, satu transaksi)
-        shared_conn = DatabasePG("supabase", autocommit=False)
+        # 7. Insert assignments (Database Connection Logic)
+        local_conn = False
+        if shared_conn is None:
+            shared_conn = DatabasePG("supabase", autocommit=False)
+            local_conn = True
+
         try:
-            # 7a. Insert semua assignment
             insert_result = assignment_model.insert_assignments_model(sr_no, assignments, nik, shared_conn)
             if not insert_result.get('status'):
                 raise Exception(insert_result.get('msg', 'Gagal insert assignment'))
 
-            # 7b. Advance phase 105→106 via workflow rules (logs + status update)
-            advance_result = workflow_transaction.advance_sr_phase(
-                sr_no=sr_no,
-                current_smk_id=assignment_model.STATUS_BACKLOG_SCRUM,
-                next_smk_id=assignment_model.STATUS_SD_ON_PROGRESS,
-                action_by=nik,
-                shared_conn=shared_conn
-            )
-            if not advance_result.get('status'):
-                raise Exception(advance_result.get('msg', 'Gagal advance phase'))
+            if local_conn:
+                shared_conn._conn.commit()
 
-            shared_conn._conn.commit()
-            return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan dan status SR diupdate.'}
+            return {'status': True, 'data': [], 'msg': 'Assignment PIC berhasil disimpan.'}
 
         except Exception as e:
-            if shared_conn:
-                try:
-                    shared_conn._conn.rollback()
-                except Exception:
-                    pass
+            if local_conn:
+                try: shared_conn._conn.rollback()
+                except Exception: pass
             raise e
-
         finally:
-            if shared_conn:
+            if local_conn and shared_conn:
                 shared_conn.close()
 
     except Exception as e:
         Log.error(f'Exception | submit_assignments_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
-
 
 def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
     """
@@ -392,6 +361,40 @@ def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
         Log.error(f'Exception | process_gm_approval_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
+    finally:
+        if shared_conn:
+            shared_conn.close()
+
+def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_id: int, next_smk_id: int) -> dict:
+    """
+    Orchestrates the SM approval process: Assigns PICs and advances the phase atomically.
+    """
+    shared_conn = None
+    try:
+        shared_conn = DatabasePG("supabase", autocommit=False)
+
+        # 1. Execute the PIC Assignments
+        assign_result = submit_assignments_trx(sr_no, nik, form_data, shared_conn=shared_conn)
+        if not assign_result.get('status'):
+            raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
+
+        # 2. Execute the Phase Advancement
+        advance_result = workflow_transaction.advance_sr_phase(
+            sr_no=sr_no, current_smk_id=current_smk_id, next_smk_id=next_smk_id, 
+            action_by=nik, shared_conn=shared_conn
+        )
+        if not advance_result.get('status'):
+            raise Exception(f"Advance phase gagal: {advance_result.get('msg')}")
+
+        shared_conn._conn.commit()
+        return {'status': True, 'msg': 'Tim PIC berhasil di-assign dan phase SR diupdate.'}
+
+    except Exception as e:
+        if shared_conn:
+            try: shared_conn._conn.rollback()
+            except Exception: pass
+        Log.error(f'Exception | process_sm_approval_trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
     finally:
         if shared_conn:
             shared_conn.close()
