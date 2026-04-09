@@ -138,15 +138,21 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                     'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."
                 }
 
-        # 6. Insert assignments + advance phase (atomic, satu transaksi)
+        # 6. Tentukan is_active: user pertama per role = TRUE, selanjutnya = FALSE
+        seen_roles = set()
+        for a in assignments:
+            a['is_active'] = a['it_role_id'] not in seen_roles
+            seen_roles.add(a['it_role_id'])
+
+        # 7. Insert assignments + advance phase (atomic, satu transaksi)
         shared_conn = DatabasePG("supabase", autocommit=False)
         try:
-            # 6a. Insert semua assignment
+            # 7a. Insert semua assignment
             insert_result = assignment_model.insert_assignments_model(sr_no, assignments, nik, shared_conn)
             if not insert_result.get('status'):
                 raise Exception(insert_result.get('msg', 'Gagal insert assignment'))
 
-            # 6b. Advance phase 105→106 via workflow rules (logs + status update)
+            # 7b. Advance phase 105→106 via workflow rules (logs + status update)
             advance_result = workflow_transaction.advance_sr_phase(
                 sr_no=sr_no,
                 current_smk_id=assignment_model.STATUS_BACKLOG_SCRUM,
@@ -228,9 +234,9 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
 
 
-def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict) -> dict:
+def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
     """
-    IT GM assign IT SM pada SR, lalu advance status 104→105 secara atomik.
+    IT GM assign IT SM pada SR. (Hanya assignment, tanpa advance status).
 
     Validasi:
     1. User harus IT GM pada SR ini
@@ -266,8 +272,12 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict) -> dict:
         if not sm_role_id:
             return {'status': False, 'data': [], 'msg': 'Gagal mendapatkan role ID IT SM dari database.'}
 
-        # 6. Insert assignment + advance phase 104→105 (atomic)
-        shared_conn = DatabasePG("supabase", autocommit=False)
+        # 6. Insert assignment (Menggunakan shared_conn jika ada, jika tidak buka koneksi baru)
+        local_conn = False
+        if shared_conn is None:
+            shared_conn = DatabasePG("supabase", autocommit=False)
+            local_conn = True
+
         try:
             insert_result = assignment_model.insert_assignments_model(
                 sr_no=sr_no,
@@ -275,24 +285,18 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                 assigned_by=nik,
                 shared_conn=shared_conn
             )
+            
             if not insert_result.get('status'):
                 raise Exception(insert_result.get('msg', 'Gagal insert assignment IT SM'))
 
-            advance_result = workflow_transaction.advance_sr_phase(
-                sr_no=sr_no,
-                current_smk_id=assignment_model.STATUS_IT_GM_REVIEW,
-                next_smk_id=assignment_model.STATUS_BACKLOG_SCRUM,
-                action_by=nik,
-                shared_conn=shared_conn
-            )
-            if not advance_result.get('status'):
-                raise Exception(advance_result.get('msg', 'Gagal advance phase'))
+            # Hanya commit jika koneksi ini dibuat secara lokal di fungsi ini
+            if local_conn:
+                shared_conn._conn.commit()
 
-            shared_conn._conn.commit()
-            return {'status': True, 'data': [], 'msg': 'IT SM berhasil di-assign dan status SR diupdate ke Backlog Scrum.'}
+            return {'status': True, 'data': [], 'msg': 'IT SM berhasil di-assign.'}
 
         except Exception as e:
-            if shared_conn:
+            if local_conn:
                 try:
                     shared_conn._conn.rollback()
                 except Exception:
@@ -300,9 +304,165 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict) -> dict:
             raise e
 
         finally:
-            if shared_conn:
+            if local_conn and shared_conn:
                 shared_conn.close()
 
     except Exception as e:
         Log.error(f'Exception | submit_sm_assignment_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def handover_pic_trx(sr_no: str, nik: str, target_assign_id: int) -> dict:
+    """
+    Oper SR ke user lain di role yang sama.
+    Validasi: user yang trigger harus is_active=TRUE di role ini pada SR ini.
+    Hanya mengubah is_active — smk_id SR tidak berubah.
+    """
+    try:
+        # 1. Ambil info target assignment
+        target_result = assignment_model.get_assignment_by_id_model(target_assign_id)
+        target = parse_single_row(target_result)
+        if not target:
+            return {'status': False, 'data': [], 'msg': 'Target assignment tidak ditemukan.'}
+
+        if target['sr_no'] != sr_no:
+            return {'status': False, 'data': [], 'msg': 'Target assignment tidak sesuai dengan SR ini.'}
+
+        it_role_id = target['it_role_id']
+
+        # 2. Validasi: user yang trigger harus is_active=TRUE di role ini
+        active_result = assignment_model.get_active_pic_on_sr_model(sr_no, nik)
+        active_rows = parse_rows(active_result)
+        active_role = next((a for a in active_rows if a['it_role_id'] == it_role_id), None)
+        if not active_role:
+            return {'status': False, 'data': [], 'msg': 'Anda tidak sedang aktif mengerjakan role ini pada SR ini.'}
+
+        # 3. Toggle is_active
+        toggle_result = assignment_model.toggle_active_pic_model(sr_no, it_role_id, target_assign_id)
+        if not toggle_result.get('status'):
+            return {'status': False, 'data': [], 'msg': toggle_result.get('msg', 'Gagal mengoper SR.')}
+
+        return {'status': True, 'data': [], 'msg': 'SR berhasil dioper ke PIC lain.'}
+    except Exception as e:
+        Log.error(f'Exception | handover_pic_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    
+def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_id: int, next_smk_id: int) -> dict:
+    """
+    Orchestrates the GM approval process: Assings an IT SM and advances the phase.
+    Handles the database transaction to ensure atomicity outside of the route layer.
+    """
+    shared_conn = None
+    try:
+        shared_conn = DatabasePG("supabase", autocommit=False)
+
+        # 1. Execute the Assignment (Pass the shared_conn)
+        assign_result = submit_sm_assignment_trx(
+            sr_no=sr_no, 
+            nik=nik, 
+            form_data=form_data, 
+            shared_conn=shared_conn
+        )
+        
+        if not assign_result.get('status'):
+            raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
+
+        # 2. Execute the Phase Advancement (Pass the shared_conn)
+        advance_result = workflow_transaction.advance_sr_phase(
+            sr_no=sr_no,
+            current_smk_id=current_smk_id,
+            next_smk_id=next_smk_id,
+            action_by=nik,
+            shared_conn=shared_conn
+        )
+        
+        if not advance_result.get('status'):
+            raise Exception(f"Advance phase gagal: {advance_result.get('msg')}")
+
+        # If both succeed, commit the transaction
+        shared_conn._conn.commit()
+        return {'status': True, 'data': [], 'msg': 'IT SM berhasil di-assign dan phase SR diupdate.'}
+
+    except Exception as e:
+        if shared_conn:
+            try:
+                shared_conn._conn.rollback()
+            except Exception:
+                pass
+        Log.error(f'Exception | process_gm_approval_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+    finally:
+        if shared_conn:
+            shared_conn.close()
+
+def get_sr_actors_trx(sr_no: str) -> dict:
+    """
+    Orchestrates the fetching of SR origins and approvers using a single connection.
+    Returns a beautifully structured dictionary for the UI.
+    """
+    conn = None
+    result = {'status': False, 'data': {}, 'msg': ''}
+
+    try:
+        # 1. Open a single connection for the transaction
+        conn = DatabasePG("supabase")
+        if not conn:
+            result['msg'] = 'Database connection failed.'
+            return result
+
+        # 2. Call the separated model functions
+        origins_res = assignment_model.get_sr_origins(sr_no, shared_conn=conn)
+        approvers_res = assignment_model.get_sr_approvers(sr_no, shared_conn=conn)
+
+        # 3. Validate origins (mandatory)
+        if not origins_res.get('status') or not origins_res.get('data'):
+            result['msg'] = 'SR Origins not found.'
+            return result
+
+        # Extract rows (adjust indices if your selectDataHeader returns differently)
+        origins_data = origins_res['data'][1][0] 
+        approvers_data = approvers_res['data'][1] if approvers_res.get('status') and approvers_res.get('data') else []
+
+        # 4. Initialize the structure
+        ticket_actors = {
+            "origins": {
+                "requester": {
+                    "nik": origins_data[1], 
+                    "name": origins_data[2]
+                },
+                "maker": {
+                    "nik": origins_data[3],
+                    "name": origins_data[4]
+                }
+            },
+            "approvers": {}
+        }
+
+        # 5. Distribute approvers into their specific buckets
+        for row in approvers_data:
+            #role_id = row[0]
+            role_name = row[1]
+            user_info = {"nik": row[2], "name": row[3]}
+            
+            # If this is the first time we are seeing this role, create an empty list for it
+            if role_name not in ticket_actors["approvers"]:
+                ticket_actors["approvers"][role_name] = []
+            
+            # Append the user to their specific role list
+            ticket_actors["approvers"][role_name].append(user_info)
+
+        # 6. Return success
+        result['status'] = True
+        result['data'] = ticket_actors
+        result['msg'] = 'Actors fetched and structured successfully.'
+        return result
+
+    except Exception as e:
+        Log.error(f'Transaction Exception | get_sr_actors_trx | Msg: {str(e)}')
+        result['msg'] = 'An error occurred while processing SR actors.'
+        return result
+    finally:
+        # Always close the connection
+        if conn:
+            conn.close()

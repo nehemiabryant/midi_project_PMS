@@ -88,13 +88,9 @@ def update_task_trx(task_id: int, nik: str, data: dict) -> dict:
         sr_no = task_row['sr_no']
         task_it_role_id = task_row['it_role_id']
 
-        # 2. Validasi user ter-assign pada SR ini dengan it_role yang sama
-        access = _validate_pic_access(nik, sr_no)
+        # 2. Validasi user ter-assign pada SR ini dengan it_role yang sama persis dengan task
+        access = _validate_pic_access(nik, sr_no, task_it_role_id)
         if not access['valid']:
-            return {'status': False, 'data': [], 'msg': access['msg']}
-
-        assignment = access['assignment']
-        if assignment['it_role_id'] != task_it_role_id:
             return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses untuk mengubah task ini.'}
 
         # 3. Update
@@ -128,12 +124,8 @@ def delete_task_trx(task_id: int, nik: str) -> dict:
         task_it_role_id = task_row['it_role_id']
 
         # 2. Validasi akses
-        access = _validate_pic_access(nik, sr_no)
+        access = _validate_pic_access(nik, sr_no, task_it_role_id)
         if not access['valid']:
-            return {'status': False, 'data': [], 'msg': access['msg']}
-
-        assignment = access['assignment']
-        if assignment['it_role_id'] != task_it_role_id:
             return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses untuk menghapus task ini.'}
 
         # 3. Delete

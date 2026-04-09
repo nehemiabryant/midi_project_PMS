@@ -144,8 +144,8 @@ def get_all_tasks_by_sr_model(sr_no: str) -> dict:
     """Ambil SEMUA task pada SR tertentu dari semua role, diurutkan berdasarkan target_date."""                                                           
     sql = """                                                                                                                                             
         SELECT t.task_id, t.assign_id, t.task_detail, t.target_date, t.actual_date,                                                                       
-                sa.assigned_user, k.nama AS assigned_user_name,                                                                                            
-                it.it_role_detail                                                                                                                          
+                sa.assigned_user, k.nama AS assigned_user_name,
+                sa.it_role_id, it.it_role_detail
         FROM sr_task t
         JOIN sr_assignments sa ON t.assign_id = sa.assign_id                                                                                              
         LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik                                                                                              
