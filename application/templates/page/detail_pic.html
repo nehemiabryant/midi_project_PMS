@@ -110,7 +110,8 @@
     <!-- Form Tambah Task -->
     <div id="add-task-form-{{ section.it_role_id }}" style="display:none;">
         <input type="text" id="new-task-detail-{{ section.it_role_id }}" placeholder="Detail task...">
-        <input type="date" id="new-task-target-{{ section.it_role_id }}">
+        <input type="date" id="new-task-target-{{ section.it_role_id }}" placeholder="Target Date">
+        <input type="date" id="new-task-actual-{{ section.it_role_id }}" placeholder="Realisasi">
         <button type="button" onclick="createTask('{{ section.it_role_id }}')">Simpan</button>
         <button type="button" onclick="hideAddTaskForm('{{ section.it_role_id }}')">Batal</button>
     </div>
@@ -135,12 +136,12 @@
                     <input class="task-name-edit" type="text" value="{{ task.task_detail }}" style="display:none;">
                 </td>
                 <td>
-                    <span class="task-target-display">{{ task.target_date if task.target_date else '-' }}</span>
-                    <input class="task-target-edit" type="date" value="{{ task.target_date if task.target_date else '' }}" style="display:none;">
+                    <span class="task-target-display">{{ task.target_date | format_date_wib }}</span>
+                    <input class="task-target-edit" type="date" value="{{ task.target_date.strftime('%Y-%m-%d') if task.target_date else '' }}" style="display:none;">
                 </td>
                 <td>
-                    <span class="task-actual-display">{{ task.actual_date if task.actual_date else '-' }}</span>
-                    <input class="task-actual-edit" type="date" value="{{ task.actual_date if task.actual_date else '' }}" style="display:none;">
+                    <span class="task-actual-display">{{ task.actual_date | format_date_wib }}</span>
+                    <input class="task-actual-edit" type="date" value="{{ task.actual_date.strftime('%Y-%m-%d') if task.actual_date else '' }}" style="display:none;">
                 </td>
                 <td>
                     <button class="btn-edit" onclick="toggleEdit(this)">Edit</button>
@@ -229,17 +230,19 @@ function hideAddTaskForm(roleId) {
     document.getElementById('add-task-form-' + roleId).style.display = 'none';
     document.getElementById('new-task-detail-' + roleId).value = '';
     document.getElementById('new-task-target-' + roleId).value = '';
+    document.getElementById('new-task-actual-' + roleId).value = '';
 }
 
 function createTask(roleId) {
     const detail = document.getElementById('new-task-detail-' + roleId).value.trim();
     const target = document.getElementById('new-task-target-' + roleId).value;
+    const actual = document.getElementById('new-task-actual-' + roleId).value;
     if (!detail) { alert('Task detail tidak boleh kosong.'); return; }
 
     fetch('/task/create/' + SR_NO, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: null, it_role_id: parseInt(roleId) })
+        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: actual || null, it_role_id: parseInt(roleId) })
     })
     .then(r => r.json())
     .then(data => {
