@@ -1,6 +1,8 @@
 {% extends 'base.html' %} 
 {% block content %}
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/project_details.css') }}">
+
 <div class="master-detail-wrapper">
     
     <div class="md-header-container">
@@ -130,5 +132,38 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
+
+/* ========================================================
+   FUNGSI GLOBAL UNTUK TAB SUBMENU (DETAIL & TIMELINE)
+   ======================================================== */
+window.switchTab = function(evt, tabId) {
+    // 1. Sembunyikan semua konten tab di dalam panel detail
+    const tabPanes = document.querySelectorAll('#detail-content .tab-pane');
+    tabPanes.forEach(pane => {
+        pane.style.display = 'none';
+        pane.classList.remove('active');
+    });
+
+    // 2. Hilangkan class 'active' dari semua tombol tab
+    const tabBtns = document.querySelectorAll('#detail-content .sr-tab-btn');
+    tabBtns.forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // 3. Tampilkan tab yang dipilih
+    const selectedPane = document.getElementById(tabId);
+    if (selectedPane) {
+        selectedPane.style.display = 'block';
+        // Sedikit delay agar animasi transisi opacity berjalan
+        setTimeout(() => {
+            selectedPane.classList.add('active');
+        }, 10);
+    }
+    
+    // 4. Tambahkan class 'active' ke tombol yang diklik
+    if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+    }
+};
 </script>
 {% endblock %}
