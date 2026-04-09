@@ -255,17 +255,19 @@ function hideAddTaskForm(roleId) {
     document.getElementById('add-task-form-' + roleId).style.display = 'none';
     document.getElementById('new-task-detail-' + roleId).value = '';
     document.getElementById('new-task-target-' + roleId).value = '';
+    document.getElementById('new-task-actual-' + roleId).value = '';
 }
 
 function createTask(roleId) {
     const detail = document.getElementById('new-task-detail-' + roleId).value.trim();
     const target = document.getElementById('new-task-target-' + roleId).value;
+    const actual = document.getElementById('new-task-actual-' + roleId).value;
     if (!detail) { alert('Task detail tidak boleh kosong.'); return; }
 
     fetch('/task/create/' + SR_NO, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: null, it_role_id: parseInt(roleId) })
+        body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: actual || null, it_role_id: parseInt(roleId) })
     })
     .then(r => r.json())
     .then(data => {
