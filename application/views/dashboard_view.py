@@ -52,9 +52,9 @@ def myWork_menu():
 @dashboard_bp.route('/myWork/detail/<path:sr_no>', methods=['GET', 'POST'])
 @login_required
 def sr_detail_menu(sr_no):
-    """Halaman detail SR — termasuk section assignment untuk IT SM."""
+    """Halaman detail SR (Read-Only) & Upload Task untuk PIC."""
     nik = session['user']['nik']
-    result = my_work_transaction.get_sr_detail_trx(sr_no, nik)
+    result = my_work_transaction.get_my_work_detail_trx(sr_no, nik)
 
     if not result.get('status'):
         flash(result.get('msg', 'Gagal memuat detail SR.'), 'error')
@@ -71,14 +71,11 @@ def sr_detail_menu(sr_no):
 
     docs_res = attachment_transaction.get_required_docs_for_phase_trx(current_smk_id)
     required_docs = docs_res.get('data', [])
-
     current_files_dict = attachment_transaction.get_latest_attachments_trx(sr_no)
 
     if request.method == 'POST':
-        # Security: Only PICs can upload
+        # Security: Only pure PICs can upload
         if is_pic and not is_sm and not is_gm:
-            # Capture the entire files dictionary because inputs are named dynamically 
-            # e.g., 'dynamic_doc_BRD', 'dynamic_doc_UAT'
             files = request.files 
             form_smk_id = request.form.get('smk_id', current_smk_id) 
 
@@ -111,7 +108,7 @@ def sr_detail_menu(sr_no):
             dropdown_options=dropdown_options
         )
 
-    # IT GM dan IT SM → render detail_sr.html (template bersama dengan kondisi is_gm/is_sm)
+    # IT GM, IT SM, and others → render detail_sr.html (Read Only)
     return render_template(
         '/page/detail_sr.html',
         user=session['user'],
@@ -121,12 +118,8 @@ def sr_detail_menu(sr_no):
         user_roles=page_data['user_roles'],
         all_assignments=page_data['all_assignments'],
         assignments_by_role=page_data['assignments_by_role'],
-        is_sm=page_data['is_sm'],
-        is_gm=page_data['is_gm'],
-        can_assign=page_data['can_assign'],
-        can_assign_sm=page_data['can_assign_sm'],
-        assignment_data=page_data['assignment_data'],
-        gm_assign_data=page_data['gm_assign_data'],
+        is_sm=is_sm,
+        is_gm=is_gm
     )
 
 
