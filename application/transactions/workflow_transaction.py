@@ -72,25 +72,22 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                     Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Tidak ter-assign dengan role {allowed_role}')
                     return {'status': False, 'msg': 'You must be specifically assigned to this ticket to execute this phase.'}
 
-            # ==========================================
-            # 4. Validate Mandatory Documents
-            # ==========================================
-            docs_res = workflow_model.get_mandatory_docs(rule_id)
+        # ==========================================
+        # 4. Validate Mandatory Documents (berlaku untuk semua user termasuk IT PMO)
+        # ==========================================
+        docs_res = workflow_model.get_mandatory_docs(rule_id)
 
-            if docs_res.get('status') and docs_res.get('data'):
-                # Convert list of tuples [(1,), (2,)] into a clean flat list of required IDs: [1, 2]
-                mandatory_docs = [row[0] for row in docs_res['data']]
+        if docs_res.get('status') and docs_res.get('data'):
+            mandatory_docs = [row[0] for row in docs_res['data']]
 
-                # Get what the user has actually uploaded
-                uploaded_res = workflow_model.get_uploaded_docs(sr_no)
-                uploaded_docs = [row[0] for row in uploaded_res.get('data', [])] if uploaded_res.get('status') else []
+            uploaded_res = workflow_model.get_uploaded_docs(sr_no)
+            uploaded_docs = [row[0] for row in uploaded_res.get('data', [])] if uploaded_res.get('status') else []
 
-                # Check if any mandatory docs are missing from the uploaded list
-                missing_docs = [doc for doc in mandatory_docs if doc not in uploaded_docs]
+            missing_docs = [doc for doc in mandatory_docs if doc not in uploaded_docs]
 
-                if missing_docs:
-                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Dokumen wajib belum lengkap: {missing_docs}')
-                    return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
+            if missing_docs:
+                Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Dokumen wajib belum lengkap: {missing_docs}')
+                return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
 
         # ==========================================
         # 5. Execute the Database Log Updates

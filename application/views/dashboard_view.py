@@ -66,6 +66,7 @@ def sr_detail_menu(sr_no):
     is_pic = page_data.get('is_pic')
     is_sm = page_data.get('is_sm')
     is_gm = page_data.get('is_gm')
+    is_pm = page_data.get('is_pm', False)
 
     current_smk_id = sr_detail.get('smk_id')
 
@@ -74,7 +75,6 @@ def sr_detail_menu(sr_no):
     current_files_dict = attachment_transaction.get_latest_attachments_trx(sr_no)
 
     if request.method == 'POST':
-        # Security: Only pure PICs can upload
         if is_pic and not is_sm and not is_gm:
             files = request.files 
             form_smk_id = request.form.get('smk_id', current_smk_id) 
@@ -92,7 +92,7 @@ def sr_detail_menu(sr_no):
 
         return redirect(url_for('owh_dashboard.sr_detail_menu', sr_no=sr_no))
 
-    # PIC (SCM/DEV/QA/RO) yang bukan SM/GM → render detail_pic.html
+    # PIC (SCM/DEV/QA/RO) yang bukan SM/GM, atau IT PMO di fase UAT → render detail_pic.html
     if is_pic and not is_sm and not is_gm:
         dropdown_options = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, nik)
         return render_template(
@@ -105,7 +105,8 @@ def sr_detail_menu(sr_no):
             pic_sections=page_data['pic_sections'],
             required_docs=required_docs,
             current_files=current_files_dict,
-            dropdown_options=dropdown_options
+            dropdown_options=dropdown_options,
+            is_pm=is_pm
         )
 
     # IT GM, IT SM, and others → render detail_sr.html (Read Only)
