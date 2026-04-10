@@ -7,9 +7,7 @@
     
     <div class="md-header-container">
         <div>
-            <a href="/dashboard" class="md-back-link">
-                ← Kembali ke Dashboard
-            </a>
+            <a href="/dashboard" class="md-back-link">← Kembali ke Dashboard</a>
             <h2 class="md-phase-title">Fase: {{ phase_name }}</h2>
         </div>
         <div class="md-total-badge">
@@ -19,39 +17,64 @@
 
     <div class="md-main-content">
 
-        <div class="master-list-panel">
-            {% for sr in sr_list %}
-                <div class="sr-card" data-sr-no="{{ sr.sr_no }}">
-                    
-                    <div class="sr-card-header">
-                        <span class="sr-badge">{{ sr.sr_no }}</span>
-                        <span class="sr-division">{{ sr.division }}</span>
-                    </div>
-
-                    <h6 class="sr-app-name">{{ sr.app_name }}</h6>
-
-                    <div class="sr-status-container">
-                        <span class="sr-status-dot"></span>
-                        {{ sr.current_status }}
-                    </div>
-
-                    <div class="sr-progress-container">
-                        <div class="sr-progress-track">
-                            <div class="sr-progress-fill" style="width: {{ sr.ticket_progress }}%;"></div>
-                        </div>
-                        <span class="sr-progress-text">{{ sr.ticket_progress }}%</span>
-                    </div>
-
-                </div>
-            {% else %}
-                <div class="sr-empty-list">
-                    Tidak ada tiket aktif di fase ini.
-                </div>
-            {% endfor %}
-        </div>
-
-        <div class="detail-canvas-panel">
+        <div class="left-sidebar-wrapper">
             
+            <div class="sidebar-filters">
+                {% set unique_statuses = [] %}
+                {% set unique_divisions = [] %}
+                {% for sr in sr_list %}
+                    {% if sr.current_status not in unique_statuses %}
+                        {% set _ = unique_statuses.append(sr.current_status) %}
+                    {% endif %}
+                    {% if sr.division not in unique_divisions %}
+                        {% set _ = unique_divisions.append(sr.division) %}
+                    {% endif %}
+                {% endfor %}
+
+                <input type="text" id="searchApp" class="sidebar-input" placeholder="🔍 Cari Nama Aplikasi..." onkeyup="filterCards()">
+                
+                <div class="filter-row">
+                    <select id="filterStatus" class="sidebar-select" onchange="filterCards()">
+                        <option value="">Semua Status</option>
+                        {% for st in unique_statuses|sort %}
+                            <option value="{{ st|lower }}">{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select id="filterDivision" class="sidebar-select" onchange="filterCards()">
+                        <option value="">Semua Divisi</option>
+                        {% for div in unique_divisions|sort %}
+                            <option value="{{ div|lower }}">{{ div }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="master-list-panel">
+                {% for sr in sr_list %}
+                    <div class="sr-card" data-sr-no="{{ sr.sr_no }}">
+                        <div class="sr-card-header">
+                            <span class="sr-badge">{{ sr.sr_no }}</span>
+                            <span class="sr-division">{{ sr.division }}</span>
+                        </div>
+                        <h6 class="sr-app-name">{{ sr.app_name }}</h6>
+                        <div class="sr-status-container">
+                            <span class="sr-status-dot"></span>
+                            <span class="status-text-value">{{ sr.current_status }}</span>
+                        </div>
+                        <div class="sr-progress-container">
+                            <div class="sr-progress-track">
+                                <div class="sr-progress-fill" style="width: {{ sr.ticket_progress }}%;"></div>
+                            </div>
+                            <span class="sr-progress-text">{{ sr.ticket_progress }}%</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="sr-empty-list">Tidak ada tiket aktif di fase ini.</div>
+                {% endfor %}
+            </div>
+            
+        </div> <div class="detail-canvas-panel">
             <div id="empty-state">
                 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -63,22 +86,22 @@
             </div>
 
             <div id="detail-content"></div>
-
         </div>
 
     </div>
 </div>
 
 <script>
+// --- LOGIKA AJAX (KLIK KARTU & UPDATE URL) ---
 document.addEventListener("DOMContentLoaded", function() {
     const phaseName = "{{ phase_name }}";
     const initialSrNo = "{{ current_sr_no or '' }}"; 
-    
     const cards = document.querySelectorAll('.sr-card');
     const emptyState = document.getElementById('empty-state');
     const detailContent = document.getElementById('detail-content');
 
     function loadTicketDetails(srNo, updateUrl = true) {
+        // ... (Logika Load AJAX tetap sama seperti yang sudah berfungsi sebelumnya) ...
         cards.forEach(c => c.classList.remove('active'));
         const activeCard = document.querySelector(`.sr-card[data-sr-no="${srNo}"]`);
         if (activeCard) {
@@ -93,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         emptyState.style.display = 'none';
         detailContent.style.display = 'block';
-        detailContent.innerHTML = '<div style="text-align:center; padding: 40px; color:#6b7280;">Loading details...</div>';
+        detailContent.innerHTML = '<div style="text-align:center; padding: 40px; color:#6b7280;">Memuat data...</div>';
 
         fetch(`/api/get_sr_detail/${encodeURIComponent(srNo)}`)
             .then(response => {
@@ -105,22 +128,18 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .catch(error => {
                 console.error("Error fetching SR details:", error);
-                detailContent.innerHTML = '<div style="color:red; padding: 40px;">Failed to load ticket details.</div>';
+                detailContent.innerHTML = '<div style="color:red; padding: 40px;">Gagal memuat data tiket.</div>';
             });
     }
 
     cards.forEach(card => {
         card.addEventListener('click', function() {
             const srNo = this.getAttribute('data-sr-no');
-            if (!this.classList.contains('active')) {
-                loadTicketDetails(srNo);
-            }
+            if (!this.classList.contains('active')) { loadTicketDetails(srNo); }
         });
     });
 
-    if (initialSrNo) {
-        loadTicketDetails(initialSrNo, false);
-    }
+    if (initialSrNo) { loadTicketDetails(initialSrNo, false); }
 
     window.addEventListener("popstate", (event) => {
         if (event.state && event.state.srNo) {
@@ -133,36 +152,78 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-/* ========================================================
-   FUNGSI GLOBAL UNTUK TAB SUBMENU (DETAIL & TIMELINE)
-   ======================================================== */
+// --- FUNGSI GLOBAL ---
+
+// Fungsi Ganti Tab (Detail/Timeline)
 window.switchTab = function(evt, tabId) {
-    // 1. Sembunyikan semua konten tab di dalam panel detail
     const tabPanes = document.querySelectorAll('#detail-content .tab-pane');
-    tabPanes.forEach(pane => {
-        pane.style.display = 'none';
-        pane.classList.remove('active');
-    });
+    tabPanes.forEach(pane => { pane.style.display = 'none'; pane.classList.remove('active'); });
 
-    // 2. Hilangkan class 'active' dari semua tombol tab
     const tabBtns = document.querySelectorAll('#detail-content .sr-tab-btn');
-    tabBtns.forEach(btn => {
-        btn.classList.remove('active');
-    });
+    tabBtns.forEach(btn => { btn.classList.remove('active'); });
 
-    // 3. Tampilkan tab yang dipilih
     const selectedPane = document.getElementById(tabId);
     if (selectedPane) {
         selectedPane.style.display = 'block';
-        // Sedikit delay agar animasi transisi opacity berjalan
-        setTimeout(() => {
-            selectedPane.classList.add('active');
-        }, 10);
+        setTimeout(() => { selectedPane.classList.add('active'); }, 10);
     }
+    if (evt && evt.currentTarget) { evt.currentTarget.classList.add('active'); }
+};
+
+// ========================================================
+// FUNGSI FILTER KARTU SIDEBAR KIRI
+// ========================================================
+window.filterCards = function() {
+    // 1. Ambil nilai dari input pencarian dan dropdown (jadikan huruf kecil)
+    const searchApp = document.getElementById('searchApp').value.toLowerCase();
+    const filterStatus = document.getElementById('filterStatus').value.toLowerCase();
+    const filterDivision = document.getElementById('filterDivision').value.toLowerCase();
     
-    // 4. Tambahkan class 'active' ke tombol yang diklik
-    if (evt && evt.currentTarget) {
-        evt.currentTarget.classList.add('active');
+    const cards = document.querySelectorAll('.sr-card');
+
+    // 2. Cek setiap kartu
+    cards.forEach(card => {
+        // Ambil teks dari masing-masing kartu
+        const appName = card.querySelector('.sr-app-name').textContent.toLowerCase();
+        const status = card.querySelector('.status-text-value').textContent.toLowerCase().trim();
+        const division = card.querySelector('.sr-division').textContent.toLowerCase().trim();
+
+        // 3. Logika pencocokan
+        const matchName = appName.includes(searchApp);
+        const matchStatus = filterStatus === "" || status === filterStatus;
+        const matchDivision = filterDivision === "" || division === filterDivision;
+
+        // 4. Tampilkan jika cocok, sembunyikan jika tidak
+        if (matchName && matchStatus && matchDivision) {
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+    });
+};
+
+// Fungsi Filter Tabel Timeline/Task di Panel Kanan
+window.filterTable = function(inputId, tbodyId) {
+    const filterText = document.getElementById(inputId).value.toLowerCase();
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return; 
+    const tr = tbody.getElementsByTagName("tr");
+
+    for (let i = 0; i < tr.length; i++) {
+        if (tr[i].getElementsByTagName("td").length === 1) continue; 
+        let rowContainsText = false;
+        const td = tr[i].getElementsByTagName("td");
+
+        for (let j = 0; j < td.length; j++) {
+            if (td[j]) {
+                const cellText = td[j].textContent || td[j].innerText;
+                if (cellText.toLowerCase().indexOf(filterText) > -1) {
+                    rowContainsText = true;
+                    break; 
+                }
+            }
+        }
+        tr[i].style.display = rowContainsText ? "" : "none";
     }
 };
 </script>
