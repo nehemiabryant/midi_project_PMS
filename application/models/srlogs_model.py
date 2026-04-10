@@ -196,15 +196,16 @@ def get_active_log_id(sr_no: str, shared_conn=None) -> dict:
 def get_phase_logs(sr_no: str, shared_conn=None) -> dict:
     sql = """
         SELECT 
-            sr_no,
-            smk_id,  -- Added smk_id to distinguish each phase
-            (ARRAY_AGG(started_at ORDER BY logs_id ASC))[1] AS first_iteration_start,
-            (ARRAY_AGG(finished_at ORDER BY logs_id DESC))[1] AS last_iteration_finish
-        FROM public.sr_logs
-        WHERE smk_id IN (106, 109, 111, 113, 115, 116)
-          AND sr_no = %(sr_no)s
-        GROUP BY sr_no, smk_id  -- Group by both!
-        ORDER BY smk_id ASC;  -- Optional: keeps them in a predictable order
+            mk.smk_id, 
+            mk.phase AS phase_name,  -- Change 'phase' to your actual column name if different
+            (ARRAY_AGG(l.started_at ORDER BY l.logs_id ASC))[1] AS first_iteration_start,
+            (ARRAY_AGG(l.finished_at ORDER BY l.logs_id DESC))[1] AS last_iteration_finish
+        FROM public.sr_ms_ket mk
+        LEFT JOIN public.sr_logs l 
+            ON mk.smk_id = l.smk_id AND l.sr_no = %(sr_no)s
+        WHERE mk.smk_id IN (106, 109, 111, 113, 115, 116)
+        GROUP BY mk.smk_id, mk.phase
+        ORDER BY mk.smk_id ASC;
     """
 
     if shared_conn:

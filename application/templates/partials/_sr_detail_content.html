@@ -108,7 +108,7 @@
 <div id="tab-timeline" class="tab-pane" style="display: none;">
     
     <div class="desc-card" style="padding-top: 15px;">
-        <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Phase Status Timeline</h4>
+        <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Actual Phase Status Timeline</h4>
         <div class="table-responsive">
             <table class="modern-table">
                 <thead>
@@ -124,12 +124,24 @@
                         {% for phase in actual_dates %}
                         <tr>
                             <td class="fw-bold">{{ phase.phase_name }}</td>
-                            <td class="text-muted">
-                                {{ phase.started_at.strftime('%d %b %Y, %H:%M') if phase.started_at else '-' }}
-                            </td>
-                            <td class="text-muted">
-                                {{ phase.finished_at.strftime('%d %b %Y, %H:%M') if phase.finished_at else '-' }}
-                            </td>
+                            
+                            {% if phase.is_milestone %}
+                                <td colspan="2" class="text-muted text-center">
+                                    {% if phase.milestone_date %}
+                                        <span class="fw-semibold">Go-Live:</span> {{ phase.milestone_date.strftime('%d %b %Y, %H:%M') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td class="text-muted">
+                                    {{ phase.started_at.strftime('%d %b %Y, %H:%M') if phase.started_at else '-' }}
+                                </td>
+                                <td class="text-muted">
+                                    {{ phase.finished_at.strftime('%d %b %Y, %H:%M') if phase.finished_at else '-' }}
+                                </td>
+                            {% endif %}
+
                             <td style="text-align: center;">
                                 <span class="badge bg-{{ phase.status_color }} text-dark"> 
                                     {{ phase.status_text }}
@@ -138,7 +150,11 @@
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr><td colspan="4" style="text-align: center; color: #9ca3af; font-style: italic; padding: 20px;">Belum ada timeline fase.</td></tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #9ca3af; font-style: italic; padding: 20px;">
+                                Belum ada timeline fase.
+                            </td>
+                        </tr>
                     {% endif %}
                 </tbody>
             </table>

@@ -87,56 +87,53 @@ def update_sr_log_trx(logs_id: int, shared_conn=None) -> dict:
         return {'status': False, 'msg': str(e)}
 
 def get_phase_logs_trx(sr_no: str, shared_conn=None) -> dict:
-    # 1. Fetch whatever logs currently exist in the database
     db_result = srlogs_model.get_phase_logs(sr_no, shared_conn)
     
-    # 2. Define your master list of ALL phases you want to display
-    master_phases = [
-        {'smk_id': 106, 'phase_name': 'System Design'},
-        {'smk_id': 109, 'phase_name': 'Development'},
-        {'smk_id': 111, 'phase_name': 'Quality Assurance'},
-        {'smk_id': 113, 'phase_name': 'User Acceptance Test'},
-        {'smk_id': 115, 'phase_name': 'Testing Operation'},
-        {'smk_id': 116, 'phase_name': 'Rollout'}
-    ]
-
-    # 3. Convert DB results into a dictionary keyed by smk_id for easy lookup
-    db_logs = {}
-    if db_result.get('status') and db_result.get('data'):
-        for row in db_result['data']:
-            is_dict = isinstance(row, dict)
-            smk_id = row['smk_id'] if is_dict else row[1]
-            db_logs[smk_id] = {
-                'started_at': row['first_iteration_start'] if is_dict else row[2],
-                'finished_at': row['last_iteration_finish'] if is_dict else row[3],
-            }
+    if not db_result or not db_result.get('status') or not db_result.get('data'):
+        return {'status': False, 'data': []}
 
     formatted_data = []
 
-    # 4. Loop through the master list and merge with DB data
-    for phase in master_phases:
-        smk_id = phase['smk_id']
-        
-        # Check if this phase exists in the database logs
-        if smk_id in db_logs:
-            log_data = db_logs[smk_id]
-            phase['started_at'] = log_data['started_at']
-            phase['finished_at'] = log_data['finished_at']
+    for row in db_result['data']:
+        is_dict = isinstance(row, dict)
+        smk_id = row['smk_id'] if is_dict else row[0]
+        phase_name = row['phase_name'] if is_dict else row[1]
+        started_at = row['first_iteration_start'] if is_dict else row[2]
+        finished_at = row['last_iteration_finish'] if is_dict else row[3]
 
-            if phase['finished_at'] is None:
-                phase['status_text'] = "In Progress"
-                phase['status_color'] = "warning"  # Bootstrap yellow
-            else:
-                phase['status_text'] = "Completed"
-                phase['status_color'] = "success"  # Bootstrap green
+        phase_data = {
+            'smk_id': smk_id,
+            'phase_name': phase_name,
+            'started_at': started_at,
+            'finished_at': finished_at,
+            'is_milestone': False # Default flag for frontend to know it's a phase
+        }
+
+        # Status Logic
+        if started_at is None:
+            phase_data['status_text'] = "Not Started"
+            phase_data['status_color'] = "secondary"
+        elif finished_at is None:
+            phase_data['status_text'] = "In Progress"
+            phase_data['status_color'] = "warning"
         else:
-            # Phase hasn't started yet (does not exist in DB)
-            phase['started_at'] = None
-            phase['finished_at'] = None
-            phase['status_text'] = "Not Started"
-            phase['status_color'] = "secondary" # Bootstrap grey
+            phase_data['status_text'] = "Completed"
+            phase_data['status_color'] = "success"
 
-        formatted_data.append(phase)
+        # --- ROLLOUT (116) CUSTOM LOGIC ---
+        # --- ROLLOUT (116) CUSTOM LOGIC ---
+        if smk_id == 116:
+            phase_data['is_milestone'] = True
+            if started_at:
+                # If it has started, it is effectively Live/Deployed. 
+                # We ignore finished_at entirely for UI purposes.
+                phase_data['status_text'] = "Live" 
+                phase_data['status_color'] = "success" 
+                phase_data['milestone_date'] = started_at
+            else:
+                phase_data['status_text'] = "Pending Rollout"
+                phase_data['status_color'] = "secondary"
 
-    # 5. Return success and the formatted list (it will always have 6 items now)
+        formatted_data.append(phase_data)
+
     return {'status': True, 'data': formatted_data}
