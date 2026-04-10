@@ -342,6 +342,9 @@ def api_get_sr_detail(sr_no):
     task_result = task_transaction.get_timeline_trx(clean_sr_no)
     tasks = task_result.get('data', []) if isinstance(task_result, dict) else []
 
+    target_date_result = srlogs_transaction.get_target_date_trx(clean_sr_no)
+    target_dates = target_date_result.get('data', []) if isinstance(target_date_result, dict) else []
+
     actual_date_result = srlogs_transaction.get_phase_logs_trx(clean_sr_no)
     actual_dates = actual_date_result.get('data', []) if isinstance(actual_date_result, dict) else []
 
@@ -349,6 +352,7 @@ def api_get_sr_detail(sr_no):
         '/partials/_sr_detail_content.html', 
         sr=sr_data, 
         current_files_dict=current_files_dict,
-        tasks=tasks, 
+        tasks=tasks,
+        target_dates=target_dates,
         actual_dates=actual_dates 
     )

@@ -1,7 +1,7 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import srlogs_model
 from datetime import datetime
-from ..utils import converters
+from ..utils import converters, date_utils
 
 Log = Logger()
 
@@ -137,3 +137,88 @@ def get_phase_logs_trx(sr_no: str, shared_conn=None) -> dict:
         formatted_data.append(phase_data)
 
     return {'status': True, 'data': formatted_data}
+
+def get_target_date_trx(sr_no: str) -> dict:
+    db_result = srlogs_model.get_target_date(sr_no)
+    
+    if not db_result or not db_result.get('status') or not db_result.get('data'):
+        return {'status': False, 'data': []}
+
+    formatted_data = []
+    
+    raw_data = db_result['data']
+    rows = raw_data[1] if len(raw_data) == 2 and isinstance(raw_data[0], list) else raw_data
+
+    for row in rows:
+        is_dict = isinstance(row, dict)
+        
+        phase_id = row['phase_id'] if is_dict else row[0]
+        phase_detail = row['phase_detail'] if is_dict else row[1]
+        start_date = row['start_date'] if is_dict else row[2]
+        finish_date = row['finish_date'] if is_dict else row[3]
+
+        phase_data = {
+            'phase_id': phase_id,
+            'phase_name': phase_detail,
+            'start_date': start_date,
+            'finish_date': finish_date,
+            'is_milestone': False
+        }
+
+        # ==========================================
+        # CORRECTED TARGET DATE STATUS LOGIC
+        # ==========================================
+        if phase_id == 6: # Rollout Custom Logic
+            phase_data['is_milestone'] = True
+            if start_date:
+                phase_data['status_text'] = "Scheduled" 
+                phase_data['status_color'] = "info" # Blue/Info color for planned
+                phase_data['milestone_date'] = start_date
+            else:
+                phase_data['status_text'] = "Unscheduled"
+                phase_data['status_color'] = "secondary" # Gray for not set yet
+                
+        else: # Standard Phases
+            if start_date and finish_date:
+                phase_data['status_text'] = "Scheduled"
+                phase_data['status_color'] = "info"
+            elif start_date or finish_date:
+                phase_data['status_text'] = "Incomplete Plan" # Only one date filled out
+                phase_data['status_color'] = "warning"
+            else:
+                phase_data['status_text'] = "Unscheduled"
+                phase_data['status_color'] = "secondary"
+
+        formatted_data.append(phase_data)
+
+    return {'status': True, 'data': formatted_data}
+
+def process_target_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
+    """Extracts dates and saves them within the shared transaction."""
+    phase_ids = form_data.getlist('phase_id[]')
+    start_dates = form_data.getlist('start_date[]')
+    finish_dates = form_data.getlist('finish_date[]')
+    
+    if not phase_ids:
+        return {'status': True, 'msg': 'No phase dates to process.'}
+        
+    for idx, pid in enumerate(phase_ids):
+        try:
+            phase_id = int(pid)
+            start = start_dates[idx] if idx < len(start_dates) else None
+            finish = finish_dates[idx] if idx < len(finish_dates) else None
+            
+            # Pass the shared_conn down to the model
+            if phase_id != 6: 
+                date_utils.validate_date_range(start, finish, context=f"Fase {phase_id}")
+
+            res = srlogs_model.upsert_target_date(sr_no, phase_id, start, finish, shared_conn=shared_conn)
+            
+            # If ANY phase fails to save, break the transaction!
+            if not res.get('status'):
+                raise Exception(f"Failed to save dates for phase {phase_id}: {res.get('msg')}")
+                
+        except ValueError:
+            continue # Skip if somehow phase_id is not an integer
+
+    return {'status': True, 'msg': 'Jadwal berhasil disimpan.'}

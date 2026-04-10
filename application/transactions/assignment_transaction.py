@@ -1,7 +1,7 @@
+from application.transactions import srlogs_transaction, workflow_transaction
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
 from ..models import assignment_model
-from ..transactions import workflow_transaction
 from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
@@ -48,6 +48,10 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         assignments_result = assignment_model.get_sr_assignments_model(sr_no, assignable_role_ids)
         current_assignments = parse_rows(assignments_result)
 
+        #7. Fetch Target Dates for the SM to fill
+        target_dates_result = srlogs_transaction.get_target_date_trx(sr_no)
+        target_dates = target_dates_result.get('data', [])
+
         return {
             'status': True,
             'data': {
@@ -55,7 +59,8 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
                 'picroles': picroles,
                 'it_users': it_users,
                 'current_assignments': current_assignments,
-                'is_locked': is_locked
+                'is_locked': is_locked,
+                'target_dates': target_dates
             }
         }
     except Exception as e:
@@ -376,6 +381,10 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
         assign_result = submit_assignments_trx(sr_no, nik, form_data, shared_conn=shared_conn)
         if not assign_result.get('status'):
             raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
+        
+        date_result = srlogs_transaction.process_target_dates_trx(sr_no, form_data, shared_conn=shared_conn)
+        if not date_result.get('status'):
+            raise Exception(date_result.get('msg'))
 
         # 2. Execute the Phase Advancement
         advance_result = workflow_transaction.advance_sr_phase(
