@@ -50,3 +50,27 @@ def parse_period(value):
     except ValueError:
         # Jika format tidak sesuai, lemparkan error validasi
         raise ValueError('Format periode harus seperti Mar-2025.')
+    
+def validate_date_range(start_date: str, finish_date: str, context: str = "Data") -> None:
+    """
+    Validates that a start date is not after a finish date.
+    Raises an Exception if the validation fails.
+    """
+    # If either date is missing (None or empty string), there's nothing to compare
+    if not start_date or not finish_date:
+        return 
+
+    try:
+        # Parse standard HTML5 date input format (YYYY-MM-DD)
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d').date() if isinstance(start_date, str) else start_date
+        finish_dt = datetime.strptime(finish_date, '%Y-%m-%d').date() if isinstance(finish_date, str) else finish_date
+        
+        if start_dt > finish_dt:
+            raise Exception(f"Tanggal mulai tidak boleh lebih dari tanggal selesai untuk {context}.")
+            
+    except ValueError as e:
+        # This catches bad formats or impossible dates (like Feb 30th)
+        if "does not match format" in str(e) or "day is out of range" in str(e):
+            raise Exception(f"Format tanggal tidak valid pada {context}.")
+        else:
+            raise e # Re-raise if it's our custom validation exception

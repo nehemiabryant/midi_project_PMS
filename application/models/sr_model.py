@@ -262,7 +262,6 @@ def get_dashboard_grid(shared_conn=None) -> dict:
                 phase AS phase_name,
                 MIN(smk_id) AS phase_sort_order  -- Grabs the lowest ID for this phase to use for sorting
             FROM public.sr_ms_ket
-            WHERE phase != 'Takeout'
             GROUP BY phase
         ),
         division_progress AS (

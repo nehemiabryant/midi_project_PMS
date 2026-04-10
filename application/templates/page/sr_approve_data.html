@@ -6,197 +6,506 @@
 {% endwith %}
 
 <style>
-    /* Clean, read-only styling */
-    .form-input[readonly], .form-input:disabled {
-        background-color: #f8fafc;
-        color: #475569;
-        border-color: #e2e8f0;
-        cursor: not-allowed;
-    }
-    .document-card-readonly:hover {
-        border-color: #0d6efd !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-        transform: translateY(-2px);
-    }
-    /* Render raw HTML for richtext fields without the editor */
-    .readonly-richtext {
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 12px 16px;
-        color: #475569;
-        min-height: 80px;
-    }
+/* ========================================= */
+/* BASE WADAH UTAMA                          */
+/* ========================================= */
+.approval-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    max-width: 950px; /* Diperlebar sedikit untuk tabel assignment */
+    margin: 20px auto;
+}
+
+/* ========================================= */
+/* TYPOGRAPHY & HEADER                       */
+/* ========================================= */
+.approval-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.app-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 4px 0 0 0;
+}
+
+.compact-label {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.compact-value {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    display: block;
+}
+
+.badge-kategori {
+    display: inline-block;
+    background-color: #e0e7ff;
+    color: #4338ca;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.progress-text-green {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #059669; 
+    display: block;
+}
+
+/* ========================================= */
+/* LAYOUT GRID (INFO SINGKAT & PANJANG)      */
+/* ========================================= */
+.compact-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 Kolom agar muat banyak info */
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.info-block { display: flex; flex-direction: column; }
+.info-block.full-width { grid-column: 1 / -1; margin-bottom: 16px; }
+
+.readonly-richtext-compact {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 60px;
+}
+
+/* ========================================= */
+/* DOKUMEN LAMPIRAN                          */
+/* ========================================= */
+.compact-attachment-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.compact-doc-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.compact-doc-item:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.doc-icon {
+    width: 36px; height: 36px; background: #f1f5f9; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden; color: #ef4444;
+}
+.doc-icon img { width: 100%; height: 100%; object-fit: cover; }
+.doc-info { display: flex; flex-direction: column; }
+.doc-title { font-size: 12px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;}
+.doc-link { font-size: 11px; font-weight: 600; color: #3b82f6; }
+.empty-doc-compact { font-size: 13px; color: #64748b; font-style: italic; padding: 8px 0; }
+
+/* ========================================= */
+/* PANEL APPROVAL, FIELDSET, & FORM          */
+/* ========================================= */
+.approval-action-panel {
+    margin-top: 32px;
+    padding: 24px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+fieldset {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    background: #ffffff;
+}
+
+legend {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    background: #f8fafc;
+    padding: 4px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+}
+
+/* Tabel Modern di Dalam Fieldset */
+.modern-inner-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.modern-inner-table th { padding: 10px; font-size: 12px; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0; text-align: left;}
+.modern-inner-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+
+.compact-select, .compact-input, .sm-dynamic-input {
+    width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+    font-family: inherit; font-size: 13px; font-weight: 500; color: #0f172a;
+    background-color: #ffffff; outline: none; transition: 0.2s; box-sizing: border-box;
+}
+
+.compact-select:focus, .compact-input:focus, .sm-dynamic-input:focus {
+    border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.compact-input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+.btn-add-row {
+    background: #eff6ff; color: #3b82f6; border: 1px dashed #bfdbfe;
+    padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: 0.2s;
+}
+.btn-add-row:hover { background: #dbeafe; border-color: #3b82f6; }
+
+.btn-delete-row {
+    background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;
+    padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: 0.2s;
+}
+.btn-delete-row:hover { background: #fee2e2; border-color: #ef4444; }
+
+/* Tombol Submit & Cancel */
+.action-bottom-row { display: flex; align-items: flex-end; gap: 16px; justify-content: space-between; margin-top: 10px; }
+.action-buttons-group { display: flex; gap: 12px; }
+.btn-compact-cancel { padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #475569; background: #ffffff; border: 1px solid #cbd5e1; text-decoration: none; display: inline-flex; align-items: center; transition: 0.2s; }
+.btn-compact-cancel:hover { background: #f1f5f9; color: #0f172a; }
+.btn-compact-submit { padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #ffffff; background: #3b82f6; border: none; cursor: pointer; transition: 0.2s; }
+.btn-compact-submit:hover { background: #2563eb; }
+
+/* Stakeholders Section */
+.stakeholder-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; }
+.stakeholder-box { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;}
+.stakeholder-box h4 { margin: 0 0 12px 0; font-size: 14px; color: #0f172a;}
+.stakeholder-box p { margin: 0 0 8px 0; font-size: 13px; color: #475569; }
+.stakeholder-box ul { margin: 0; padding-left: 20px; font-size: 13px; color: #475569; }
+
+/* Responsif HP */
+@media (max-width: 768px) {
+    .compact-grid { grid-template-columns: 1fr 1fr; }
+    .action-bottom-row { flex-direction: column; align-items: stretch; }
+    .action-buttons-group { justify-content: flex-end; margin-top: 15px;}
+}
+@media (max-width: 480px) {
+    .compact-grid { grid-template-columns: 1fr; }
+}
 </style>
 
-<h2>SR Details</h2>
+<div class="page-content">
+    <div class="approval-card">
+        
+        <div class="approval-header">
+            <span class="compact-label">Nama Aplikasi</span>
+            <h2 class="app-title">{{ sr_data.app_name }}</h2>
+        </div>
 
-<p><strong>Nama Aplikasi:</strong> {{ sr_data.app_name }}</p>
-<p><strong>SR Number:</strong> {{ sr_data.sr_no }}</p>
-<p><strong>Current Status:</strong> {{ sr_data.current_status }}</p>
-<p><strong>Ticket Progress:</strong> {{ sr_data.ticket_progress }}%</p>
-<p><strong>Requester:</strong> {{ sr_data.req_id }} - {{ sr_data.requester_name }}</p>
-<p><strong>Kategori SR:</strong> {{ sr_data.ctg_name }}</p>
-<p><strong>Modul:</strong> {{ sr_data.module }}</p>
-<p><strong>Divisi:</strong> {{ sr_data.division }}</p>
+        <div class="compact-grid">
+            <div class="info-block">
+                <span class="compact-label">SR Number</span>
+                <span class="compact-value" style="color: #3b82f6;">{{ sr_data.sr_no }}</span>
+            </div>
+            <div class="info-block">
+                <span class="compact-label">Kategori SR</span>
+                <span class="compact-value badge-kategori">{{ sr_data.ctg_name }}</span>
+            </div>
+            <div class="info-block">
+                <span class="compact-label">Current Status</span>
+                <span class="compact-value">{{ sr_data.current_status }}</span>
+            </div>
+            <div class="info-block">
+                <span class="compact-label">Progress</span>
+                <span class="progress-text-green">{{ sr_data.ticket_progress | default('0') }}%</span>
+            </div>
 
-<div>
-    <strong>Tujuan:</strong>
-    <div>{{ sr_data.purpose | safe }}</div>
-</div>
+            <div class="info-block">
+                <span class="compact-label">Requester</span>
+                <span class="compact-value" style="font-size: 13px;">{{ sr_data.req_id }} - {{ sr_data.requester_name }}</span>
+            </div>
+            <div class="info-block">
+                <span class="compact-label">Divisi</span>
+                <span class="compact-value">{{ sr_data.division }}</span>
+            </div>
+            <div class="info-block">
+                <span class="compact-label">Modul / Area</span>
+                <span class="compact-value">{{ sr_data.module }}</span>
+            </div>
+            <div class="info-block">
+                <span class="compact-label">Number of User</span>
+                <span class="compact-value">{{ sr_data.num_user if sr_data.num_user else '-' }}</span>
+            </div>
+        </div>
 
-<div>
-    <strong>Detail Permohonan:</strong>
-    <div>{{ sr_data.details | safe }}</div>
-</div>
+        <div class="info-block full-width">
+            <span class="compact-label">Tujuan (Purpose)</span>
+            <div class="readonly-richtext-compact">{{ sr_data.purpose | safe }}</div>
+        </div>
 
-<div>
-    <strong>Frequency:</strong>
-    <div>{{ sr_data.frequency | safe }}</div>
-</div>
+        <div class="info-block full-width">
+            <span class="compact-label">Detail Permohonan</span>
+            <div class="readonly-richtext-compact">{{ sr_data.details | safe }}</div>
+        </div>
 
-<p><strong>Values:</strong> {{ sr_data.value }}</p>
-<p><strong>Number of User:</strong> {{ sr_data.num_user }}</p>
+        <div class="compact-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+            <div class="info-block full-width" style="grid-column: span 1;">
+                <span class="compact-label">Frequency</span>
+                <div class="readonly-richtext-compact">{{ sr_data.frequency | safe }}</div>
+            </div>
+            <div class="info-block full-width" style="grid-column: span 1;">
+                <span class="compact-label">Values ({{ sr_data.value }})</span>
+                <div class="readonly-richtext-compact">{{ sr_data.value_det | safe }}</div>
+            </div>
+        </div>
 
-<div>
-    <strong>Keterangan Values:</strong>
-    <div>{{ sr_data.value_det | safe }}</div>
-</div>
-
-<h3>Lampiran</h3>
-{% if current_files and current_files|length > 0 %}
-    <ul>
-        {% for doc in current_files %}
-            <li>
-                <strong>{{ doc.attach_details }}</strong><br>
-                <a href="{{ doc.file_url }}" target="_blank">Lihat File PDF</a>
-                {% if doc.thumbnail_url %}
-                    <img src="{{ doc.thumbnail_url }}" alt="Thumbnail">
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>Tidak ada dokumen yang dilampirkan.</p>
-{% endif %}
-
-
-<h3>Approval Action</h3>
-<form id="srApproveForm" method="POST" action="">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    {% if is_gm and gm_assign_data %}
-        <fieldset>
-            <legend>Assign IT Senior Manager</legend>
+        <div class="info-block full-width" style="margin-top: 16px;">
+            <span class="compact-label" style="margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Dokumen Lampiran</span>
             
-            {% if not gm_assign_data.is_locked %}
-                <p>Pilih IT SM yang akan bertanggung jawab:</p>
-                <ul>
-                    {% for sm in gm_assign_data.sm_options %}
-                        <li>
-                            <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
-                            <label for="sm_{{ sm.nik }}">{{ sm.nik }} - {{ sm.nama }}</label>
-                        </li>
+            <div class="compact-attachment-list">
+                {% if current_files and current_files|length > 0 %}
+                    {% for doc in current_files %}
+                        <a href="{{ doc.file_url }}" target="_blank" class="compact-doc-item">
+                            <div class="doc-icon">
+                                {% if doc.thumbnail_url %}
+                                    <img src="{{ doc.thumbnail_url }}" alt="Thumb">
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                {% endif %}
+                            </div>
+                            <div class="doc-info">
+                                <span class="doc-title">{{ doc.attach_details }}</span>
+                                <span class="doc-link">Lihat Dokumen ↗</span>
+                            </div>
+                        </a>
                     {% endfor %}
-                </ul>
-            {% else %}
-                <p>Assignment IT SM sudah terkunci.</p>
-                {% if gm_assign_data.current_sm %}
-                    <ul>
-                        {% for sm in gm_assign_data.current_sm %}
-                            <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
-                        {% endfor %}
-                    </ul>
+                {% else %}
+                    <div class="empty-doc-compact">Tidak ada dokumen yang dilampirkan.</div>
                 {% endif %}
-            {% endif %}
-        </fieldset>
-    {% endif %}
+            </div>
+        </div>
 
-    {% if is_sm and assignment_data %}
-        <fieldset>
-            <legend>Assign PIC Tim</legend>
-            <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
+        <div class="approval-action-panel">
+            <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #0f172a;">Approval Action</h3>
             
-            <table id="assign-table" style="width: 100%; margin-bottom: 10px; text-align: left;">
-                <thead>
-                    <tr>
-                        <th style="width: 45%;">User</th>
-                        <th style="width: 45%;">Role</th>
-                        <th style="width: 10%;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <select name="assign_user[]" class="sm-dynamic-input" style="width: 95%;">
-                                <option value="">-- Pilih User --</option>
-                                {% for u in assignment_data.it_users %}
-                                    <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+            <form id="srApproveForm" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                {% if is_gm and gm_assign_data %}
+                    <fieldset>
+                        <legend>Assign IT Senior Manager</legend>
+                        
+                        {% if not gm_assign_data.is_locked %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                {% for sm in gm_assign_data.sm_options %}
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
+                                        <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
+                                        {{ sm.nik }} - {{ sm.nama }}
+                                    </label>
                                 {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select name="assign_role[]" class="sm-dynamic-input" style="width: 95%;">
-                                <option value="">-- Pilih Role --</option>
-                                {% for role in assignment_data.picroles %}
-                                    <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                            </div>
+                        {% else %}
+                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment IT SM sudah terkunci.</p>
+                            {% if gm_assign_data.current_sm %}
+                                <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
+                                    {% for sm in gm_assign_data.current_sm %}
+                                        <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endif %}
+                    </fieldset>
+                {% endif %}
+
+                {% if is_sm and assignment_data %}
+                    <fieldset>
+                        <legend>Assign PIC Tim</legend>
+                        
+                        {% if not assignment_data.is_locked %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role.</p>
+                            
+                            <table id="assign-table" class="modern-inner-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 45%;">User</th>
+                                        <th style="width: 45%;">Role</th>
+                                        <th style="width: 10%; text-align: center;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <select name="assign_user[]" class="sm-dynamic-input">
+                                                <option value="">-- Pilih User --</option>
+                                                {% for u in assignment_data.it_users %}
+                                                    <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="assign_role[]" class="sm-dynamic-input">
+                                                <option value="">-- Pilih Role --</option>
+                                                {% for role in assignment_data.picroles %}
+                                                    <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td style="text-align: center;"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn-add-row" onclick="addAssignRow()">+ Tambah Baris</button>
+                        
+                        {% else %}
+                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment PIC Tim sudah terkunci.</p>
+                            {% if assignment_data.current_assignments %}
+                                <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
+                                    {% for pic in assignment_data.current_assignments %}
+                                        <li><strong>{{ pic.it_role_detail }}</strong>: {{ pic.assigned_user }} - {{ pic.nama }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p style="font-size: 13px; color: #94a3b8; font-style: italic;">Belum ada PIC yang di-assign.</p>
+                            {% endif %}
+                        {% endif %}
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Set Project Schedule</legend>
+                        
+                        {% if not assignment_data.is_locked %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tentukan target tanggal mulai dan selesai untuk masing-masing fase.</p>
+                        {% else %}
+                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Jadwal project sudah terkunci.</p>
+                        {% endif %}
+
+                        <table class="modern-inner-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Phase Name</th>
+                                    <th style="width: 35%;">Target Start Date</th>
+                                    <th style="width: 35%;">Target Finish Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for phase in assignment_data.target_dates %}
+                                <tr>
+                                    <td style="font-weight: 600; font-size: 13px; color: #334155;">
+                                        {{ phase.phase_name }}
+                                        <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
+                                    </td>
+                                    <td>
+                                        <input type="date" name="start_date[]" class="compact-input"
+                                            value="{{ phase.start_date or '' }}" 
+                                            {% if assignment_data.is_locked %}disabled{% endif %}>
+                                    </td>
+                                    <td>
+                                        {% if phase.phase_id == 6 %}
+                                            <input type="hidden" name="finish_date[]" value="">
+                                            <span style="font-size: 12px; color: #94a3b8; font-style: italic;">(N/A)</span>
+                                        {% else %}
+                                            <input type="date" name="finish_date[]" class="compact-input"
+                                                value="{{ phase.finish_date or '' }}"
+                                                {% if assignment_data.is_locked %}disabled{% endif %}>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" style="text-align: center; font-size: 13px; color: #94a3b8;">No phases found in database.</td>
+                                </tr>
                                 {% endfor %}
-                            </select>
-                        </td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-            <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
-        </fieldset>
-    {% endif %}
+                            </tbody>
+                        </table>
+                    </fieldset>
+                {% endif %}
 
-    <label for="action-select">Select Action *</label>
-    <select name="intended_next_smk_id" id="action-select" required>
-        <option value="" disabled selected>-- Choose next step --</option>
-        {% for opt in options %}
-            <option value="{{ opt.next_smk_id }}" data-is-forward="{% if opt.next_smk_id > sr_data.smk_id %}true{% else %}false{% endif %}">
-                {{ opt.rule_detail }}
-            </option>
-        {% endfor %}
-    </select>
-    
-    <a href="{{ url_for('owh_dashboard.myWork_menu') }}">Cancel</a>
-    <button type="submit" id="submitBtn">Confirm & Submit</button>
-</form>
+                <div class="action-bottom-row">
+                    <div style="flex: 1; max-width: 400px;">
+                        <label for="action-select" class="compact-label" style="color: #1e293b; margin-bottom: 8px;">Select Action <span style="color: #ef4444;">*</span></label>
+                        <select name="intended_next_smk_id" id="action-select" class="compact-select" required>
+                            <option value="" disabled selected>-- Choose next step --</option>
+                            {% for opt in options %}
+                                <option value="{{ opt.next_smk_id }}" data-is-forward="{% if opt.next_smk_id > sr_data.smk_id %}true{% else %}false{% endif %}">
+                                    {{ opt.rule_detail }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="action-buttons-group">
+                        <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn-compact-cancel">Cancel</a>
+                        <button type="submit" id="submitBtn" class="btn-compact-submit">Confirm & Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
 
-{% if ticket_actors and ticket_actors.origins %}
-    <div class="origins-section">
-        <h4>Creators</h4>
-        <p><strong>Requester:</strong> {{ ticket_actors.origins.requester.nik }} - {{ ticket_actors.origins.requester.name }}</p>
-        <p><strong>Maker:</strong> {{ ticket_actors.origins.maker.nik }} - {{ ticket_actors.origins.maker.name }}</p>
+        <div class="stakeholder-section">
+            <h3 style="font-size: 16px; margin-bottom: 16px; color: #0f172a;">Stakeholder Information</h3>
+            {% if ticket_actors and ticket_actors.origins %}
+                <div class="compact-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
+                    
+                    <div class="stakeholder-box">
+                        <h4>Creators</h4>
+                        <p><strong>Requester:</strong> {{ ticket_actors.origins.requester.nik }} - {{ ticket_actors.origins.requester.name }}</p>
+                        <p><strong>Maker:</strong> {{ ticket_actors.origins.maker.nik }} - {{ ticket_actors.origins.maker.name }}</p>
+                    </div>
+
+                    <div class="stakeholder-box">
+                        <h4>Active Approvers</h4>
+                        {% for role_name, users in ticket_actors.approvers.items() %}
+                            <p style="margin-bottom: 4px;"><strong>{{ role_name }}:</strong></p>
+                            <ul style="margin-bottom: 12px;">
+                            {% for user in users %}
+                                <li>{{ user.nik }} - {{ user.name }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endfor %}
+                        
+                        {% if not ticket_actors.approvers %}
+                            <p style="font-style: italic; color: #94a3b8;">No active approvers found for this stage.</p>
+                        {% endif %}
+                    </div>
+
+                </div>
+            {% else %}
+                <p style="font-size: 13px; color: #64748b; font-style: italic;">Stakeholder data is currently unavailable.</p>
+            {% endif %}
+        </div>
+
     </div>
-
-    <div class="approvers-section">
-        <h4>Active Approvers</h4>
-        
-        {% for role_name, users in ticket_actors.approvers.items() %}
-            <h5>{{ role_name }}:</h5>
-            <ul>
-            {% for user in users %}
-                <li>{{ user.nik }} - {{ user.name }}</li>
-            {% endfor %}
-            </ul>
-        {% endfor %}
-        
-        {% if not ticket_actors.approvers %}
-            <p><em>No active approvers found for this stage.</em></p>
-        {% endif %}
-    </div>
-{% else %}
-    <p><em>Stakeholder data is currently unavailable.</em></p>
-{% endif %}
+</div>
 
 <script>
     // Handles adding new rows for the SM assignment table
     function addAssignRow() {
         const tbody = document.querySelector('#assign-table tbody');
-        if (!tbody) return; // Guard clause if table doesn't exist
+        if (!tbody) return; 
         
         const firstRow = tbody.querySelector('tr');
         const newRow = firstRow.cloneNode(true);
@@ -206,11 +515,11 @@
         
         // Add delete button
         const lastTd = newRow.querySelector('td:last-child');
-        lastTd.innerHTML = `<button type="button" onclick="this.closest('tr').remove()">Hapus</button>`;
+        lastTd.innerHTML = `<button type="button" class="btn-delete-row" onclick="this.closest('tr').remove()">Hapus</button>`;
         
         tbody.appendChild(newRow);
         
-        // Re-run validation logic for new row if a forward action is already selected
+        // Re-run validation logic
         applyRequiredLogic();
     }
 
@@ -235,12 +544,31 @@
         });
     }
 
-    // Initialize the event listener
     document.addEventListener('DOMContentLoaded', function() {
         const actionSelect = document.getElementById('action-select');
         if (actionSelect) {
             actionSelect.addEventListener('change', applyRequiredLogic);
         }
+    });
+
+    // Date Logic
+    document.addEventListener('DOMContentLoaded', function() {
+        const startInputs = document.querySelectorAll('input[name="start_date[]"]');
+        const finishInputs = document.querySelectorAll('input[name="finish_date[]"]');
+
+        finishInputs.forEach((finishInput, index) => {
+            if (finishInput.type === 'hidden') return; 
+
+            const startInput = startInputs[index];
+
+            startInput.addEventListener('change', function() {
+                if (this.value) { finishInput.min = this.value; }
+            });
+
+            finishInput.addEventListener('change', function() {
+                if (this.value) { startInput.max = this.value; }
+            });
+        });
     });
 </script>
 {% endblock %}

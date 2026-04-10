@@ -185,44 +185,24 @@
 
                 <div class="form-group full-width" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                     
-                    {% if mode == 'approve' %}
-                        <div class="action-section" style="margin-bottom: 20px;">
-                            <label for="action-select" class="form-label">Select Action <span style="color: #ef4444;">*</span></label>
-                            <select name="intended_next_smk_id" id="action-select" class="form-input" required style="max-width: 400px;">
-                                <option value="" disabled selected>-- Choose next step --</option>
-                                {% for opt in options %}
-                                    <option value="{{ opt.next_smk_id }}">{{ opt.rule_detail }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="form-actions" style="justify-content: flex-end; gap: 10px;">
-                            <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn btn-cancel">Cancel</a>
-                            <button type="submit" class="btn btn-primary" style="background-color: #0d6efd; color: white; padding: 10px 20px; border-radius: 6px; border: none;">Confirm & Submit</button>
-                        </div>
+                    <div class="action-section" style="margin-bottom: 20px;">
+                        <label for="sr_action" class="form-label">Tindakan <span style="color: #ef4444;">*</span></label>
+                        <select name="sr_action" id="sr_action" class="form-input" required style="max-width: 400px;">
+                            {% for opt in options %}
+                                <option value="{{ opt.next_smk_id }}">{{ opt.rule_detail }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions" style="justify-content: flex-end; gap: 10px;">
+                        <a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Batal</a>
+                        <button type="submit" class="btn btn-primary" style="background-color: #0d6efd; color: white; padding: 10px 20px; border-radius: 6px; border: none;">Proses</button>
+                    </div>
 
-                    {% else %}
-                        <div class="form-actions" style="justify-content: flex-end; gap: 10px;">
-                            <a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Cancel</a>
-                            <button type="submit" class="btn btn-create">{{ 'Update' if sr_data else 'Create' }}</button>
-                        </div>
-                    {% endif %}
                 </div>
 
             </div>
         </form>
-
-        {% if mode != 'approve' and sr_data and sr_data.smk_id == 101 %}
-        <form method="POST" action="{{ url_for('owh_sr.confirmSR_menu', sr_no=sr_data.sr_no) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-actions" style="margin-top: 12px; justify-content: flex-end;">
-                <button type="submit" class="btn btn-create" style="background-color: #16a34a;">
-                    Konfirmasi &amp; Ajukan ke Atasan
-                </button>
-            </div>
-        </form>
-        {% endif %}
-
     </div>
 </div>
 {% endblock %}
@@ -267,8 +247,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     li.style.borderBottom = "1px solid #f1f5f9";
                     li.innerHTML = `<strong style="color: #0f172a;">${item.nik}</strong> - <span style="color: #334155; font-weight: 500;">${item.nama}</span> <br><small style="color:#64748b;">${item.jabatan}</small>`; 
                     
-                    li.innerHTML = `<strong>${item.nik}</strong> - ${item.nama} <br><small style="color:gray;">${item.jabatan}</small>`; 
-                    
                     li.onmouseover = () => li.style.backgroundColor = "#f3f4f6";
                     li.onmouseout = () => li.style.backgroundColor = "white";
 
@@ -278,7 +256,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // 2. Set the division value when clicked!
                         if (divisionInput) {
-                            // Ensure we don't print "undefined" if data is missing
                             divisionInput.value = item.divisi || ''; 
                         }
 

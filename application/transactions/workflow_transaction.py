@@ -366,3 +366,14 @@ def get_dropdown_options(current_smk_id: int, sr_no: str = None, nik: str = None
     except Exception as e:
         Log.error(f"Exception | Get Dropdown Options | Msg: {str(e)}")
         return []
+    
+def get_update_action() -> list:
+    """
+    Mengembalikan aksi default untuk menyimpan draft / update data 
+    tanpa merubah status/phase SR.
+    """
+    return [{
+        'next_smk_id': 'update_only',
+        'rule_detail': 'Simpan sebagai Draft (Update Data)',
+        'action_type': 'update'
+    }]
