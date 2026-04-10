@@ -328,6 +328,7 @@ def project_details_design_menu(sr_no):
                            role=session.get('role'), 
                            active_menu='project_details',
                            sr_no=sr_no)
+
 @sr_bp.route('/api/get_sr_detail/<path:sr_no>', methods=['GET'])
 @login_required
 def api_get_sr_detail(sr_no):

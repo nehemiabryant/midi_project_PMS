@@ -132,7 +132,8 @@
         <div id="add-task-form-{{ section.it_role_id }}" style="display:none; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <input type="text" class="form-select-modern" id="new-task-detail-{{ section.it_role_id }}" placeholder="Detail task..." style="flex: 2; min-width: 200px;">
-                <input type="date" class="form-select-modern" id="new-task-target-{{ section.it_role_id }}" style="flex: 1; min-width: 150px;">
+                <input type="date" class="form-select-modern" id="new-task-target-{{ section.it_role_id }}" placeholder="Target" style="flex: 1; min-width: 150px;">
+                <input type="date" class="form-select-modern" id="new-task-actual-{{ section.it_role_id }}" placeholder="Realisasi" style="flex: 1; min-width: 150px;">
                 <div style="display: flex; gap: 8px;">
                     <button type="button" class="btn-action" style="background: #10b981; color: white;" onclick="createTask('{{ section.it_role_id }}')">Simpan</button>
                     <button type="button" class="btn-action" style="background: #e2e8f0; color: #475569;" onclick="hideAddTaskForm('{{ section.it_role_id }}')">Batal</button>
@@ -160,17 +161,17 @@
                         <input class="form-select-modern task-name-edit" type="text" value="{{ task.task_detail }}" style="display:none; padding: 6px 10px;">
                     </td>
                     <td>
-                        <span class="task-target-display">{{ task.target_date if task.target_date else '-' }}</span>
-                        <input class="form-select-modern task-target-edit" type="date" value="{{ task.target_date if task.target_date else '' }}" style="display:none; padding: 6px 10px;">
+                        <span class="task-target-display">{{ task.target_date | format_date_wib }}</span>
+                        <input class="form-select-modern task-target-edit" type="date" value="{{ task.target_date.strftime('%Y-%m-%d') if task.target_date else '' }}" style="display:none; padding: 6px 10px;">
                     </td>
                     <td>
-                        <span class="task-actual-display">{{ task.actual_date if task.actual_date else '-' }}</span>
-                        <input class="form-select-modern task-actual-edit" type="date" value="{{ task.actual_date if task.actual_date else '' }}" style="display:none; padding: 6px 10px;">
+                        <span class="task-actual-display">{{ task.actual_date | format_date_wib }}</span>
+                        <input class="form-select-modern task-actual-edit" type="date" value="{{ task.actual_date.strftime('%Y-%m-%d') if task.actual_date else '' }}" style="display:none; padding: 6px 10px;">
                     </td>
                     <td style="text-align: center; display: flex; justify-content: center; gap: 6px; align-items: center;">
-                        <button class="btn-action" style="background: #eef2ff; color: #3b82f6;" onclick="toggleEdit(this)">Edit</button>
-                        <button class="btn-action" style="background: #10b981; color: white; display:none;" onclick="saveTask(this)">Simpan</button>
-                        <button class="btn-action" style="background: #f1f5f9; color: #475569; display:none;" onclick="cancelEdit(this)">Batal</button>
+                        <button class="btn-action btn-edit" style="background: #eef2ff; color: #3b82f6;" onclick="toggleEdit(this)">Edit</button>
+                        <button class="btn-action btn-save" style="background: #10b981; color: white; display:none;" onclick="saveTask(this)">Simpan</button>
+                        <button class="btn-action btn-cancel" style="background: #f1f5f9; color: #475569; display:none;" onclick="cancelEdit(this)">Batal</button>
                         <button class="btn-action btn-remove" onclick="deleteTask({{ task.task_id }})">Hapus</button>
                     </td>
                 </tr>
