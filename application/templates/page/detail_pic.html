@@ -37,7 +37,9 @@
             <div class="info-group full-width">
                 <span class="info-label">Role Anda</span>
                 <div class="role-badges" style="margin-top: 6px;">
-                    {% if pic_sections %}
+                    {% if is_pm %}
+                        <span class="badge-role">IT PMO</span>
+                    {% elif pic_sections %}
                         {% for sec in pic_sections %}
                             <span class="badge-role">{{ sec.it_role_detail }}</span>
                         {% endfor %}

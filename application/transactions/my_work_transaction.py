@@ -1,9 +1,10 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import my_work_model, assignment_model, task_model
-from ..transactions import assignment_transaction
 from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
+
+UAT_PHASES = {112, 113}
 
 # Status class mapping untuk badge styling di template
 # TODO: Tambahkan kolom status_class ke sr_ms_ket agar mapping ini bisa di-derive dari DB
@@ -85,7 +86,7 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
 def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
     """
     Ambil semua data untuk halaman detail SR (Hanya untuk View & PIC Task).
-    Validasi: user harus ter-assign pada SR ini.
+    Validasi: user harus ter-assign pada SR ini.be
     """
     try:
         # 1. Cek apakah user ter-assign pada SR ini
@@ -129,6 +130,10 @@ def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
             if r['it_role_id'] in assignable_role_ids
             and current_smk_id in territory_map.get(r['it_role_id'], [])
         ]
+
+        # IT PMO di fase UAT diperlakukan sebagai PIC (bisa jalankan workflow)
+        it_pmo_role = next((r for r in user_roles if r['it_role_detail'] == 'IT PMO'), None)
+        is_pm = it_pmo_role is not None and current_smk_id in UAT_PHASES
         
         all_tasks_result = task_model.get_all_tasks_by_sr_model(sr_no)
         all_tasks = parse_rows(all_tasks_result)
@@ -149,6 +154,15 @@ def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
                 'tasks': tasks_by_role.get(role_id, []),
             })
 
+        # IT PMO di fase UAT: tampilkan section task milik IT PMO sendiri (task UAT)
+        if is_pm:
+            pic_sections.append({
+                'it_role_id': it_pmo_role['it_role_id'],
+                'it_role_detail': 'UAT',
+                'assign_id': it_pmo_role['assign_id'],
+                'tasks': tasks_by_role.get(it_pmo_role['it_role_id'], []),
+            })
+
         return {
             'status': True,
             'data': {
@@ -158,7 +172,8 @@ def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
                 'assignments_by_role': assignments_by_role,
                 'is_sm': is_sm,
                 'is_gm': is_gm,
-                'is_pic': len(pic_roles) > 0,
+                'is_pic': len(pic_roles) > 0 or is_pm,
+                'is_pm': is_pm,
                 'pic_sections': pic_sections,
             }
         }
