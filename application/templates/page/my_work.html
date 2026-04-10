@@ -35,7 +35,6 @@
             <th>NO SR</th>
             <th>STATUS</th>
             <th>CREATED SR</th>
-            <th>UPDATED</th>
             <th>ACTION</th>
           </tr>
         </thead>
@@ -50,8 +49,7 @@
                 <td>
                   <span class="status-badge {{ item.status_class }}">{{ item.status_label }}</span>
                 </td>
-                <td>{{ item.created_at }}</td>
-                <td>{{ item.updated_at }}</td>
+                <td>{{ item.created_at | format_wib }}</td>
                 <td>
                   {% if 9 in item.role_ids and item.smk_id == 101 %}
                       <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Edit</a>
