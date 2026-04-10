@@ -125,10 +125,10 @@
                         <tr>
                             <td class="fw-bold">{{ phase.phase_name }}</td>
                             <td class="text-muted">
-                                {{ phase.started_at | format_wib }}
+                                {{ phase.started_at.strftime('%d %b %Y, %H:%M') if phase.started_at else '-' }}
                             </td>
                             <td class="text-muted">
-                                {{ phase.finished_at | format_wib }}
+                                {{ phase.finished_at.strftime('%d %b %Y, %H:%M') if phase.finished_at else '-' }}
                             </td>
                             <td style="text-align: center;">
                                 <span class="badge bg-{{ phase.status_color }} text-dark"> 
@@ -173,10 +173,10 @@
                         </td>
                         <td>{{ t.task_detail }}</td>
                         <td class="text-muted">
-                            {{ t.target_date | format_date_wib }}
+                            {{ t.target_date.strftime('%d %b %Y') if t.target_date else '-' }}
                         </td>
                         <td style="color: {% if t.actual_date %}#10b981{% else %}#9ca3af{% endif %}; font-weight: 500;">
-                            {{ t.actual_date | format_date_wib }}
+                            {{ t.actual_date.strftime('%d %b %Y') if t.actual_date else '-' }}
                         </td>
                     </tr>
                     {% endfor %}

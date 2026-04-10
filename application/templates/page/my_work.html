@@ -12,19 +12,36 @@
 <div class="page-content">
   <section class="my-work-card">
     <div class="my-work-toolbar">
-      <form method="GET" action="{{ url_for('owh_dashboard.myWork_menu') }}" class="my-work-search-form">
-        <div class="my-work-search">
-          <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-          <input
-            type="text"
-            name="q"
-            value="{{ search_query }}"
-            placeholder="Search SR number or title..."
-          />
-        </div>
-      </form>
+      
+      <div class="my-work-filters-wrapper">
+          <div class="my-work-search">
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input
+              type="text"
+              id="searchMyWork"
+              value="{{ search_query }}"
+              placeholder="Search SR number or title..."
+              onkeyup="filterMyWorkTable()"
+            />
+          </div>
+
+          {% set unique_statuses = [] %}
+          {% for item in my_work_items %}
+              {% if item.status_label not in unique_statuses %}
+                  {% set _ = unique_statuses.append(item.status_label) %}
+              {% endif %}
+          {% endfor %}
+          
+          <select id="filterStatus" class="my-work-select" onchange="filterMyWorkTable()">
+              <option value="">Semua Status</option>
+              {% for st in unique_statuses|sort %}
+                  <option value="{{ st|lower }}">{{ st }}</option>
+              {% endfor %}
+          </select>
+      </div>
+
       <div class="my-work-toolbar-info">
-        {{ my_work_items|length }} SR ditampilkan
+        <span id="visibleRowCount">{{ my_work_items|length }}</span> SR ditampilkan
       </div>
     </div>
 
@@ -38,16 +55,16 @@
             <th>ACTION</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="myWorkTableBody">
           {% if my_work_items %}
             {% for item in my_work_items %}
-              <tr>
+              <tr class="my-work-row">
                 <td class="my-work-no">
-                  <div>{{ item.sr_no }}</div>
-                  <div class="my-work-title">{{ item.title }}</div>
+                  <div class="sr-number">{{ item.sr_no }}</div>
+                  <div class="my-work-title sr-title">{{ item.title }}</div>
                 </td>
                 <td>
-                  <span class="status-badge {{ item.status_class }}">{{ item.status_label }}</span>
+                  <span class="status-badge status-text {{ item.status_class }}">{{ item.status_label }}</span>
                 </td>
                 <td>{{ item.created_at | format_wib }}</td>
                 <td>
@@ -68,7 +85,7 @@
               </tr>
             {% endfor %}
           {% else %}
-            <tr class="my-work-empty-row">
+            <tr class="my-work-empty-row" id="emptyRowMessage">
               <td colspan="5">Belum ada SR yang sedang berada di akun Anda.</td>
             </tr>
           {% endif %}
@@ -77,7 +94,7 @@
     </div>
 
     <div class="my-work-footer">
-      <span>Showing {{ my_work_items|length }} of {{ my_work_total }} SR</span>
+      <span>Showing <span id="footerRowCount">{{ my_work_items|length }}</span> of {{ my_work_total }} SR</span>
       <div class="my-work-pagination">
         <button type="button" class="my-work-page-btn" disabled>Previous</button>
         <button type="button" class="my-work-page-btn" disabled>Next</button>
@@ -85,4 +102,44 @@
     </div>
   </section>
 </div>
+
+<script>
+function filterMyWorkTable() {
+    const searchText = document.getElementById('searchMyWork').value.toLowerCase();
+    const statusFilter = document.getElementById('filterStatus').value.toLowerCase();
+    
+    const tbody = document.getElementById('myWorkTableBody');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('tr.my-work-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        // Ambil teks untuk pencarian (Nomor SR & Judul)
+        const srNumber = row.querySelector('.sr-number').textContent.toLowerCase();
+        const srTitle = row.querySelector('.sr-title').textContent.toLowerCase();
+        
+        // Ambil teks untuk filter status
+        const statusElement = row.querySelector('.status-text');
+        const statusText = statusElement ? statusElement.textContent.toLowerCase().trim() : '';
+
+        // Cek kondisi
+        const matchesSearch = srNumber.includes(searchText) || srTitle.includes(searchText);
+        const matchesStatus = statusFilter === "" || statusText === statusFilter;
+
+        // Tampilkan/Sembunyikan baris
+        if (matchesSearch && matchesStatus) {
+            row.style.display = "";
+            visibleCount++;
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    // Update jumlah baris yang terlihat di UI
+    document.getElementById('visibleRowCount').textContent = visibleCount;
+    const footerCount = document.getElementById('footerRowCount');
+    if (footerCount) footerCount.textContent = visibleCount;
+}
+</script>
 {% endblock %}
