@@ -302,7 +302,7 @@ def approveSR_menu(sr_no):
                 return redirect(request.url)
 
     #CHANGE TO sr_approve later
-    return render_template('/page/sr_approve_data.html', 
+    return render_template('/page/sr_approve.html', 
                            user=session.get('user'), 
                            role=session.get('role'), 
                            active_menu='my_work',
