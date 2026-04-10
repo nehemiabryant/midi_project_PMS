@@ -69,7 +69,7 @@
                 <td>{{ item.created_at | format_wib }}</td>
                 <td>
                   {% if 9 in item.role_ids and item.smk_id == 101 %}
-                      <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Edit</a>
+                      <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Confirmation</a>
                       
                   {% elif (1 in item.role_ids and item.smk_id == 104) or 
                           (2 in item.role_ids and item.smk_id == 103) or 

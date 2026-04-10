@@ -104,23 +104,47 @@ def editSR_menu(sr_no):
     if sr_data.get('req_id') != current_user:
         flash("Unauthorized: You can only edit your own Service Requests.", "error")
         return redirect(url_for('owh_dashboard.dashboard_menu'))
+    
+    update_action = workflow_transaction.get_update_action()
+    next_action = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, current_user)
+
+    options = update_action + next_action
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
 
         files = request.files
 
+        selected_action = request.form.get('sr_action')
+
         trx_result = sr_transaction.update_sr_trx(raw_form_data, files, sr_no, current_smk_id)
 
-        if trx_result.get('status'):
-            flash("Service Request updated successfully!", "success")
-            return redirect(url_for('owh_dashboard.dashboard_menu'))
-        else:
-            flash(f"Error: {trx_result.get('msg')}", "error")
+        if not trx_result.get('status'):
+            flash(f"Error updating SR: {trx_result.get('msg')}", "error")
             return redirect(request.url)
+        
+        if selected_action != 'update_only':
+            next_smk_id = int(selected_action)
+            
+            advance_result = workflow_transaction.advance_sr_phase(
+                sr_no=sr_no,
+                current_smk_id=current_smk_id,
+                next_smk_id=next_smk_id,
+                action_by=current_user
+            )
+
+            if advance_result.get('status'):
+                flash("Service Request ter-update dan diajukan ke atasan!", "success")
+                return redirect(url_for('owh_dashboard.myWork_menu'))
+            else:
+                flash(f"SR updated, but failed to advance: {advance_result.get('msg')}", "warning")
+                return redirect(request.url)
+            
+        flash("Draft Service Request berhasil disimpan!", "success")
+        return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
 
     return render_template('/page/sr_form.html', mode='edit', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
-                           , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict)
+                           , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict, options=options)
 
 @sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
 @login_required
