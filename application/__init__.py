@@ -1,6 +1,7 @@
 import os
 from flask import Flask, jsonify, render_template
 from flask_wtf.csrf import CSRFProtect
+from application.utils.date_utils import format_date_wib, format_wib
 
 from application.views.auth_view import auth_bp
 from application.views.dashboard_view import dashboard_bp
@@ -31,6 +32,9 @@ def create_app(config_filename=None):
     app.register_blueprint(task_bp)
     app.register_blueprint(assignment_bp)
     app.register_blueprint(kry_bp)
+
+    app.jinja_env.filters['format_date_wib'] = format_date_wib
+    app.jinja_env.filters['format_wib'] = format_wib
 
     csrf.init_app(app)
     csrf.exempt(role_mgmt_bp)  # API JSON tidak memerlukan CSRF form token
