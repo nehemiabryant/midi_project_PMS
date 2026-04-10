@@ -20,7 +20,7 @@ def format_wib(dt):
     wib_dt = to_wib(dt)
     if wib_dt is None:
         return '-'
-    return wib_dt.strftime('%d %b %Y %H:%M') + ' WIB'
+    return wib_dt.strftime('%d %b %Y %H:%M:%S')
 
 
 def format_date_wib(dt):

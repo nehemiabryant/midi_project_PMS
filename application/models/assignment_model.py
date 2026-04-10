@@ -306,8 +306,9 @@ def get_assignment_by_id_model(assign_id: int) -> dict:
         if conn: conn.close()
 
 
-def get_active_pic_on_sr_model(sr_no: str, nik: str) -> dict:
-    """Ambil assignment dimana user is_active=TRUE pada SR ini."""
+def get_active_pic_on_sr_model(sr_no: str, nik: str, current_smk_id: int = None) -> dict:
+    """Ambil assignment dimana user is_active=TRUE pada SR ini.
+    Jika current_smk_id diberikan, filter hanya role yang relevan untuk phase saat ini."""
     sql = """
         SELECT sa.assign_id, sa.it_role_id, sa.is_active, it.it_role_detail
         FROM sr_assignments sa
@@ -316,12 +317,22 @@ def get_active_pic_on_sr_model(sr_no: str, nik: str) -> dict:
           AND sa.assigned_user = %(nik)s
           AND sa.is_active = TRUE
     """
+    params = {'sr_no': sr_no, 'nik': nik}
+    if current_smk_id is not None:
+        sql += """
+          AND EXISTS (
+              SELECT 1 FROM sr_ms_workflow_rules wf
+              WHERE wf.allowed_picrole = sa.it_role_id
+                AND wf.current_smk_id = %(current_smk_id)s
+          )
+        """
+        params['current_smk_id'] = current_smk_id
     conn = None
     try:
         conn = DatabasePG("supabase")
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'nik': nik})
+        return conn.selectDataHeader(sql, params)
     except Exception as e:
         Log.error(f'DB Exception | get_active_pic_on_sr | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}

@@ -300,14 +300,15 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
         Log.error(f"Exception | Validate SR Action | Msg: {str(e)}")
         return {'status': False, 'msg': 'An error occurred while verifying permissions.', 'data': []}
     
-def _get_handover_options(sr_no: str, nik: str) -> list:
+def _get_handover_options(sr_no: str, nik: str, current_smk_id: int = None) -> list:
     """
     Bangun opsi handover untuk dropdown jika user is_active=TRUE dan ada kandidat.
+    current_smk_id digunakan untuk filter role yang relevan dengan phase saat ini.
     Return list opsi handover atau [] jika tidak ada kandidat.
     Private — hanya dipanggil dari get_dropdown_options.
     """
     try:
-        active_result = assignment_model.get_active_pic_on_sr_model(sr_no, nik)
+        active_result = assignment_model.get_active_pic_on_sr_model(sr_no, nik, current_smk_id)
         if not active_result.get('status') or not active_result.get('data'):
             return []
 
@@ -361,7 +362,7 @@ def get_dropdown_options(current_smk_id: int, sr_no: str = None, nik: str = None
                 options.append(opt)
 
         if sr_no and nik:
-            handover_opts = _get_handover_options(sr_no, nik)
+            handover_opts = _get_handover_options(sr_no, nik, current_smk_id)
             options.extend(handover_opts)
 
         return options
