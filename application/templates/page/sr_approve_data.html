@@ -115,39 +115,104 @@
     {% if is_sm and assignment_data %}
         <fieldset>
             <legend>Assign PIC Tim</legend>
-            <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
             
-            <table id="assign-table" style="width: 100%; margin-bottom: 10px; text-align: left;">
+            {% if not assignment_data.is_locked %}
+                <p>Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role (SCM, DEV, QA, RO).</p>
+                
+                <table id="assign-table" style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">User</th>
+                            <th style="width: 45%;">Role</th>
+                            <th style="width: 10%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <select name="assign_user[]" class="sm-dynamic-input" style="width: 95%;">
+                                    <option value="">-- Pilih User --</option>
+                                    {% for u in assignment_data.it_users %}
+                                        <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="assign_role[]" class="sm-dynamic-input" style="width: 95%;">
+                                    <option value="">-- Pilih Role --</option>
+                                    {% for role in assignment_data.picroles %}
+                                        <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
+            
+            {% else %}
+                <p>Assignment PIC Tim sudah terkunci.</p>
+                {% if assignment_data.current_assignments %}
+                    <ul>
+                        {% for pic in assignment_data.current_assignments %}
+                            <li><strong>{{ pic.it_role_detail }}</strong>: {{ pic.assigned_user }} - {{ pic.nama }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p><em>Belum ada PIC yang di-assign.</em></p>
+                {% endif %}
+            {% endif %}
+        </fieldset>
+
+        <fieldset style="margin-top: 20px;">
+            <legend>Set Project Schedule</legend>
+            
+            {% if not assignment_data.is_locked %}
+                <p>Tentukan target tanggal mulai dan selesai untuk masing-masing fase.</p>
+            {% else %}
+                <p>Jadwal project sudah terkunci.</p>
+            {% endif %}
+
+            <table style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead>
-                    <tr>
-                        <th style="width: 45%;">User</th>
-                        <th style="width: 45%;">Role</th>
-                        <th style="width: 10%;">Aksi</th>
+                    <tr style="border-bottom: 1px solid #ccc;">
+                        <th style="padding: 8px;">Phase Name</th>
+                        <th style="padding: 8px;">Target Start Date</th>
+                        <th style="padding: 8px;">Target Finish Date</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for phase in assignment_data.target_dates %}
                     <tr>
-                        <td>
-                            <select name="assign_user[]" class="sm-dynamic-input" style="width: 95%;">
-                                <option value="">-- Pilih User --</option>
-                                {% for u in assignment_data.it_users %}
-                                    <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
-                                {% endfor %}
-                            </select>
+                        <td style="padding: 8px;">
+                            {{ phase.phase_name }}
+                            <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
                         </td>
-                        <td>
-                            <select name="assign_role[]" class="sm-dynamic-input" style="width: 95%;">
-                                <option value="">-- Pilih Role --</option>
-                                {% for role in assignment_data.picroles %}
-                                    <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
-                                {% endfor %}
-                            </select>
+                        
+                        <td style="padding: 8px;">
+                            <input type="date" name="start_date[]" style="width: 95%;"
+                                value="{{ phase.start_date or '' }}" 
+                                {% if assignment_data.is_locked %}disabled{% endif %}>
                         </td>
-                        <td></td>
+                        
+                        <td style="padding: 8px;">
+                            {% if phase.phase_id == 6 %}
+                                <input type="hidden" name="finish_date[]" value="">
+                            {% else %}
+                                <input type="date" name="finish_date[]" style="width: 95%;"
+                                    value="{{ phase.finish_date or '' }}"
+                                    {% if assignment_data.is_locked %}disabled{% endif %}>
+                            {% endif %}
+                        </td>
                     </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px; text-align: center;">No phases found in database.</td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
-            <button type="button" onclick="addAssignRow()">+ Tambah Baris</button>
         </fieldset>
     {% endif %}
 
@@ -241,6 +306,32 @@
         if (actionSelect) {
             actionSelect.addEventListener('change', applyRequiredLogic);
         }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const startInputs = document.querySelectorAll('input[name="start_date[]"]');
+        const finishInputs = document.querySelectorAll('input[name="finish_date[]"]');
+
+        finishInputs.forEach((finishInput, index) => {
+            // Skip validation if the input is hidden (like your Rollout phase)
+            if (finishInput.type === 'hidden') return; 
+
+            const startInput = startInputs[index];
+
+            // When the start date changes, ensure the finish date can't be earlier
+            startInput.addEventListener('change', function() {
+                if (this.value) {
+                    finishInput.min = this.value; 
+                }
+            });
+
+            // When the finish date changes, ensure the start date can't be later
+            finishInput.addEventListener('change', function() {
+                if (this.value) {
+                    startInput.max = this.value;
+                }
+            });
+        });
     });
 </script>
 {% endblock %}

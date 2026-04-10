@@ -196,15 +196,16 @@ def get_active_log_id(sr_no: str, shared_conn=None) -> dict:
 def get_phase_logs(sr_no: str, shared_conn=None) -> dict:
     sql = """
         SELECT 
-            sr_no,
-            smk_id,  -- Added smk_id to distinguish each phase
-            (ARRAY_AGG(started_at ORDER BY logs_id ASC))[1] AS first_iteration_start,
-            (ARRAY_AGG(finished_at ORDER BY logs_id DESC))[1] AS last_iteration_finish
-        FROM public.sr_logs
-        WHERE smk_id IN (106, 109, 111, 113, 115, 116)
-          AND sr_no = %(sr_no)s
-        GROUP BY sr_no, smk_id  -- Group by both!
-        ORDER BY smk_id ASC;  -- Optional: keeps them in a predictable order
+            mk.smk_id, 
+            mk.phase AS phase_name,  -- Change 'phase' to your actual column name if different
+            (ARRAY_AGG(l.started_at ORDER BY l.logs_id ASC))[1] AS first_iteration_start,
+            (ARRAY_AGG(l.finished_at ORDER BY l.logs_id DESC))[1] AS last_iteration_finish
+        FROM public.sr_ms_ket mk
+        LEFT JOIN public.sr_logs l 
+            ON mk.smk_id = l.smk_id AND l.sr_no = %(sr_no)s
+        WHERE mk.smk_id IN (106, 109, 111, 113, 115, 116)
+        GROUP BY mk.smk_id, mk.phase
+        ORDER BY mk.smk_id ASC;
     """
 
     if shared_conn:
@@ -227,3 +228,66 @@ def get_phase_logs(sr_no: str, shared_conn=None) -> dict:
         return None
     finally:
         if conn: conn.close()
+
+
+def get_target_date(sr_no: str) -> dict:                                                                                                        
+    """ Get all target_date """                                                           
+    sql = """                                                                                                                                             
+        SELECT 
+            m.phase_id, m.phase_detail, t.start_date, t.finish_date
+        FROM 
+            sr_ms_phase m
+        LEFT JOIN 
+            sr_target_date t ON m.phase_id = t.phase_id AND t.sr_no = %(sr_no)s
+        ORDER BY 
+            m.phase_id ASC;                                                                                        
+    """         
+    conn = None                                                                                                                                           
+    try:        
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):                                                                                                                 
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}                                                                           
+        return conn.selectDataHeader(sql, {'sr_no': sr_no})                                                                                               
+    except Exception as e:                                                                                                                                
+        Log.error(f'DB Exception | get_all_target_date | Msg: {str(e)}')                                                                                  
+        return {'status': False, 'data': [], 'msg': str(e)}                                                                                               
+    finally:
+        if conn: conn.close()  
+
+def upsert_target_date(sr_no: str, phase_id: int, start_date: str, finish_date: str, shared_conn=None) -> dict:
+    """Upsert target dates for a specific SR and Phase."""
+    sql = """
+        INSERT INTO sr_target_date (sr_no, phase_id, start_date, finish_date)
+        VALUES (%(sr_no)s, %(phase_id)s, %(start_date)s, %(finish_date)s)
+        ON CONFLICT (sr_no, phase_id) 
+        DO UPDATE SET 
+            start_date = EXCLUDED.start_date,
+            finish_date = EXCLUDED.finish_date;
+    """
+    
+    # Handle empty strings from the frontend, converting them to None (NULL in DB)
+    params = {
+        'sr_no': sr_no,
+        'phase_id': phase_id,
+        'start_date': start_date if start_date else None,
+        'finish_date': finish_date if finish_date else None
+    }
+
+    if shared_conn:
+        result = shared_conn.executeDataNoCommit(sql, params)
+        return result
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        # Using your executeData wrapper!
+        return conn.executeData(sql, params)
+    except Exception as e:
+        Log.error(f'DB Exception | upsert_target_date | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()

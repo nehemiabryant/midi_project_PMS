@@ -1,7 +1,7 @@
 from common.midiconnectserver.midilog import Logger
 from ..models import srlogs_model
 from datetime import datetime
-from ..utils import converters
+from ..utils import converters, date_utils
 
 Log = Logger()
 
@@ -87,56 +87,138 @@ def update_sr_log_trx(logs_id: int, shared_conn=None) -> dict:
         return {'status': False, 'msg': str(e)}
 
 def get_phase_logs_trx(sr_no: str, shared_conn=None) -> dict:
-    # 1. Fetch whatever logs currently exist in the database
     db_result = srlogs_model.get_phase_logs(sr_no, shared_conn)
     
-    # 2. Define your master list of ALL phases you want to display
-    master_phases = [
-        {'smk_id': 106, 'phase_name': 'System Design'},
-        {'smk_id': 109, 'phase_name': 'Development'},
-        {'smk_id': 111, 'phase_name': 'Quality Assurance'},
-        {'smk_id': 113, 'phase_name': 'User Acceptance Test'},
-        {'smk_id': 115, 'phase_name': 'Testing Operation'},
-        {'smk_id': 116, 'phase_name': 'Rollout'}
-    ]
-
-    # 3. Convert DB results into a dictionary keyed by smk_id for easy lookup
-    db_logs = {}
-    if db_result.get('status') and db_result.get('data'):
-        for row in db_result['data']:
-            is_dict = isinstance(row, dict)
-            smk_id = row['smk_id'] if is_dict else row[1]
-            db_logs[smk_id] = {
-                'started_at': row['first_iteration_start'] if is_dict else row[2],
-                'finished_at': row['last_iteration_finish'] if is_dict else row[3],
-            }
+    if not db_result or not db_result.get('status') or not db_result.get('data'):
+        return {'status': False, 'data': []}
 
     formatted_data = []
 
-    # 4. Loop through the master list and merge with DB data
-    for phase in master_phases:
-        smk_id = phase['smk_id']
-        
-        # Check if this phase exists in the database logs
-        if smk_id in db_logs:
-            log_data = db_logs[smk_id]
-            phase['started_at'] = log_data['started_at']
-            phase['finished_at'] = log_data['finished_at']
+    for row in db_result['data']:
+        is_dict = isinstance(row, dict)
+        smk_id = row['smk_id'] if is_dict else row[0]
+        phase_name = row['phase_name'] if is_dict else row[1]
+        started_at = row['first_iteration_start'] if is_dict else row[2]
+        finished_at = row['last_iteration_finish'] if is_dict else row[3]
 
-            if phase['finished_at'] is None:
-                phase['status_text'] = "In Progress"
-                phase['status_color'] = "warning"  # Bootstrap yellow
-            else:
-                phase['status_text'] = "Completed"
-                phase['status_color'] = "success"  # Bootstrap green
+        phase_data = {
+            'smk_id': smk_id,
+            'phase_name': phase_name,
+            'started_at': started_at,
+            'finished_at': finished_at,
+            'is_milestone': False # Default flag for frontend to know it's a phase
+        }
+
+        # Status Logic
+        if started_at is None:
+            phase_data['status_text'] = "Not Started"
+            phase_data['status_color'] = "secondary"
+        elif finished_at is None:
+            phase_data['status_text'] = "In Progress"
+            phase_data['status_color'] = "warning"
         else:
-            # Phase hasn't started yet (does not exist in DB)
-            phase['started_at'] = None
-            phase['finished_at'] = None
-            phase['status_text'] = "Not Started"
-            phase['status_color'] = "secondary" # Bootstrap grey
+            phase_data['status_text'] = "Completed"
+            phase_data['status_color'] = "success"
 
-        formatted_data.append(phase)
+        # --- ROLLOUT (116) CUSTOM LOGIC ---
+        # --- ROLLOUT (116) CUSTOM LOGIC ---
+        if smk_id == 116:
+            phase_data['is_milestone'] = True
+            if started_at:
+                # If it has started, it is effectively Live/Deployed. 
+                # We ignore finished_at entirely for UI purposes.
+                phase_data['status_text'] = "Live" 
+                phase_data['status_color'] = "success" 
+                phase_data['milestone_date'] = started_at
+            else:
+                phase_data['status_text'] = "Pending Rollout"
+                phase_data['status_color'] = "secondary"
 
-    # 5. Return success and the formatted list (it will always have 6 items now)
+        formatted_data.append(phase_data)
+
     return {'status': True, 'data': formatted_data}
+
+def get_target_date_trx(sr_no: str) -> dict:
+    db_result = srlogs_model.get_target_date(sr_no)
+    
+    if not db_result or not db_result.get('status') or not db_result.get('data'):
+        return {'status': False, 'data': []}
+
+    formatted_data = []
+    
+    raw_data = db_result['data']
+    rows = raw_data[1] if len(raw_data) == 2 and isinstance(raw_data[0], list) else raw_data
+
+    for row in rows:
+        is_dict = isinstance(row, dict)
+        
+        phase_id = row['phase_id'] if is_dict else row[0]
+        phase_detail = row['phase_detail'] if is_dict else row[1]
+        start_date = row['start_date'] if is_dict else row[2]
+        finish_date = row['finish_date'] if is_dict else row[3]
+
+        phase_data = {
+            'phase_id': phase_id,
+            'phase_name': phase_detail,
+            'start_date': start_date,
+            'finish_date': finish_date,
+            'is_milestone': False
+        }
+
+        # ==========================================
+        # CORRECTED TARGET DATE STATUS LOGIC
+        # ==========================================
+        if phase_id == 6: # Rollout Custom Logic
+            phase_data['is_milestone'] = True
+            if start_date:
+                phase_data['status_text'] = "Scheduled" 
+                phase_data['status_color'] = "info" # Blue/Info color for planned
+                phase_data['milestone_date'] = start_date
+            else:
+                phase_data['status_text'] = "Unscheduled"
+                phase_data['status_color'] = "secondary" # Gray for not set yet
+                
+        else: # Standard Phases
+            if start_date and finish_date:
+                phase_data['status_text'] = "Scheduled"
+                phase_data['status_color'] = "info"
+            elif start_date or finish_date:
+                phase_data['status_text'] = "Incomplete Plan" # Only one date filled out
+                phase_data['status_color'] = "warning"
+            else:
+                phase_data['status_text'] = "Unscheduled"
+                phase_data['status_color'] = "secondary"
+
+        formatted_data.append(phase_data)
+
+    return {'status': True, 'data': formatted_data}
+
+def process_target_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
+    """Extracts dates and saves them within the shared transaction."""
+    phase_ids = form_data.getlist('phase_id[]')
+    start_dates = form_data.getlist('start_date[]')
+    finish_dates = form_data.getlist('finish_date[]')
+    
+    if not phase_ids:
+        return {'status': True, 'msg': 'No phase dates to process.'}
+        
+    for idx, pid in enumerate(phase_ids):
+        try:
+            phase_id = int(pid)
+            start = start_dates[idx] if idx < len(start_dates) else None
+            finish = finish_dates[idx] if idx < len(finish_dates) else None
+            
+            # Pass the shared_conn down to the model
+            if phase_id != 6: 
+                date_utils.validate_date_range(start, finish, context=f"Fase {phase_id}")
+
+            res = srlogs_model.upsert_target_date(sr_no, phase_id, start, finish, shared_conn=shared_conn)
+            
+            # If ANY phase fails to save, break the transaction!
+            if not res.get('status'):
+                raise Exception(f"Failed to save dates for phase {phase_id}: {res.get('msg')}")
+                
+        except ValueError:
+            continue # Skip if somehow phase_id is not an integer
+
+    return {'status': True, 'msg': 'Jadwal berhasil disimpan.'}

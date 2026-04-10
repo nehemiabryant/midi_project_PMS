@@ -82,13 +82,17 @@
                 {% for file in current_files_dict %}
                     <a href="{{ file.file_url }}" target="_blank" class="doc-card-link">
                         <div class="doc-icon-wrapper">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
+                            {% if file.thumbnail_url %}
+                                <img src="{{ file.thumbnail_url }}" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
+                            {% else %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            {% endif %}
                         </div>
                         <div class="doc-text-wrapper">
                             <div class="doc-title">{{ file.attach_details }}</div>
@@ -106,9 +110,63 @@
 </div>
 
 <div id="tab-timeline" class="tab-pane" style="display: none;">
+
+    <div class="desc-card" style="padding-top: 15px;">
+        <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Target Phase Schedule</h4>
+        <div class="table-responsive">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Phase Name</th>
+                        <th style="width: 25%;">Target Start</th>
+                        <th style="width: 25%;">Target Finish</th>
+                        <th style="width: 20%; text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if target_dates %}
+                        {% for phase in target_dates %}
+                        <tr>
+                            <td class="fw-bold">{{ phase.phase_name }}</td>
+                            
+                            {% if phase.is_milestone %}
+                                <td colspan="2" class="text-muted text-center">
+                                    {% if phase.milestone_date %}
+                                        <span class="fw-semibold">Target Go-Live:</span> {{ phase.milestone_date | format_date_wib }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td class="text-muted">
+                                    {{ phase.start_date | format_date_wib if phase.start_date else '-' }}
+                                </td>
+                                <td class="text-muted">
+                                    {{ phase.finish_date | format_date_wib if phase.finish_date else '-' }}
+                                </td>
+                            {% endif %}
+
+                            <td style="text-align: center;">
+                                <span class="badge bg-{{ phase.status_color }} text-dark"> 
+                                    {{ phase.status_text }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #9ca3af; font-style: italic; padding: 20px;">
+                                Belum ada target timeline fase yang ditetapkan.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     
     <div class="desc-card" style="padding-top: 15px;">
-        <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Phase Status Timeline</h4>
+        <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Actual Phase Status Timeline</h4>
         <div class="table-responsive">
             <table class="modern-table">
                 <thead>
@@ -124,12 +182,24 @@
                         {% for phase in actual_dates %}
                         <tr>
                             <td class="fw-bold">{{ phase.phase_name }}</td>
-                            <td class="text-muted">
-                                {{ phase.started_at.strftime('%d %b %Y, %H:%M') if phase.started_at else '-' }}
-                            </td>
-                            <td class="text-muted">
-                                {{ phase.finished_at.strftime('%d %b %Y, %H:%M') if phase.finished_at else '-' }}
-                            </td>
+                            
+                            {% if phase.is_milestone %}
+                                <td colspan="2" class="text-muted text-center">
+                                    {% if phase.milestone_date %}
+                                        <span class="fw-semibold">Go-Live:</span> {{ phase.milestone_date | format_wib }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td class="text-muted">
+                                    {{ phase.started_at | format_wib if phase.started_at else '-' }}
+                                </td>
+                                <td class="text-muted">
+                                    {{ phase.finished_at | format_wib if phase.finished_at else '-' }}
+                                </td>
+                            {% endif %}
+
                             <td style="text-align: center;">
                                 <span class="badge bg-{{ phase.status_color }} text-dark"> 
                                     {{ phase.status_text }}
@@ -138,7 +208,11 @@
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr><td colspan="4" style="text-align: center; color: #9ca3af; font-style: italic; padding: 20px;">Belum ada timeline fase.</td></tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #9ca3af; font-style: italic; padding: 20px;">
+                                Belum ada timeline fase.
+                            </td>
+                        </tr>
                     {% endif %}
                 </tbody>
             </table>
@@ -173,10 +247,10 @@
                         </td>
                         <td>{{ t.task_detail }}</td>
                         <td class="text-muted">
-                            {{ t.target_date.strftime('%d %b %Y') if t.target_date else '-' }}
+                            {{ t.target_date if t.target_date else '-' }}
                         </td>
                         <td style="color: {% if t.actual_date %}#10b981{% else %}#9ca3af{% endif %}; font-weight: 500;">
-                            {{ t.actual_date.strftime('%d %b %Y') if t.actual_date else '-' }}
+                            {{ t.actual_date if t.actual_date else '-' }}
                         </td>
                     </tr>
                     {% endfor %}
