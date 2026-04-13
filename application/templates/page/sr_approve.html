@@ -453,16 +453,15 @@ legend {
                                             </td>
                                             <td>
                                                 <input type="date" name="start_date[]" class="compact-input"
-                                                    value="{{ phase.start_date or '' }}" 
+                                                    value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}" 
                                                     {% if assignment_data.is_locked %}disabled{% endif %}>
                                             </td>
                                             <td>
                                                 {% if phase.phase_id == 6 %}
-                                                    <input type="hidden" name="finish_date[]" value="">
-                                                    <span style="font-size: 12px; color: #94a3b8; font-style: italic;">(N/A)</span>
+                                                    <input type="hidden" name="finish_date[]" value=""{% if assignment_data.is_locked %}disabled{% endif %}>
                                                 {% else %}
                                                     <input type="date" name="finish_date[]" class="compact-input"
-                                                        value="{{ phase.finish_date or '' }}"
+                                                        value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}"
                                                         {% if assignment_data.is_locked %}disabled{% endif %}>
                                                 {% endif %}
                                             </td>

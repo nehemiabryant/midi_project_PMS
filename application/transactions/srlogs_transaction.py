@@ -198,6 +198,9 @@ def process_target_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
     phase_ids = form_data.getlist('phase_id[]')
     start_dates = form_data.getlist('start_date[]')
     finish_dates = form_data.getlist('finish_date[]')
+
+    if len(start_dates) == 0:
+        return {'status': True, 'msg': 'Schedule locked, skipping update.'}
     
     if not phase_ids:
         return {'status': True, 'msg': 'No phase dates to process.'}
