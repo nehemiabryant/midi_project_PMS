@@ -185,6 +185,7 @@
 
                 <div class="form-group full-width" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                     
+                    {% if sr_data %}
                     <div class="action-section" style="margin-bottom: 20px;">
                         <label for="sr_action" class="form-label">Tindakan <span style="color: #ef4444;">*</span></label>
                         <select name="sr_action" id="sr_action" class="form-input" required style="max-width: 400px;">
@@ -193,6 +194,7 @@
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
                     
                     <div class="form-actions" style="justify-content: flex-end; gap: 10px;">
                         <a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Batal</a>
