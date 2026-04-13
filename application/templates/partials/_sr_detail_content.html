@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/_sr_detail_content.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/partials/_sr_detail_content.css') }}">
 
 <div class="sr-detail-header">
     <div class="sr-header-top">
@@ -12,6 +12,13 @@
         <div class="sr-status-group">
             <div class="status-label">Status Saat Ini</div>
             <div class="status-value">{{ sr.current_status }}</div>
+            {% if active_pics %}
+            <div class="active-pic-section">
+                {% for pic in active_pics %}
+                <div class="active-pic-item"><strong>{{ pic.nama }} - {{ pic.nik }}</strong></div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </div>
 

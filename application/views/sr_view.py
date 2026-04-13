@@ -372,11 +372,15 @@ def api_get_sr_detail(sr_no):
     actual_date_result = srlogs_transaction.get_phase_logs_trx(clean_sr_no)
     actual_dates = actual_date_result.get('data', []) if isinstance(actual_date_result, dict) else []
 
+    current_smk_id = sr_data.get('smk_id') if sr_data else None
+    active_pics = sr_transaction.get_active_pics_for_sr_trx(clean_sr_no, current_smk_id) if current_smk_id else []
+
     return render_template(
-        '/partials/_sr_detail_content.html', 
-        sr=sr_data, 
+        '/partials/_sr_detail_content.html',
+        sr=sr_data,
         current_files_dict=current_files_dict,
         tasks=tasks,
         target_dates=target_dates,
-        actual_dates=actual_dates 
+        actual_dates=actual_dates,
+        active_pics=active_pics
     )
