@@ -76,6 +76,25 @@
     display: inline-block;
 }
 
+.active-pic-section {
+    margin-top: 8px;
+    text-align: right;
+}
+
+.active-pic-label {
+    font-size: 0.72rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.active-pic-item {
+    font-size: 0.82rem;
+    color: #374151;
+    font-weight: 500;
+}
+
 /* ========================================= */
 /* PROGRESS BAR                              */
 /* ========================================= */

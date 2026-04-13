@@ -263,3 +263,18 @@ def get_sr_detail_trx(sr_no: str) -> dict:
     except Exception as e:
         Log.error(f"Exception | Get SR Detail Trx | Msg: {str(e)}")
         return None
+
+
+def get_active_pics_for_sr_trx(sr_no: str, current_smk_id: int) -> list:
+    """Ambil active PIC yang relevan dengan fase saat ini. Returns list of dicts."""
+    try:
+        result = assignment_model.get_all_active_pics_for_sr_model(sr_no, current_smk_id)
+        if not result.get('status') or not result.get('data'):
+            return []
+        headers, rows = result['data'][0], result['data'][1]
+        if not rows:
+            return []
+        return convert_to_dicts(rows, headers)
+    except Exception as e:
+        Log.error(f"Exception | get_active_pics_for_sr_trx | Msg: {str(e)}")
+        return []

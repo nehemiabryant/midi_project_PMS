@@ -67,9 +67,10 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         Log.error(f'Exception | get_assign_page_data_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
-def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
+def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None, expected_smk_id: int = None) -> dict:
     """
     Submit assignment PIC pada SR (Tanpa advance phase).
+    expected_smk_id: jika diberikan, validasi status SR terhadap nilai ini (bukan hardcode 105).
     """
     try:
         # 1. Validasi: user harus IT SM pada SR ini
@@ -78,12 +79,13 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=No
         if not sm_row:
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT SM pada SR ini.'}
 
-        # 2. Validasi: SR harus masih BACKLOG SCRUM (105)
+        # 2. Validasi: SR harus dalam status yang sesuai
         sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
-        if sr_detail.get('smk_id') != assignment_model.STATUS_BACKLOG_SCRUM:
+        allowed_smk_id = expected_smk_id if expected_smk_id is not None else assignment_model.STATUS_BACKLOG_SCRUM
+        if sr_detail.get('smk_id') != allowed_smk_id:
             return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status Backlog Scrum.'}
 
         # 3. Parse form: assign_user[] dan assign_role[]
@@ -377,10 +379,11 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
     try:
         shared_conn = DatabasePG("supabase", autocommit=False)
 
-        # 1. Execute the PIC Assignments
-        assign_result = submit_assignments_trx(sr_no, nik, form_data, shared_conn=shared_conn)
-        if not assign_result.get('status'):
-            raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
+        # 1. Execute the PIC Assignments (hanya jika masih di fase BACKLOG SCRUM)
+        if current_smk_id == assignment_model.STATUS_BACKLOG_SCRUM:
+            assign_result = submit_assignments_trx(sr_no, nik, form_data, shared_conn=shared_conn, expected_smk_id=current_smk_id)
+            if not assign_result.get('status'):
+                raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
         
         date_result = srlogs_transaction.process_target_dates_trx(sr_no, form_data, shared_conn=shared_conn)
         if not date_result.get('status'):

@@ -443,6 +443,38 @@ def toggle_active_pic_model(sr_no: str, it_role_id: int, target_assign_id: int, 
         if owns_conn and shared_conn:
             shared_conn.close()
 
+def get_all_active_pics_for_sr_model(sr_no: str, current_smk_id: int) -> dict:
+    """Ambil user yang is_active=TRUE pada SR ini, hanya untuk role yang relevan
+    dengan fase saat ini (berdasarkan sr_ms_workflow_rules)."""
+    sql = """
+        SELECT sa.assigned_user AS nik,
+               COALESCE(k.nama, sa.assigned_user) AS nama,
+               it.it_role_detail
+        FROM sr_assignments sa
+        LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
+        JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
+        WHERE sa.sr_no = %(sr_no)s
+          AND sa.is_active = TRUE
+          AND EXISTS (
+              SELECT 1 FROM sr_ms_workflow_rules wf
+              WHERE wf.allowed_picrole = sa.it_role_id
+                AND wf.current_smk_id = %(current_smk_id)s
+          )
+        ORDER BY it.it_role_id
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'current_smk_id': current_smk_id})
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_active_pics_for_sr | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+
 def get_sr_origins(sr_no: str, shared_conn=None) -> dict:
     """Fetches the requester and maker of the SR."""
     sql = """
