@@ -213,10 +213,10 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
         # ==========================================
         # 1. FETCH DATA BASED ON INTENT
         # ==========================================
-        if intent in ['VIEW', 'APPROVE']:
+        if intent in ['VIEW', 'APPROVE', 'REASSIGN']:
             # Fetch the lightweight detail view
             # Note: adjust the prefix (e.g., sr_transaction.) if this function is in another module
-            sr_dict = sr_transaction.get_sr_detail_trx(sr_no) 
+            sr_dict = sr_transaction.get_sr_detail_trx(sr_no)
             
             if not sr_dict:
                 return {'status': False, 'msg': 'SR data not found or an error occurred.', 'data': []}
@@ -280,15 +280,24 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
         elif intent == 'APPROVE':
             # If they are trying to load an Approval page, it MUST be their turn!
             required_role = workflow_model.get_required_role_for_phase(current_smk_id)
-            
+
             if not required_role:
                 return {'status': False, 'msg': 'This ticket is closed or in an unknown state.'}
-                
+
             if user_it_role != required_role:
                 return {
-                    'status': False, 
+                    'status': False,
                     'msg': 'Access Denied: This ticket has already been processed or is waiting on another department.'
                 }
+
+        elif intent == 'REASSIGN':
+            # Hanya IT PMO yang boleh reassign — semua role lain ditolak.
+            # IT PMO sudah di-short-circuit oleh god mode di atas, jadi branch ini
+            # hanya dicapai oleh non-PMO user.
+            return {
+                'status': False,
+                'msg': 'Hanya IT PMO yang dapat melakukan reassignment pada SR ini.'
+            }
 
         # If they survive the Bouncer, hand them the data!
         return {'status': True, 'msg': 'Access granted.', 'data': [sr_dict]}

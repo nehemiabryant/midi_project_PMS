@@ -83,58 +83,86 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
         return {'status': False, 'data': [], 'total': 0, 'msg': str(e)}
 
 
-def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
+def resolve_sr_access_trx(sr_no: str, nik: str) -> dict:
     """
-    Ambil semua data untuk halaman detail SR (Hanya untuk View & PIC Task).
-    Validasi: user harus ter-assign pada SR ini.be
+    Tentukan apa yang bisa dilakukan user pada SR ini di fase saat ini.
+    Satu-satunya sumber kebenaran untuk penentuan akses — dipakai oleh
+    dispatcher, get_my_work_detail_trx, dan get_manage_detail_trx.
+
+    Return data:
+    - is_pic     : punya PIC assignment aktif di fase ini (termasuk IT PMO di UAT)
+    - is_sm      : ter-assign sebagai IT SM pada SR ini
+    - is_gm      : ter-assign sebagai IT GM pada SR ini
+    - is_pm      : IT PMO di fase UAT
+    - pic_roles  : list role PIC aktif milik user di fase ini
+    - it_pmo_role: row IT PMO jika ada
+    - user_roles : semua role user pada SR ini
+    - sr_detail  : detail SR
     """
     try:
-        # 1. Cek apakah user ter-assign pada SR ini
         user_roles_result = my_work_model.get_user_role_on_sr_model(sr_no, nik)
         user_roles = parse_rows(user_roles_result)
         if not user_roles:
-            return {'status': False, 'data': [], 'msg': 'Anda tidak memiliki akses pada SR ini.'}
+            return {'status': False, 'data': {}, 'msg': 'Anda tidak memiliki akses pada SR ini.'}
 
-        # 2. Ambil detail SR
         sr_result = my_work_model.get_sr_detail_full_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
-            return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
+            return {'status': False, 'data': {}, 'msg': 'SR tidak ditemukan.'}
 
-        # 3. Ambil semua assignment pada SR (Hanya untuk View)
-        assignments_result = my_work_model.get_all_sr_assignments_model(sr_no)
-        all_assignments_raw = parse_rows(assignments_result)
+        current_smk_id = sr_detail.get('smk_id')
+        territory_map = my_work_model.get_role_territory_model()
 
-        # Group assignments by role for display
-        assignments_by_role = {}
-        for a in all_assignments_raw:
-            role_detail = a.get('it_role_detail', 'Unknown')
-            if role_detail not in assignments_by_role:
-                assignments_by_role[role_detail] = []
-            assignments_by_role[role_detail].append(a)
-
-        # 4. Ambil PIC role IDs dari DB
         picroles_result = assignment_model.get_assignable_picroles_model()
-        picroles = parse_rows(picroles_result)
-        assignable_role_ids = {r['it_role_id'] for r in picroles}
+        assignable_role_ids = {r['it_role_id'] for r in parse_rows(picroles_result)}
 
-        # 5. Tentukan role user
         is_sm = any(r['it_role_detail'] == 'IT SM' for r in user_roles)
         is_gm = any(r['it_role_detail'] == 'IT GM' for r in user_roles)
 
-        # 6. Jika PIC, ambil tasks
-        current_smk_id = sr_detail.get('smk_id')
-        territory_map = my_work_model.get_role_territory_model()
         pic_roles = [
             r for r in user_roles
             if r['it_role_id'] in assignable_role_ids
             and current_smk_id in territory_map.get(r['it_role_id'], [])
         ]
 
-        # IT PMO di fase UAT diperlakukan sebagai PIC (bisa jalankan workflow)
         it_pmo_role = next((r for r in user_roles if r['it_role_detail'] == 'IT PMO'), None)
         is_pm = it_pmo_role is not None and current_smk_id in UAT_PHASES
-        
+
+        return {
+            'status': True,
+            'data': {
+                'is_pic': len(pic_roles) > 0 or is_pm,
+                'is_sm': is_sm,
+                'is_gm': is_gm,
+                'is_pm': is_pm,
+                'pic_roles': pic_roles,
+                'it_pmo_role': it_pmo_role,
+                'user_roles': user_roles,
+                'sr_detail': sr_detail,
+            }
+        }
+    except Exception as e:
+        Log.error(f'Exception | resolve_sr_access_trx | Msg: {str(e)}')
+        return {'status': False, 'data': {}, 'msg': str(e)}
+
+
+def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
+    """
+    Ambil semua data untuk halaman detail PIC (View & Upload Task).
+    Validasi akses via resolve_sr_access_trx.
+    """
+    try:
+        access = resolve_sr_access_trx(sr_no, nik)
+        if not access.get('status'):
+            return access
+
+        access_data = access['data']
+        sr_detail = access_data['sr_detail']
+        user_roles = access_data['user_roles']
+        pic_roles = access_data['pic_roles']
+        it_pmo_role = access_data['it_pmo_role']
+        is_pm = access_data['is_pm']
+
         all_tasks_result = task_model.get_all_tasks_by_sr_model(sr_no)
         all_tasks = parse_rows(all_tasks_result)
         tasks_by_role = {}
@@ -154,7 +182,6 @@ def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
                 'tasks': tasks_by_role.get(role_id, []),
             })
 
-        # IT PMO di fase UAT: tampilkan section task milik IT PMO sendiri (task UAT)
         if is_pm:
             pic_sections.append({
                 'it_role_id': it_pmo_role['it_role_id'],
@@ -168,17 +195,70 @@ def get_my_work_detail_trx(sr_no: str, nik: str) -> dict:
             'data': {
                 'sr_detail': sr_detail,
                 'user_roles': user_roles,
-                'all_assignments': all_assignments_raw,
-                'assignments_by_role': assignments_by_role,
-                'is_sm': is_sm,
-                'is_gm': is_gm,
-                'is_pic': len(pic_roles) > 0 or is_pm,
+                'is_sm': access_data['is_sm'],
+                'is_gm': access_data['is_gm'],
+                'is_pic': access_data['is_pic'],
                 'is_pm': is_pm,
                 'pic_sections': pic_sections,
             }
         }
     except Exception as e:
-        Log.error(f'Exception | get_sr_detail_trx | Msg: {str(e)}')
+        Log.error(f'Exception | get_my_work_detail_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def get_manage_detail_trx(sr_no: str, nik: str) -> dict:
+    """
+    Ambil data untuk halaman manage (Read-Only) — IT SM, IT GM, dan role lain
+    yang tidak sedang aktif sebagai PIC di fase ini.
+    Validasi akses via resolve_sr_access_trx.
+    Jika user adalah IT PMO, sertakan data untuk form reassignment.
+    """
+    try:
+        access = resolve_sr_access_trx(sr_no, nik)
+        if not access.get('status'):
+            return access
+
+        access_data = access['data']
+        is_pmo = access_data['it_pmo_role'] is not None
+
+        assignments_result = my_work_model.get_all_sr_assignments_model(sr_no)
+        all_assignments_raw = parse_rows(assignments_result)
+        assignments_by_role = {}
+        for a in all_assignments_raw:
+            role_detail = a.get('it_role_detail', 'Unknown')
+            if role_detail not in assignments_by_role:
+                assignments_by_role[role_detail] = []
+            assignments_by_role[role_detail].append(a)
+
+        pmo_form_data = {}
+        if is_pmo:
+            picroles = parse_rows(assignment_model.get_assignable_picroles_model())
+            assignable_role_ids = {r['it_role_id'] for r in picroles}
+            pmo_form_data = {
+                'picroles': picroles,
+                'it_users': parse_rows(assignment_model.get_it_users_model()),
+                'current_assignments': [
+                    a for a in all_assignments_raw
+                    if a.get('it_role_id') in assignable_role_ids
+                ],
+            }
+
+        return {
+            'status': True,
+            'data': {
+                'sr_detail': access_data['sr_detail'],
+                'user_roles': access_data['user_roles'],
+                'all_assignments': all_assignments_raw,
+                'assignments_by_role': assignments_by_role,
+                'is_sm': access_data['is_sm'],
+                'is_gm': access_data['is_gm'],
+                'is_pmo': is_pmo,
+                'pmo_form_data': pmo_form_data,
+            }
+        }
+    except Exception as e:
+        Log.error(f'Exception | get_manage_detail_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     
 def can_approve_sr_trx(sr_no: str, nik: str) -> dict:

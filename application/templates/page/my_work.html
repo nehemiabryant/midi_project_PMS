@@ -60,8 +60,11 @@
             {% for item in my_work_items %}
               <tr class="my-work-row">
                 <td class="my-work-no">
-                  <div class="sr-number">{{ item.sr_no }}</div>
-                  <div class="my-work-title sr-title">{{ item.title }}</div>
+                  <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}"
+                     style="text-decoration: none; color: inherit; display: block;">
+                    <div class="sr-number">{{ item.sr_no }}</div>
+                    <div class="my-work-title sr-title">{{ item.title }}</div>
+                  </a>
                 </td>
                 <td>
                   <span class="status-badge status-text {{ item.status_class }}">{{ item.status_label }}</span>
@@ -79,7 +82,7 @@
                       <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
                       
                   {% else %}
-                      <a href="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
+                      <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
                   {% endif %}
               </td>
               </tr>
