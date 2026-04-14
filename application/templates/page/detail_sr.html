@@ -32,7 +32,7 @@
             </div>
             <div class="info-group">
                 <span class="info-label">Created At</span>
-                <span class="info-value">{{ sr_detail.created_at }}</span>
+                <span class="info-value">{{ sr_detail.created_at | format_wib}}</span>
             </div>
 
             <div class="info-group full-width">
@@ -78,6 +78,135 @@
             </tbody>
         </table>
     </div>
+    {% endif %}
+
+    {% if is_pmo %}
+    <div class="detail-card">
+        <h3 class="section-title">
+            Kelola Assignment PIC
+            <span style="font-size: 12px; color: #64748b; font-weight: 400;">(IT PMO Only)</span>
+        </h3>
+        <form method="POST" action="{{ url_for('owh_dashboard.pmo_reassign', sr_no=sr_detail.sr_no) }}" id="pmo-reassign-form">
+
+            <div id="pmo-assign-rows">
+                {# Baris existing — tampil sebagai editable row dengan tombol hapus #}
+                {% for a in pmo_form_data.current_assignments %}
+                <div class="assign-row" data-existing="true" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    {# Hidden: tandai assign_id ini untuk dihapus saat user klik X #}
+                    <input type="hidden" class="delete-id-input" name="" value="{{ a.assign_id }}" disabled>
+                    <select name="assign_role[]" class="form-select" style="width: 160px;">
+                        {% for role in pmo_form_data.picroles %}
+                        <option value="{{ role.it_role_id }}"
+                            {% if role.it_role_id == a.it_role_id %}selected{% endif %}>
+                            {{ role.it_role_detail }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select name="assign_user[]" class="form-select" style="flex: 1;">
+                        <option value="">-- Pilih User --</option>
+                        {% for u in pmo_form_data.it_users %}
+                        <option value="{{ u.nik }}"
+                            {% if u.nik == a.assigned_user %}selected{% endif %}>
+                            {{ u.nama }} ({{ u.nik }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn-delete-row" onclick="removeExistingRow(this)"
+                        style="background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 600;">
+                        &times;
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div style="margin-top: 12px;">
+                <button type="button" onclick="addNewRow()"
+                    style="background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; padding: 8px 16px; cursor: pointer; color: #475569; font-size: 13px;">
+                    + Tambah Baris
+                </button>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Data roles & users dari server (disisipkan sekali saat render)
+        const PMO_ROLES = {{ pmo_form_data.picroles | tojson }};
+        const PMO_USERS = {{ pmo_form_data.it_users | tojson }};
+
+        function buildRoleOptions(selectedId) {
+            return PMO_ROLES.map(r =>
+                `<option value="${r.it_role_id}" ${r.it_role_id == selectedId ? 'selected' : ''}>${r.it_role_detail}</option>`
+            ).join('');
+        }
+
+        function buildUserOptions(selectedNik) {
+            const blank = `<option value="">-- Pilih User --</option>`;
+            const opts = PMO_USERS.map(u =>
+                `<option value="${u.nik}" ${u.nik == selectedNik ? 'selected' : ''}>${u.nama} (${u.nik})</option>`
+            ).join('');
+            return blank + opts;
+        }
+
+        function addNewRow() {
+            const container = document.getElementById('pmo-assign-rows');
+            const row = document.createElement('div');
+            row.className = 'assign-row';
+            row.setAttribute('data-existing', 'false');
+            row.style.cssText = 'display:flex; gap:10px; align-items:center; margin-bottom:10px;';
+            row.innerHTML = `
+                <select name="assign_role[]" class="form-select" style="width:160px;">
+                    ${buildRoleOptions(null)}
+                </select>
+                <select name="assign_user[]" class="form-select" style="flex:1;">
+                    ${buildUserOptions(null)}
+                </select>
+                <button type="button" onclick="this.closest('.assign-row').remove()"
+                    style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:600;">
+                    &times;
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeExistingRow(btn) {
+            const row = btn.closest('.assign-row');
+            // Aktifkan hidden input delete_ids[] agar ter-submit
+            const hiddenInput = row.querySelector('.delete-id-input');
+            if (hiddenInput) {
+                hiddenInput.name = 'delete_ids[]';
+                hiddenInput.disabled = false;
+            }
+            // Nonaktifkan select agar tidak ikut di-submit sebagai baris baru
+            row.querySelectorAll('select').forEach(s => s.disabled = true);
+            // Visual feedback: coret baris
+            row.style.opacity = '0.4';
+            row.style.textDecoration = 'line-through';
+            btn.textContent = 'Dibatalkan';
+            btn.style.background = '#e2e8f0';
+            btn.style.color = '#94a3b8';
+            btn.onclick = () => cancelDelete(btn);
+        }
+
+        function cancelDelete(btn) {
+            const row = btn.closest('.assign-row');
+            const hiddenInput = row.querySelector('.delete-id-input');
+            if (hiddenInput) {
+                hiddenInput.name = '';
+                hiddenInput.disabled = true;
+            }
+            row.querySelectorAll('select').forEach(s => s.disabled = false);
+            row.style.opacity = '1';
+            row.style.textDecoration = 'none';
+            btn.textContent = '×';
+            btn.style.background = '#fee2e2';
+            btn.style.color = '#dc2626';
+            btn.onclick = () => removeExistingRow(btn);
+        }
+    </script>
     {% endif %}
 
 </div>
