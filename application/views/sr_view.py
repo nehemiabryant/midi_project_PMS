@@ -35,6 +35,8 @@ def createSR_menu():
 
     current_files_dict = {}
 
+    categories = sr_transaction.get_all_categories_trx()
+
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
 
@@ -68,7 +70,7 @@ def createSR_menu():
             return redirect(request.url)
 
     return render_template('/page/sr_form.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
-                           , required_docs=ui_doc_blueprints, current_files=current_files_dict)
+                           , required_docs=ui_doc_blueprints, current_files=current_files_dict, categories=categories)
 
 
 @sr_bp.route('/editSR/<path:sr_no>', methods=['GET', 'POST'])
@@ -357,3 +359,91 @@ def api_get_sr_detail(sr_no):
         active_pics=active_pics,
         all_assignments=all_assignments,
     )
+
+@sr_bp.route('/adjustment/<path:sr_no>', methods=['GET', 'POST'])
+@login_required
+def adjustment_menu(sr_no):
+    if not sr_no:
+        flash("Invalid or corrupted adjustment link.", "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    current_user = session.get('user', {}).get('nik', '')
+
+    # ==========================================
+    # 1. THE BOUNCER (Authorization)
+    # ==========================================
+    eligibility_result = workflow_transaction.authorize_sr_access(
+        sr_no=sr_no, 
+        user_nik=current_user,
+        intent='ADJUSTMENT' # Triggers the strict PM-only check and lightweight data fetch
+    )
+
+    if not eligibility_result.get('status'):
+        flash(eligibility_result.get('msg'), "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    # Extract the lightweight SR data 
+    sr_data = eligibility_result['data'][0]
+    current_smk_id = sr_data.get('smk_id', 101)
+
+    # ==========================================
+    # 2. THE PM DROPDOWN OPTIONS
+    # ==========================================
+    # Get all phases without any rule restrictions
+    categories = sr_transaction.get_all_categories_trx()
+    options = workflow_transaction.get_adjustment_dropdown_options()
+
+    # ==========================================
+    # 3. HANDLE FORM SUBMISSION
+    # ==========================================
+    if request.method == 'POST':
+        raw_form_data = request.form.to_dict()
+        selected_action = request.form.get('sr_action')
+
+        # Execute the targeted adjustment update (currently just ctg_id)
+        trx_result = sr_transaction.update_sr_adjustment_trx(raw_form_data, sr_no)
+
+        if not trx_result.get('status'):
+            flash(f"Error updating SR: {trx_result.get('msg')}", "error")
+            return redirect(request.url)
+        
+        # Handle Phase Movement
+        if selected_action:
+            next_smk_id = int(selected_action)
+            
+            if next_smk_id != current_smk_id:
+                advance_result = workflow_transaction.advance_sr_phase(
+                    sr_no=sr_no,
+                    current_smk_id=current_smk_id,
+                    next_smk_id=next_smk_id,
+                    action_by=current_user,
+                    is_adjustment=True # <-- THE MAGIC BYPASS FLAG
+                )
+
+                if advance_result.get('status'):
+                    flash("Service Request adjusted and phase forcefully moved!", "success")
+                    return redirect(url_for('owh_dashboard.myWork_menu')) # Or wherever PMs should go
+                else:
+                    flash(f"SR updated, but failed to force-advance phase: {advance_result.get('msg')}", "warning")
+                    return redirect(request.url)
+
+        # If they just selected 'update_only' or didn't change the phase
+        flash("Service Request adjustments saved successfully!", "success")
+        return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
+    # ==========================================
+    # 4. RENDER PAGE
+    # ==========================================
+    # Notice mode='adjustment'. We don't pass required_docs or current_files because PMs bypass them here.
+    return render_template(
+        '/page/sr_adjustment.html', 
+        mode='adjustment', 
+        user=session.get('user'), 
+        role=session.get('role'), 
+        active_menu='my_sr', 
+        sr_data=sr_data, 
+        options=options,
+        categories=categories
+    )
+
+    

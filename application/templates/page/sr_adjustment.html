@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Adjust SR - {{ sr_data.sr_no }}</title>
+    </head>
+<body>
+
+    <div class="debug-info" style="display:none;">
+        <p>Active Menu: {{ active_menu }}</p>
+        <p>Current Mode: {{ mode }}</p>
+        <p>Logged in User NIK: {{ user.nik }}</p>
+        <p>User Session Role: {{ role }}</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <h2>PM Adjustment Mode: {{ sr_data.sr_no }}</h2>
+        <span class="badge">Current Phase: {{ sr_data.smk_id }} - {{ sr_data.current_status }}</span>
+
+        <div class="card read-only-data">
+            <h3>Ticket Details</h3>
+            <ul>
+                <li><strong>Application Name:</strong> {{ sr_data.app_name }}</li>
+                <li><strong>Requester:</strong> {{ sr_data.requester_name }} ({{ sr_data.req_id }})</li>
+                <li><strong>Division:</strong> {{ sr_data.division }}</li>
+                <li><strong>Module:</strong> {{ sr_data.module }}</li>
+                <li><strong>Purpose:</strong> {{ sr_data.purpose }}</li>
+                <li><strong>Details:</strong> {{ sr_data.details }}</li>
+                <li><strong>Progress:</strong> {{ sr_data.ticket_progress }}%</li>
+            </ul>
+        </div>
+
+        <form action="{{ url_for('owh_sr.adjustment_menu', sr_no=sr_data.sr_no) }}" method="POST">
+
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <div class="card editable-data">
+                <h3>Adjustable Fields</h3>
+
+                <div class="form-group">
+                    <label for="kategori_sr">Kategori SR</label>
+                    <select name="kategori_sr" id="kategori_sr" class="form-control" required>
+                        <option value="">-- Select Category --</option>
+                        {% for ctg in categories %}
+                            <option value="{{ ctg.ctg_id }}" {% if sr_data.ctg_id == ctg.ctg_id %}selected{% endif %}>
+                                {{ ctg.category }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="card phase-movement">
+                <h3>Phase Control (Override)</h3>
+                
+                <div class="form-group">
+                    <label for="sr_action">Force Move Phase To:</label>
+                    <select name="sr_action" id="sr_action" class="form-control" required>
+                        {% for opt in options %}
+                            <option value="{{ opt.next_smk_id }}" 
+                                    {% if sr_data.smk_id == opt.next_smk_id %}selected{% endif %}>
+                                Phase {{ opt.next_smk_id }} - {{ opt.rule_detail }} 
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions mt-3">
+                <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-danger">Execute PM Adjustment</button>
+            </div>
+
+        </form>
+    </div>
+
+    </body>
+</html>

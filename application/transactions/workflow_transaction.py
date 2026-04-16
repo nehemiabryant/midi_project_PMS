@@ -18,21 +18,23 @@ AUTO_ASSIGN_ON_PHASE = {
     104: {'nik': IT_GM_NIK, 'it_role_id': 1},  # 103→104: assign IT GM
 }
 
-def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_by: str, shared_conn=None) -> dict:
+def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_by: str, shared_conn=None, is_adjustment=False) -> dict:
     try:
-        # 1. Get the rule from your newly simplified table
-        rule_res = workflow_model.get_workflow_rule(current_smk_id, next_smk_id)
-        if not rule_res.get('status') or not rule_res.get('data'):
-            Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Invalid transition {current_smk_id}→{next_smk_id}')
-            return {'status': False, 'msg': 'Invalid workflow transition.'}
+        if not is_adjustment:
+            rule_res = workflow_model.get_workflow_rule(current_smk_id, next_smk_id)
+            if not rule_res.get('status') or not rule_res.get('data'):
+                Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Invalid transition {current_smk_id}→{next_smk_id}')
+                return {'status': False, 'msg': 'Invalid workflow transition.'}
 
-        rule_id = rule_res['data'][0][0]
-        allowed_role = rule_res['data'][0][1]
+            rule_id = rule_res['data'][0][0]
+            allowed_role = rule_res['data'][0][1]
+        else:
+            rule_id = None
 
         # ==========================================
         # 2. THE BADGE CHECK (Global Role)
         # ==========================================
-        if action_by != IT_PM_NIK:
+        if not is_adjustment:
 
             # ==========================================
             # 3. THE IDENTITY CHECK (Contextual Authority)
@@ -72,22 +74,22 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                     Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Tidak ter-assign dengan role {allowed_role}')
                     return {'status': False, 'msg': 'You must be specifically assigned to this ticket to execute this phase.'}
 
-        # ==========================================
-        # 4. Validate Mandatory Documents (berlaku untuk semua user termasuk IT PMO)
-        # ==========================================
-        docs_res = workflow_model.get_mandatory_docs(rule_id)
+            # ==========================================
+            # 4. Validate Mandatory Documents
+            # ==========================================
+            docs_res = workflow_model.get_mandatory_docs(rule_id)
 
-        if docs_res.get('status') and docs_res.get('data'):
-            mandatory_docs = [row[0] for row in docs_res['data']]
+            if docs_res.get('status') and docs_res.get('data'):
+                mandatory_docs = [row[0] for row in docs_res['data']]
 
-            uploaded_res = workflow_model.get_uploaded_docs(sr_no)
-            uploaded_docs = [row[0] for row in uploaded_res.get('data', [])] if uploaded_res.get('status') else []
+                uploaded_res = workflow_model.get_uploaded_docs(sr_no)
+                uploaded_docs = [row[0] for row in uploaded_res.get('data', [])] if uploaded_res.get('status') else []
 
-            missing_docs = [doc for doc in mandatory_docs if doc not in uploaded_docs]
+                missing_docs = [doc for doc in mandatory_docs if doc not in uploaded_docs]
 
-            if missing_docs:
-                Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Dokumen wajib belum lengkap: {missing_docs}')
-                return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
+                if missing_docs:
+                    Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Dokumen wajib belum lengkap: {missing_docs}')
+                    return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
 
         # ==========================================
         # 5. Execute the Database Log Updates
@@ -213,7 +215,7 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
         # ==========================================
         # 1. FETCH DATA BASED ON INTENT
         # ==========================================
-        if intent in ['VIEW', 'APPROVE', 'REASSIGN']:
+        if intent in ['VIEW', 'APPROVE', 'REASSIGN', 'ADJUSTMENT']:
             # Fetch the lightweight detail view
             # Note: adjust the prefix (e.g., sr_transaction.) if this function is in another module
             sr_dict = sr_transaction.get_sr_detail_trx(sr_no)
@@ -262,15 +264,26 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
         # ==========================================
         # 3. THE PHASE THRESHOLD CHECK 
         # ==========================================
-        if user_it_role == 2:
-            return {'status': True, 'msg': 'God Mode granted.', 'data': [sr_dict]}
+        if user_it_role == 2 and intent in ['ADJUSTMENT', 'REASSIGN']:
+            return {'status': True, 'msg': f'PM Admin access granted for {intent}.', 'data': [sr_dict]}
+
+        if intent == 'ADJUSTMENT':
+            return {
+                'status': False, 
+                'msg': 'Access Denied: Only the IT Project Manager can access the Adjustment menu.'
+            }
         
         if intent == 'VIEW':
             # If they just want to read it, and they survived the role check above, let them in!
             pass
 
         elif intent == 'EDIT':
-            # If they want to edit text without moving the phase, check the phase threshold
+            if user_it_role != 9:
+                return {
+                    'status': False,
+                    'msg': 'Access Denied: Only the original requester can edit the Service Request details.'
+                }
+
             if current_smk_id > max_allowed_smk_id:
                 return {
                     'status': False, 
@@ -291,9 +304,6 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
                 }
 
         elif intent == 'REASSIGN':
-            # Hanya IT PMO yang boleh reassign — semua role lain ditolak.
-            # IT PMO sudah di-short-circuit oleh god mode di atas, jadi branch ini
-            # hanya dicapai oleh non-PMO user.
             return {
                 'status': False,
                 'msg': 'Hanya IT PMO yang dapat melakukan reassignment pada SR ini.'
@@ -374,6 +384,32 @@ def get_dropdown_options(current_smk_id: int, sr_no: str = None, nik: str = None
         return options
     except Exception as e:
         Log.error(f"Exception | Get Dropdown Options | Msg: {str(e)}")
+        return []
+    
+def get_adjustment_dropdown_options() -> list:
+    """
+    Ambil semua opsi dropdown (smk_id) untuk PM Adjustment.
+    Tidak ada validasi rule, PM bisa melompat ke phase manapun.
+    """
+    try:
+        db_result = workflow_model.get_all_phases_model()
+        options = []
+
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            for opt in converters.convert_to_dicts(rows, headers):
+                # Map standard columns to the names expected by the UI template
+                options.append({
+                    'next_smk_id': opt.get('smk_id'),
+                    'rule_detail': opt.get('smk_ket'),
+                    'action_type': 'adjust' # Custom tag in case UI needs to know it's forced
+                })
+
+        return options
+    except Exception as e:
+        Log.error(f"Exception | Get Adjustment Dropdown Options | Msg: {str(e)}")
         return []
     
 def get_update_action() -> list:
