@@ -466,12 +466,21 @@ def pmo_update_assign_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                 if a['nik'] not in valid_niks:
                     return {'status': False, 'data': [], 'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."}
 
-        # 5. is_active: row baru (tanpa assign_id) → pertama per role = active; row existing → tidak diubah di DB
-        seen_roles = set()
+        # 5. is_active: kurangi existing_active_roles dengan role yang akan delete.
+        existing_active_roles = assignment_model.get_active_role_ids_on_sr_model(sr_no)
+        if delete_ids:
+            freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
+            existing_active_roles -= freed_roles
+        
+        seen_new_roles = set()
         for a in assignments:
             if not a.get('assign_id'):
-                a['is_active'] = a['it_role_id'] not in seen_roles
-                seen_roles.add(a['it_role_id'])
+                role_id = a['it_role_id']
+                if role_id not in existing_active_roles and role_id not in seen_new_roles:
+                    a['is_active'] = True
+                    seen_new_roles.add(role_id)
+                else:
+                    a['is_active'] = False
 
         # 6. Eksekusi atomik: hapus dulu, lalu upsert
         shared_conn = DatabasePG("supabase", autocommit=False)
@@ -505,6 +514,73 @@ def pmo_update_assign_trx(sr_no: str, nik: str, form_data: dict) -> dict:
 
     except Exception as e:
         Log.error(f'Exception | pmo_update_assign_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    
+def pmo_replace_sm_trx(sr_no: str, nik: str, new_sm_nik: str) -> dict:
+    """                                                            
+    IT PM mengganti IT SM pada SR.                                  
+    - Soft-delete semua record SM lama pada SR ini
+    - Insert SM baru dengan is_active ditentukan via freed_roles logic                                                               
+    Validasi: caller harus IT PM, new_sm_nik harus dari IT_SM_NIKS. 
+    """
+    try:
+        # 1. Validasi: hanya IT PM
+        if nik != workflow_transaction.IT_PM_NIK:
+            return {'status': False, 'data': [], 'msg': 'Hanya IT PM yang dapat mengganti IT SM.'}
+        
+        # 2. Validasi: SM baru harus dari IT_SM_NIKS
+        if new_sm_nik not in workflow_transaction.IT_SM_NIKS:
+            return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
+        
+        # 3. Validasi: SR ada
+        sr_detail = parse_single_row(assignment_model.get_sr_detail_with_status_model(sr_no))
+        if not sr_detail:
+            return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
+        
+        # 4. Ambil role_id IT SM dari DB
+        sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
+        if not sm_role_id:
+            return {'status': False, 'data': [], 'msg': 'Gagal mendapatkan role ID IT SM.'}
+        
+        # 5. Ambil semua record SM yang aktif pada SR ini
+        current_sms = parse_rows(assignment_model.get_sr_assignments_model(sr_no, [sm_role_id]))
+        delete_ids = [sm['assign_id'] for sm in current_sms]
+
+        # 6. Hitung is_active SM baru via freed_roles logic
+        existing_active_roles = assignment_model.get_active_role_ids_on_sr_model(sr_no)
+        if delete_ids:
+            freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
+            existing_active_roles -= freed_roles
+        new_sm_is_active = sm_role_id not in existing_active_roles
+
+        # 7. Eksekusi atomik: soft-delete SM lama -> insert SM baru
+        shared_conn = DatabasePG("supabase", autocommit=False)
+        try:
+            if delete_ids:
+                del_result = assignment_model.delete_assignments_by_ids_model(delete_ids, shared_conn)
+                if not del_result.get('status'):
+                    raise Exception(del_result.get('msg', 'Gagal hapus SM lama'))
+            
+            ins_result = assignment_model.insert_assignments_model(
+                sr_no=sr_no,
+                assignments=[{'nik': new_sm_nik, 'it_role_id': sm_role_id, 'is_active': new_sm_is_active}],
+                assigned_by=nik,
+                shared_conn=shared_conn
+            )
+            if not ins_result.get('status'):
+                raise Exception(ins_result.get('msg', 'Gagal insert SM baru'))
+            shared_conn._conn.commit()
+            return {'status': True, 'data': [], 'msg': 'IT SM berhasil diganti.'}
+        
+        except Exception as e:
+            try: shared_conn._conn.rollback()
+            except Exception: pass
+            raise e
+        finally:
+            shared_conn.close()
+
+    except Exception as e:
+        Log.error(f'Exception | pmo_replace_sm_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
 
