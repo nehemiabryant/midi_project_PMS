@@ -324,35 +324,6 @@ def project_details_menu(phase_name, sr_no):
     return render_template('/page/project_detail.html', user=session['user'], role=session['role'], active_menu='dashboard',
         phase_name=phase_name, sr_list=sr_list, current_sr_no=sr_no)
 
-#BEING KEPT AS A REFERENCE IN CASE SOMETHING GOES WRONG
-@sr_bp.route('/projectDetails-design/<path:sr_no>', methods=['GET'])
-@login_required
-def project_details_design_menu(sr_no):
-    # Jika token dari sidebar (biasanya string 'token' atau kosong), BYPASS pencarian DB
-    if not sr_no:
-        # Langsung render HTML tanpa mencari ke database
-        return render_template('page/project_detail_design.html', 
-                               user=session.get('user', {}), 
-                               role=session.get('role'), 
-                               active_menu='project_details',
-                               sr_no='SR-TESTING-001') # Data dummy
-
-    # Logika asli Anda untuk mendekripsi token dan mencari ke database...
-    
-    # ... (Kode pencarian API/Database Anda) ...
-    # Pastikan jika API gagal, jangan `return jsonify(api_response)`. 
-    # Tapi gunakan `flash` dan `redirect` seperti ini:
-    
-    # if not response.get('status'):
-    #     flash("Data tidak ditemukan", "error")
-    #     return redirect(url_for('owh_dashboard.dashboard_menu'))
-
-    return render_template('page/project_detail_design.html', 
-                           user=session.get('user', {}), 
-                           role=session.get('role'), 
-                           active_menu='project_details',
-                           sr_no=sr_no)
-
 @sr_bp.route('/api/get_sr_detail/<path:sr_no>', methods=['GET'])
 @login_required
 def api_get_sr_detail(sr_no):
@@ -374,6 +345,7 @@ def api_get_sr_detail(sr_no):
 
     current_smk_id = sr_data.get('smk_id') if sr_data else None
     active_pics = sr_transaction.get_active_pics_for_sr_trx(clean_sr_no, current_smk_id) if current_smk_id else []
+    all_assignments = assignment_transaction.get_all_assignments_trx(clean_sr_no)
 
     return render_template(
         '/partials/_sr_detail_content.html',
@@ -382,5 +354,6 @@ def api_get_sr_detail(sr_no):
         tasks=tasks,
         target_dates=target_dates,
         actual_dates=actual_dates,
-        active_pics=active_pics
+        active_pics=active_pics,
+        all_assignments=all_assignments,
     )

@@ -94,6 +94,7 @@ def get_user_role_assignment_on_sr_model(sr_no: str, nik: str, role_name: str) -
         WHERE sa.sr_no = %(sr_no)s
           AND sa.assigned_user = %(nik)s
           AND it.it_role_detail = %(role_name)s
+          AND sa.deleted_at IS NULL
     """
     conn = None
     try:
@@ -119,6 +120,7 @@ def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
         LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.sr_no = %(sr_no)s
+        AND deleted_at IS NULL
     """
     params = {'sr_no': sr_no}
     if it_role_ids:
@@ -136,6 +138,55 @@ def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+    
+def get_active_role_ids_on_sr_model(sr_no: str) -> set:               
+    """Ambil set it_role_id yang sudah punya is_active=TRUE pada SR ini."""                                                              
+    sql = """                                                         
+        SELECT DISTINCT it_role_id
+        FROM sr_assignments                                          
+        WHERE sr_no = %(sr_no)s                                       
+        AND is_active = TRUE
+        AND deleted_at IS NULL                                      
+    """         
+    conn = None                                                      
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):                             
+            return set()
+        result = conn.selectData(sql, {'sr_no': sr_no})               
+        if result.get('status') and result.get('data'):
+            return {int(row[0]) for row in result['data']}            
+        return set()
+    except Exception as e:                                            
+        Log.error(f'DB Exception | get_active_role_ids_on_sr | Msg: {str(e)}')                                                            
+        return set()
+    finally:                                                          
+        if conn: conn.close()
+
+def get_active_role_ids_by_assign_ids_model(assign_ids: list) -> set:
+    """Dari list assign_id yang akan dihapus, kembalikan role_id yang is_active=TRUE."""                                                    
+    if not assign_ids:
+        return set()                                                  
+    sql = """   
+        SELECT DISTINCT it_role_id FROM sr_assignments               
+        WHERE assign_id IN %(ids)s
+        AND is_active = TRUE                                        
+        AND deleted_at IS NULL
+    """                                                               
+    conn = None 
+    try:                                                             
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return set()
+        result = conn.selectData(sql, {'ids': tuple(assign_ids)})     
+        if result.get('status') and result.get('data'):
+            return {int(row[0]) for row in result['data']}            
+        return set()                                                  
+    except Exception as e:                                           
+        Log.error(f'DB Exception | get_active_role_ids_by_assign_ids | Msg: {str(e)}')
+        return set()                                                 
+    finally:
+        if conn: conn.close()
 
 
 def get_it_role_on_sr_model(sr_no: str, nik: str) -> dict:
@@ -145,6 +196,7 @@ def get_it_role_on_sr_model(sr_no: str, nik: str) -> dict:
         FROM sr_assignments
         WHERE sr_no = %(sr_no)s
           AND assigned_user = %(nik)s
+          AND deleted_at IS NULL
     """
     conn = None
     try:
@@ -170,6 +222,7 @@ def check_role_assignment_model(sr_no: str, nik: str, it_role_id: int) -> bool:
         WHERE sr_no = %(sr_no)s
           AND assigned_user = %(nik)s
           AND it_role_id = %(it_role_id)s
+          AND deleted_at IS NULL
         LIMIT 1
     """
     conn = None
@@ -233,58 +286,110 @@ def get_sm_options_model(nik_list: list) -> dict:
 
 def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, shared_conn=None) -> dict:
     """
-    Insert semua assignment pada SR.
-    assignments = list of {'nik': str, 'it_role_id': int, 'is_active': bool (opsional, default True)}
-    Jika shared_conn diberikan, pakai koneksi tersebut (tidak commit/rollback sendiri).
+    Upsert assignments pada SR.
+    - Dict dengan 'assign_id' → UPDATE langsung by PK (tidak INSERT ulang)
+    - Dict tanpa 'assign_id'  → INSERT baru (tanpa ON CONFLICT agar error constraint langsung terlihat)
+    assignments = list of {'nik': str, 'it_role_id': int, 'is_active': bool (opsional), 'assign_id': int (opsional)}
     """
-    insert_sql = """
+    sql_update = """
+        UPDATE sr_assignments
+        SET assigned_user = %(nik)s,
+            it_role_id    = %(it_role_id)s,
+            assigned_by   = %(assigned_by)s,
+            assigned_at   = NOW()
+        WHERE assign_id = %(assign_id)s
+          AND deleted_at IS NULL
+    """
+    sql_insert = """
         INSERT INTO sr_assignments (sr_no, assigned_user, assigned_by, it_role_id, assigned_at, is_active)
         VALUES (%(sr_no)s, %(assigned_user)s, %(assigned_by)s, %(it_role_id)s, NOW(), %(is_active)s)
-        ON CONFLICT DO NOTHING
     """
 
-    if shared_conn:
+    def _execute_all(conn):
         for a in assignments:
-            result = shared_conn.executeDataNoCommit(insert_sql, {
-                'sr_no': sr_no,
-                'assigned_user': a['nik'],
-                'assigned_by': assigned_by,
-                'it_role_id': a['it_role_id'],
-                'is_active': a.get('is_active', True)
-            })
+            if a.get('assign_id'):
+                sql = sql_update
+                params = {
+                    'assign_id': a['assign_id'],
+                    'nik': a['nik'],
+                    'it_role_id': a['it_role_id'],
+                    'assigned_by': assigned_by,
+                }
+            else:
+                sql = sql_insert
+                params = {
+                    'sr_no': sr_no,
+                    'assigned_user': a['nik'],
+                    'assigned_by': assigned_by,
+                    'it_role_id': a['it_role_id'],
+                    'is_active': a.get('is_active', True),
+                }
+            result = conn.executeDataNoCommit(sql, params)
             if not result.get('status'):
-                return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal insert assignment')}
+                return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal upsert assignment')}
         return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan.'}
+
+    if shared_conn:
+        return _execute_all(shared_conn)
 
     conn = None
     try:
         conn = DatabasePG("supabase", autocommit=False)
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-
-        for a in assignments:
-            result = conn.executeDataNoCommit(insert_sql, {
-                'sr_no': sr_no,
-                'assigned_user': a['nik'],
-                'assigned_by': assigned_by,
-                'it_role_id': a['it_role_id'],
-                'is_active': a.get('is_active', True)
-            })
-            if not result.get('status'):
-                raise Exception(result.get('msg', 'Gagal insert assignment'))
-
+        result = _execute_all(conn)
+        if not result.get('status'):
+            raise Exception(result.get('msg'))
         conn._conn.commit()
         return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan.'}
     except Exception as e:
         if conn:
-            try:
-                conn._conn.rollback()
-            except Exception:
-                pass
+            try: conn._conn.rollback()
+            except Exception: pass
         Log.error(f'DB Exception | insert_assignments | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def delete_assignments_by_ids_model(assign_ids: list, shared_conn=None) -> dict:
+    """
+    Hapus assignment berdasarkan list assign_id.
+    Digunakan oleh IT PMO untuk menghapus assignment tertentu pada SR.
+    """
+    if not assign_ids:
+        return {'status': True, 'data': [], 'msg': 'Tidak ada assignment yang dihapus.'}
+
+    sql = """ 
+        UPDATE sr_assignments
+        SET deleted_at = NOW(), is_active = FALSE
+        WHERE assign_id IN %(assign_ids)s
+          AND deleted_at IS NULL
+    """
+    params = {'assign_ids': tuple(assign_ids)}
+
+    if shared_conn:
+        result = shared_conn.executeDataNoCommit(sql, params)
+        return result if not result.get('status') else {'status': True, 'data': [], 'msg': 'Assignment dihapus.'}
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase", autocommit=False)
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        result = conn.executeDataNoCommit(sql, params)
+        if not result.get('status'):
+            raise Exception(result.get('msg', 'Gagal hapus assignment'))
+        conn._conn.commit()
+        return {'status': True, 'data': [], 'msg': 'Assignment berhasil dihapus.'}
+    except Exception as e:
+        if conn:
+            try: conn._conn.rollback()
+            except Exception: pass
+        Log.error(f'DB Exception | delete_assignments_by_ids | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
 
 def get_assignment_by_id_model(assign_id: int) -> dict:
     """Ambil detail satu assignment berdasarkan assign_id."""
@@ -292,6 +397,7 @@ def get_assignment_by_id_model(assign_id: int) -> dict:
         SELECT assign_id, sr_no, assigned_user, it_role_id, is_active
         FROM sr_assignments
         WHERE assign_id = %(assign_id)s
+          AND sa.deleted_at IS NULL
     """
     conn = None
     try:
@@ -316,6 +422,7 @@ def get_active_pic_on_sr_model(sr_no: str, nik: str, current_smk_id: int = None)
         WHERE sa.sr_no = %(sr_no)s
           AND sa.assigned_user = %(nik)s
           AND sa.is_active = TRUE
+          AND deleted_at IS NULL
     """
     params = {'sr_no': sr_no, 'nik': nik}
     if current_smk_id is not None:
@@ -350,6 +457,7 @@ def get_pic_handover_candidates_model(sr_no: str, it_role_id: int, exclude_nik: 
           AND sa.it_role_id = %(it_role_id)s
           AND sa.assigned_user != %(exclude_nik)s
           AND sa.is_active = FALSE
+          AND deleted_at IS NULL
     """
     conn = None
     try:
@@ -381,6 +489,7 @@ def get_all_handover_candidates_model(sr_no: str, active_role_ids: list, exclude
           AND sa.it_role_id IN %(role_ids)s
           AND sa.assigned_user != %(exclude_nik)s
           AND sa.is_active = FALSE
+          AND deleted_at IS NULL
     """
     conn = None
     try:
@@ -407,6 +516,7 @@ def toggle_active_pic_model(sr_no: str, it_role_id: int, target_assign_id: int, 
     sql_deactivate = """
         UPDATE sr_assignments SET is_active = FALSE
         WHERE sr_no = %(sr_no)s AND it_role_id = %(it_role_id)s
+        AND deleted_at IS NULL
     """
     sql_activate = """
         UPDATE sr_assignments SET is_active = TRUE
@@ -455,6 +565,7 @@ def get_all_active_pics_for_sr_model(sr_no: str, current_smk_id: int) -> dict:
         JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.sr_no = %(sr_no)s
           AND sa.is_active = TRUE
+          AND deleted_at IS NULL
           AND EXISTS (
               SELECT 1 FROM sr_ms_workflow_rules wf
               WHERE wf.allowed_picrole = sa.it_role_id
@@ -513,7 +624,8 @@ def get_sr_approvers(sr_no: str, shared_conn=None) -> dict:
         JOIN public.karyawan_all ka ON sa.assigned_user = ka.nik
         JOIN public.sr_ms_it smi ON sa.it_role_id = smi.it_role_id
         WHERE sa.sr_no = %(sr_no)s 
-          AND sa.it_role_id IN (1, 2, 3, 8) 
+          AND sa.it_role_id IN (1, 2, 3, 8)
+          AND deleted_at IS NULL
         ORDER BY array_position(ARRAY[8, 2, 1, 3], sa.it_role_id);
     """
     if shared_conn:

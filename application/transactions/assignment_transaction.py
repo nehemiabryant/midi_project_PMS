@@ -1,7 +1,7 @@
 from application.transactions import srlogs_transaction, workflow_transaction
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
-from ..models import assignment_model
+from ..models import assignment_model, my_work_model
 from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
@@ -409,6 +409,194 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
     finally:
         if shared_conn:
             shared_conn.close()
+
+def pmo_update_assign_trx(sr_no: str, nik: str, form_data: dict) -> dict:
+    """
+    IT PMO mengelola assignment PIC pada SR — tambah, edit, hapus — di fase manapun.
+    Tidak ada lock check. Satu transaksi atomik:
+      1. Hapus assign_id yang ada di delete_ids[]
+      2. Insert baris baru dari assign_user[] + assign_role[]
+
+    Validasi: caller harus IT PMO (dicek via authorize_sr_access dengan intent REASSIGN).
+    """
+    try:
+        # 1. Validasi: hanya IT PMO yang boleh
+        access = workflow_transaction.authorize_sr_access(sr_no, nik, intent='REASSIGN')
+        if not access.get('status'):
+            return {'status': False, 'data': [], 'msg': access.get('msg', 'Akses ditolak.')}
+
+        # 2. Parse delete_ids[] — assign_id yang akan dihapus
+        raw_delete = form_data.getlist('delete_ids[]') if hasattr(form_data, 'getlist') else form_data.get('delete_ids[]', [])
+        if isinstance(raw_delete, str):
+            raw_delete = [raw_delete]
+        delete_ids = []
+        for d in raw_delete:
+            d = str(d).strip()
+            if d.isdigit():
+                delete_ids.append(int(d))
+
+        # 3. Parse assign_id[], assign_user[], assign_role[] sebagai triplet
+        id_list   = form_data.getlist('assign_id[]')   if hasattr(form_data, 'getlist') else form_data.get('assign_id[]', [])
+        user_list = form_data.getlist('assign_user[]') if hasattr(form_data, 'getlist') else form_data.get('assign_user[]', [])
+        role_list = form_data.getlist('assign_role[]') if hasattr(form_data, 'getlist') else form_data.get('assign_role[]', [])
+        if isinstance(id_list, str):   id_list   = [id_list]
+        if isinstance(user_list, str): user_list = [user_list]
+        if isinstance(role_list, str): role_list = [role_list]
+
+        assignments = []
+        for assign_id_str, user_nik, role_id_str in zip(id_list, user_list, role_list):
+            user_nik      = user_nik.strip()      if user_nik      else ''
+            role_id_str   = str(role_id_str).strip() if role_id_str else ''
+            assign_id_str = str(assign_id_str).strip() if assign_id_str else ''
+            if not user_nik or not role_id_str:
+                continue
+            a = {'nik': user_nik, 'it_role_id': int(role_id_str)}
+            if assign_id_str.isdigit():
+                a['assign_id'] = int(assign_id_str)  # existing → upsert
+            assignments.append(a)
+
+        if not delete_ids and not assignments:
+            return {'status': False, 'data': [], 'msg': 'Tidak ada perubahan yang dikirim.'}
+
+        # 4. Validasi NIK harus terdaftar sebagai IT user
+        if assignments:
+            it_users = parse_rows(assignment_model.get_it_users_model())
+            valid_niks = {u['nik'] for u in it_users}
+            for a in assignments:
+                if a['nik'] not in valid_niks:
+                    return {'status': False, 'data': [], 'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."}
+
+        # 5. is_active: kurangi existing_active_roles dengan role yang akan delete.
+        existing_active_roles = assignment_model.get_active_role_ids_on_sr_model(sr_no)
+        if delete_ids:
+            freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
+            existing_active_roles -= freed_roles
+        
+        seen_new_roles = set()
+        for a in assignments:
+            if not a.get('assign_id'):
+                role_id = a['it_role_id']
+                if role_id not in existing_active_roles and role_id not in seen_new_roles:
+                    a['is_active'] = True
+                    seen_new_roles.add(role_id)
+                else:
+                    a['is_active'] = False
+
+        # 6. Eksekusi atomik: hapus dulu, lalu upsert
+        shared_conn = DatabasePG("supabase", autocommit=False)
+        try:
+            if delete_ids:
+                del_result = assignment_model.delete_assignments_by_ids_model(delete_ids, shared_conn)
+                if not del_result.get('status'):
+                    raise Exception(del_result.get('msg', 'Gagal hapus assignment'))
+
+            if assignments:
+                ups_result = assignment_model.insert_assignments_model(sr_no, assignments, nik, shared_conn)
+                if not ups_result.get('status'):
+                    raise Exception(ups_result.get('msg', 'Gagal upsert assignment'))
+
+            shared_conn._conn.commit()
+
+            new_count = sum(1 for a in assignments if not a.get('assign_id'))
+            upd_count = sum(1 for a in assignments if a.get('assign_id'))
+            parts = []
+            if delete_ids: parts.append(f'{len(delete_ids)} dihapus')
+            if upd_count:  parts.append(f'{upd_count} diupdate')
+            if new_count:  parts.append(f'{new_count} ditambahkan')
+            return {'status': True, 'data': [], 'msg': ', '.join(parts) + '.'}
+
+        except Exception as e:
+            try: shared_conn._conn.rollback()
+            except Exception: pass
+            raise e
+        finally:
+            shared_conn.close()
+
+    except Exception as e:
+        Log.error(f'Exception | pmo_update_assign_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    
+def pmo_replace_sm_trx(sr_no: str, nik: str, new_sm_nik: str) -> dict:
+    """                                                            
+    IT PM mengganti IT SM pada SR.                                  
+    - Soft-delete semua record SM lama pada SR ini
+    - Insert SM baru dengan is_active ditentukan via freed_roles logic                                                               
+    Validasi: caller harus IT PM, new_sm_nik harus dari IT_SM_NIKS. 
+    """
+    try:
+        # 1. Validasi: hanya IT PM
+        if nik != workflow_transaction.IT_PM_NIK:
+            return {'status': False, 'data': [], 'msg': 'Hanya IT PM yang dapat mengganti IT SM.'}
+        
+        # 2. Validasi: SM baru harus dari IT_SM_NIKS
+        if new_sm_nik not in workflow_transaction.IT_SM_NIKS:
+            return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
+        
+        # 3. Validasi: SR ada
+        sr_detail = parse_single_row(assignment_model.get_sr_detail_with_status_model(sr_no))
+        if not sr_detail:
+            return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
+        
+        # 4. Ambil role_id IT SM dari DB
+        sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
+        if not sm_role_id:
+            return {'status': False, 'data': [], 'msg': 'Gagal mendapatkan role ID IT SM.'}
+        
+        # 5. Ambil semua record SM yang aktif pada SR ini
+        current_sms = parse_rows(assignment_model.get_sr_assignments_model(sr_no, [sm_role_id]))
+        delete_ids = [sm['assign_id'] for sm in current_sms]
+
+        # 6. Hitung is_active SM baru via freed_roles logic
+        existing_active_roles = assignment_model.get_active_role_ids_on_sr_model(sr_no)
+        if delete_ids:
+            freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
+            existing_active_roles -= freed_roles
+        new_sm_is_active = sm_role_id not in existing_active_roles
+
+        # 7. Eksekusi atomik: soft-delete SM lama -> insert SM baru
+        shared_conn = DatabasePG("supabase", autocommit=False)
+        try:
+            if delete_ids:
+                del_result = assignment_model.delete_assignments_by_ids_model(delete_ids, shared_conn)
+                if not del_result.get('status'):
+                    raise Exception(del_result.get('msg', 'Gagal hapus SM lama'))
+            
+            ins_result = assignment_model.insert_assignments_model(
+                sr_no=sr_no,
+                assignments=[{'nik': new_sm_nik, 'it_role_id': sm_role_id, 'is_active': new_sm_is_active}],
+                assigned_by=nik,
+                shared_conn=shared_conn
+            )
+            if not ins_result.get('status'):
+                raise Exception(ins_result.get('msg', 'Gagal insert SM baru'))
+            shared_conn._conn.commit()
+            return {'status': True, 'data': [], 'msg': 'IT SM berhasil diganti.'}
+        
+        except Exception as e:
+            try: shared_conn._conn.rollback()
+            except Exception: pass
+            raise e
+        finally:
+            shared_conn.close()
+
+    except Exception as e:
+        Log.error(f'Exception | pmo_replace_sm_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+
+def get_all_assignments_trx(sr_no: str) -> list:
+    """
+    Ambil semua assignment pada SR, dikembalikan sebagai list dict.
+    Tidak ada access check — digunakan untuk tampilan informasi (dashboard, dll).
+    Return list kosong jika tidak ada data atau terjadi error.
+    """
+    try:
+        result = my_work_model.get_all_sr_assignments_model(sr_no)
+        return parse_rows(result)
+    except Exception as e:
+        Log.error(f'Exception | get_all_assignments_trx | Msg: {str(e)}')
+        return []
+
 
 def get_sr_actors_trx(sr_no: str) -> dict:
     """
