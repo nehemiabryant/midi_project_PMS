@@ -98,6 +98,7 @@ def get_my_work_items_model(nik: str) -> dict:
         LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.assigned_user = %(nik)s
+          AND sa.deleted_at IS NULL
           AND {territory_filter}
         ORDER BY r.sr_no ASC
     """
@@ -151,6 +152,7 @@ def get_all_sr_assignments_model(sr_no: str) -> dict:
         LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.sr_no = %(sr_no)s
+          AND sa.deleted_at IS NULL
         ORDER BY sa.it_role_id, sa.assign_id
     """
     conn = None
@@ -173,6 +175,7 @@ def get_user_role_on_sr_model(sr_no: str, nik: str) -> dict:
         FROM sr_assignments sa
         LEFT JOIN sr_ms_it it ON sa.it_role_id = it.it_role_id
         WHERE sa.sr_no = %(sr_no)s AND sa.assigned_user = %(nik)s
+          AND sa.deleted_at IS NULL
         ORDER BY sa.it_role_id
     """
     conn = None
@@ -196,6 +199,7 @@ def can_approve_sr(sr_no: str, nik: str) -> bool:
         JOIN sr_assignments sa ON r.sr_no = sa.sr_no
         WHERE r.sr_no = %(sr_no)s
           AND sa.assigned_user = %(nik)s
+          AND sa.deleted_at IS NULL
           AND (sa.it_role_id, r.smk_id) IN (
               (1, 104),
               (2, 103),
