@@ -209,27 +209,8 @@ def sr_detail_view(sr_no):
     """
     Halaman read-only detail SR.
     Konten SR dimuat via AJAX ke /api/get_sr_detail/<sr_no> (reuse existing API).
-    View ini hanya menyiapkan shell page + data PMO form jika user adalah IT PMO.
     """
     clean_sr_no = urllib.parse.unquote(sr_no).strip()
-    nik = session['user']['nik']
-
-    # Cek apakah user adalah IT PMO — jika ya, siapkan data form reassign
-    is_pmo = nik == workflow_transaction.IT_PM_NIK
-    pmo_form_data = {}
-    if is_pmo:
-        from ..models import assignment_model
-        from ..utils.converters import parse_rows
-        picroles = parse_rows(assignment_model.get_assignable_picroles_model())
-        assignable_role_ids = {r['it_role_id'] for r in picroles}
-        all_assignments = assignment_transaction.get_all_assignments_trx(clean_sr_no)
-        pmo_form_data = {
-            'picroles': picroles,
-            'it_users': parse_rows(assignment_model.get_it_users_model()),
-            'current_assignments': [
-                a for a in all_assignments if a.get('it_role_id') in assignable_role_ids
-            ],
-        }
 
     return render_template(
         '/page/sr_detail_view.html',
@@ -237,8 +218,6 @@ def sr_detail_view(sr_no):
         role=session['role'],
         active_menu='my_work',
         sr_no=clean_sr_no,
-        is_pmo=is_pmo,
-        pmo_form_data=pmo_form_data,
     )
 
 @dashboard_bp.route('/myWork/detail/<path:sr_no>/pmo-reassign', methods=['POST'])
