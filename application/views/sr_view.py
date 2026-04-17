@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
-from ..helpers.decorators import login_required
+from ..helpers.decorators import login_required, it_pm_required
 import urllib.parse
 
 Log = Logger()
@@ -359,6 +359,14 @@ def api_get_sr_detail(sr_no):
         active_pics=active_pics,
         all_assignments=all_assignments,
     )
+
+@sr_bp.route('/adjustment', methods=['GET'])
+@login_required
+@it_pm_required
+def update_status_menu():
+    result = sr_transaction.get_all_sr_trx()
+    sr_data = result.get('data', [])
+    return render_template('/page/update_status.html', user=session.get('user'), role=session.get('role'), active_menu='update_status', sr_data=sr_data)
 
 @sr_bp.route('/adjustment/<path:sr_no>', methods=['GET'])
 @login_required

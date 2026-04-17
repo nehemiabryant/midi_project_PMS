@@ -1,14 +1,23 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<<<<<<< HEAD
 <style>
 /* ========================================= */
 /* BASE WADAH UTAMA                          */
 /* ========================================= */
+=======
+{% with header_title='Update Status Project' %}
+{% include 'components/header.html' %}
+{% endwith %}
+
+<style>
+>>>>>>> ed8f0c20d66d2f36abf58c6fe4d8cea135e979b0
 .page-content {
     background-color: #f8f9fa;
     min-height: calc(100vh - 60px);
     padding: 24px;
+<<<<<<< HEAD
     font-family: 'Poppins', 'Inter', sans-serif;
 }
 
@@ -33,11 +42,35 @@
 
 .list-title {
     font-size: 20px;
+=======
+}
+
+.list-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    max-width: 1150px;
+    margin: 0 auto;
+    font-family: 'Poppins', 'Inter', sans-serif;
+}
+
+.list-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.list-card-title {
+    font-size: 18px;
+>>>>>>> ed8f0c20d66d2f36abf58c6fe4d8cea135e979b0
     font-weight: 700;
     color: #0f172a;
     margin: 0;
 }
 
+<<<<<<< HEAD
 .search-box-modern {
     display: flex;
     align-items: center;
@@ -246,6 +279,75 @@
     .grid-2-col, .grid-4-col { grid-template-columns: 1fr; }
     .list-header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .search-input { width: 100%; }
+=======
+.search-input {
+    padding: 8px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #334155;
+    width: 260px;
+    outline: none;
+    font-family: 'Poppins', 'Inter', sans-serif;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #2563eb;
+}
+
+.sr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.sr-table thead tr {
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.sr-table thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.sr-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.sr-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.sr-table tbody td {
+    padding: 14px 16px;
+    color: #0f172a;
+    font-weight: 500;
+}
+
+.sr-table tbody td.td-maker {
+    color: #334155;
+    font-weight: 400;
+}
+
+.sr-table tbody td.td-date {
+    color: #64748b;
+    font-weight: 400;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 0;
+    color: #94a3b8;
+    font-size: 13px;
+>>>>>>> ed8f0c20d66d2f36abf58c6fe4d8cea135e979b0
 }
 </style>
 
