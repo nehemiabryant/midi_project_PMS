@@ -6,7 +6,7 @@ Log = Logger()
 
 def get_sr(shared_conn=None) -> dict:
     sql = """
-          SELECT r.sr_no, r.req_id, r.name, r.created_at, ka.nama AS maker_name
+          SELECT r.sr_no, r.req_id, r.name, r.created_at, ka.nama AS requester_name
           FROM public.sr_request r
           JOIN public.karyawan_all ka ON r.req_id = ka.nik
           ORDER BY sr_no ASC
