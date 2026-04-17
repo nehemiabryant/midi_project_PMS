@@ -1,165 +1,230 @@
 {% extends 'base.html' %} 
+
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/sr_adjustment.css') }}">
 
-{{ sr_data.sr_no }} <br>
-{{ sr_data.app_name }} <br>
-{{ sr_data.current_status }} <br>
-Progress Keseluruhan : {{ sr_data.ticket_progress }}% <br>
-Nama Pemohon : {{ sr_data.requester_name|default('-', true) }} <br>
-Divisi : {{ sr_data.division|default('-', true) }} <br>
-Modul : {{ sr_data.module|default('-', true) }} <br>
-Frekuensi Penggunaan : {{ sr_data.frequency|default('-', true) }} <br>
-Estimasi Value : {{ sr_data.value|default('-', true) }} {{ sr_data.value_det }} <br>
-Jumlah Pengguna : {{ sr_data.num_user|default('-', true) }} <br>
-Tujuan Kebutuhan (Purpose) : {{ sr_data.purpose|default('Tidak ada informasi tujuan.', true) }} <br>
-Detail Spesifikasi (Details) : {{ sr_data.details|default('Tidak ada spesifikasi detail.', true) }} <br>
+<div class="pmo-wrapper">
+    <div class="pmo-container">
 
-<form action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <select name="ctg_id">
-        <option value="">-- Pilih Kategori --</option>
-        {% set cat_list = categories.data if categories.data is defined else categories %}
-        {% for cat in cat_list %}
-            <option value="{{ cat.ctg_id }}" {% if sr_data.ctg_id == cat.ctg_id %}selected{% endif %}>
-                {{ cat.category}}
-            </option>
-        {% endfor %}
-    </select>
-    
-    <button type="submit">Save Details</button>
-</form>
-
-<hr>
-
-<form action="{{ url_for('owh_sr.pmo_force_phase', sr_no=sr_data.sr_no) }}" method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <input type="hidden" name="current_smk_id" value="{{ sr_data.smk_id }}">
-    
-    <select name="sr_action" required>
-        <option value="">-- Select Target Phase --</option>
-        {% set opt_list = options.data if options.data is defined else options %}
-        {% for opt in opt_list %}
-            <option value="{{ opt.smk_id }}" {% if opt.smk_id == sr_data.smk_id %}selected{% endif %}>
-                {{ opt.smk_id }} - {{ opt.smk_ket }}
-            </option>
-        {% endfor %}
-    </select>
-    
-    <button type="submit">Execute Phase Jump</button>
-</form>
-
-<hr>
-
-<form action="{{ url_for('owh_sr.pmo_update_dates', sr_no=sr_data.sr_no) }}" method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <table>
-        <tbody>
-            {% for phase in target_dates %}
-            <tr>
-                <td style="font-weight: 600; font-size: 13px; color: #334155;">
-                    {{ phase.phase_name }}
-                    <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
-                </td>
-                <td>
-                    <input type="date" name="start_date[]" class="compact-input"
-                        value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}" 
-                        {% if is_locked %}disabled{% endif %}>
-                </td>
-                <td>
-                    {% if phase.phase_id == 6 %}
-                        <input type="hidden" name="finish_date[]" value="" {% if is_locked %}disabled{% endif %}>
-                    {% else %}
-                        <input type="date" name="finish_date[]" class="compact-input"
-                            value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}"
-                            {% if is_locked %}disabled{% endif %}>
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3" style="text-align: center; font-size: 13px; color: #94a3b8;">No phases found in database.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    <button type="submit">Save Schedule</button>
-</form>
-
-<hr>
-
-<form action="{{ url_for('owh_dashboard.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" class="d-flex gap-2 align-items-center">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-    <select name="new_sm_nik" class="form-select" style="flex:1;" required>
-        <option value="">-- Pilih Scrum Master Baru --</option>
-        
-        {% for sm in pmo_form_data.sm_candidates %}
-            <option value="{{ sm.nik }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
-                {{ sm.nama }} ({{ sm.nik }})
-            </option>
-        {% endfor %}
-    </select>
-    
-    <button type="submit" class="btn btn-primary">Simpan SM</button>
-
-</form>
-
-<hr>
-
-<div class="detail-card" style="margin-top: 24px;">
-    <h3 class="section-title" style="display:flex; align-items:center; gap:10px;">
-        Kelola Assignment PIC
-        <span style="font-size:11px; font-weight:500; color:#fff; background:#2563eb;
-                     border-radius:4px; padding:2px 8px; letter-spacing:0.04em;">IT PMO</span>
-    </h3>
-
-    <form method="POST" action="{{ url_for('owh_dashboard.pmo_reassign', sr_no=sr_data.sr_no) }}" id="pmo-reassign-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <div id="pmo-assign-rows">
-            {% for a in pmo_form_data.current_assignments %}
-            <div class="assign-row" data-existing="true" style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
-                <input type="hidden" class="delete-id-input" name="" value="{{ a.assign_id }}" disabled>
-                <input type="hidden" class="assign-id-input" name="assign_id[]" value="{{ a.assign_id }}">
-                
-                <select name="assign_role[]" class="form-select" style="width:160px;">
-                    {% for role in pmo_form_data.picroles %}
-                    <option value="{{ role.it_role_id }}" {% if role.it_role_id == a.it_role_id %}selected{% endif %}>
-                        {{ role.it_role_detail }}
-                    </option>
-                    {% endfor %}
-                </select>
-                
-                <select name="assign_user[]" class="form-select" style="flex:1;">
-                    <option value="">-- Pilih User --</option>
-                    {% for u in pmo_form_data.it_users %}
-                    <option value="{{ u.nik }}" {% if u.nik == a.assigned_user %}selected{% endif %}>
-                        {{ u.nama }} ({{ u.nik }})
-                    </option>
-                    {% endfor %}
-                </select>
-                
-                <button type="button" class="btn-delete-row" onclick="removeExistingRow(this)"
-                    style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:600; flex-shrink:0;">
-                    &times;
-                </button>
+        <div class="pmo-card">
+            <div class="ticket-title-row">
+                <div>
+                    <h2 class="ticket-app-name">{{ sr_data.app_name }}</h2>
+                    <div class="ticket-badges">
+                        <span class="badge-sr">{{ sr_data.sr_no }}</span>
+                        <span class="badge-status">{{ sr_data.current_status }}</span>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="info-label">Progress Keseluruhan</div>
+                    <div class="info-value" style="font-size: 24px; color: #10b981;">{{ sr_data.ticket_progress }}%</div>
+                </div>
             </div>
-            {% endfor %}
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Nama Pemohon</span>
+                    <span class="info-value">{{ sr_data.requester_name|default('-', true) }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Divisi</span>
+                    <span class="info-value">{{ sr_data.division|default('-', true) }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Modul / Area</span>
+                    <span class="info-value">{{ sr_data.module|default('-', true) }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frekuensi</span>
+                    <span class="info-value">{{ sr_data.frequency|default('-', true) | safe }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Estimasi Value</span>
+                    <span class="info-value">{{ sr_data.value|default('-', true) }} {{ sr_data.value_det }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Jumlah Pengguna</span>
+                    <span class="info-value">{{ sr_data.num_user|default('-', true) }}</span>
+                </div>
+            </div>
+
+            <div class="pmo-grid-2">
+                <div class="desc-box">
+                    <div class="info-label" style="margin-bottom: 8px;">Tujuan Kebutuhan (Purpose)</div>
+                    <div class="desc-content">{{ sr_data.purpose|default('Tidak ada informasi tujuan.', true) | safe }}</div>
+                </div>
+                <div class="desc-box">
+                    <div class="info-label" style="margin-bottom: 8px;">Detail Spesifikasi (Details)</div>
+                    <div class="desc-content">{{ sr_data.details|default('Tidak ada spesifikasi detail.', true) | safe }}</div>
+                </div>
+            </div>
         </div>
 
-        <div style="margin-top:12px;">
-            <button type="button" onclick="addNewRow()" style="background:#f1f5f9; border:1px dashed #94a3b8; border-radius:6px; padding:8px 16px; cursor:pointer; color:#475569; font-size:13px;">
-                + Tambah Baris
-            </button>
+        <div class="pmo-grid-2">
+            
+            <div class="pmo-card">
+                <h3 class="pmo-card-header">Kategori SR</h3>
+                <form action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="form-group">
+                        <label class="info-label">Ubah Kategori</label>
+                        <select name="ctg_id" class="modern-select">
+                            <option value="">-- Pilih Kategori --</option>
+                            {% set cat_list = categories.data if categories.data is defined else categories %}
+                            {% for cat in cat_list %}
+                                <option value="{{ cat.ctg_id }}" {% if sr_data.ctg_id == cat.ctg_id %}selected{% endif %}>
+                                    {{ cat.category}}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Update Kategori</button>
+                </form>
+            </div>
+
+            <div class="pmo-card">
+                <h3 class="pmo-card-header" style="color: #ea580c; border-bottom-color: #ffedd5;">Force Phase Jump</h3>
+                <form action="{{ url_for('owh_sr.pmo_force_phase', sr_no=sr_data.sr_no) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="current_smk_id" value="{{ sr_data.smk_id }}">
+                    
+                    <div class="form-group">
+                        <label class="info-label">Pindah Paksa Ke Fase</label>
+                        <select name="sr_action" class="modern-select" required>
+                            <option value="">-- Select Target Phase --</option>
+                            {% set opt_list = options.data if options.data is defined else options %}
+                            {% for opt in opt_list %}
+                                <option value="{{ opt.smk_id }}" {% if opt.smk_id == sr_data.smk_id %}selected{% endif %}>
+                                    {{ opt.smk_id }} - {{ opt.smk_ket }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-warning">Execute Phase Jump</button>
+                </form>
+            </div>
         </div>
 
-        <div style="margin-top:16px; display:flex; justify-content:flex-end;">
-            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        <div class="pmo-card">
+            <h3 class="pmo-card-header">Project Schedule</h3>
+            <form action="{{ url_for('owh_sr.pmo_update_dates', sr_no=sr_data.sr_no) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div style="overflow-x: auto;">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Phase Name</th>
+                                <th style="width: 35%;">Start Date</th>
+                                <th style="width: 35%;">Finish Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for phase in target_dates %}
+                            <tr>
+                                <td>
+                                    <span style="font-weight: 600; font-size: 13px; color: #334155;">{{ phase.phase_name }}</span>
+                                    <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
+                                </td>
+                                <td>
+                                    <input type="date" name="start_date[]" class="modern-input"
+                                        value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}" 
+                                        {% if is_locked %}disabled{% endif %}>
+                                </td>
+                                <td>
+                                    {% if phase.phase_id == 6 %}
+                                        <input type="hidden" name="finish_date[]" value="" {% if is_locked %}disabled{% endif %}>
+                                        <span class="info-label" style="text-transform:none;">(N/A)</span>
+                                    {% else %}
+                                        <input type="date" name="finish_date[]" class="modern-input"
+                                            value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}"
+                                            {% if is_locked %}disabled{% endif %}>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: #94a3b8;">No phases found in database.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div style="text-align: right;">
+                    <button type="submit" class="btn-primary">Save Schedule</button>
+                </div>
+            </form>
         </div>
-    </form>
+
+        <div class="pmo-card">
+            <h3 class="pmo-card-header">Resource & Team Management</h3>
+
+            <div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #e2e8f0;">
+                <label class="info-label" style="display:block; margin-bottom:10px;">Scrum Master / Project Manager</label>
+                <form action="{{ url_for('owh_dashboard.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <select name="new_sm_nik" class="modern-select" required>
+                        <option value="">-- Pilih Scrum Master Baru --</option>
+                        {% for sm in pmo_form_data.sm_candidates %}
+                            <option value="{{ sm.nik }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
+                                {{ sm.nama }} ({{ sm.nik }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    
+                    <button type="submit" class="btn-primary" style="flex-shrink: 0;">Update SM</button>
+                </form>
+            </div>
+
+            <div>
+                <label class="info-label" style="display:block; margin-bottom:10px;">Kelola Tim PIC (IT Role)</label>
+                
+                <form method="POST" action="{{ url_for('owh_dashboard.pmo_reassign', sr_no=sr_data.sr_no) }}" id="pmo-reassign-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div id="pmo-assign-rows">
+                        {% for a in pmo_form_data.current_assignments %}
+                        <div class="assign-row" data-existing="true">
+                            <input type="hidden" class="delete-id-input" name="" value="{{ a.assign_id }}" disabled>
+                            <input type="hidden" class="assign-id-input" name="assign_id[]" value="{{ a.assign_id }}">
+                            
+                            <select name="assign_role[]" class="modern-select" style="width: 250px;">
+                                {% for role in pmo_form_data.picroles %}
+                                <option value="{{ role.it_role_id }}" {% if role.it_role_id == a.it_role_id %}selected{% endif %}>
+                                    {{ role.it_role_detail }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <select name="assign_user[]" class="modern-select" style="flex: 1;">
+                                <option value="">-- Pilih User --</option>
+                                {% for u in pmo_form_data.it_users %}
+                                <option value="{{ u.nik }}" {% if u.nik == a.assigned_user %}selected{% endif %}>
+                                    {{ u.nama }} ({{ u.nik }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <button type="button" class="btn-delete" onclick="removeExistingRow(this)">
+                                Hapus
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <button type="button" class="btn-outline-dashed" onclick="addNewRow()">
+                            + Tambah Anggota Tim
+                        </button>
+                        <button type="submit" class="btn-primary">Simpan Susunan Tim</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 <script>
@@ -183,39 +248,54 @@ Detail Spesifikasi (Details) : {{ sr_data.details|default('Tidak ada spesifikasi
         const container = document.getElementById('pmo-assign-rows');
         const row = document.createElement('div');
         row.className = 'assign-row';
-        row.style.cssText = 'display:flex; gap:10px; align-items:center; margin-bottom:10px;';
         row.innerHTML = `
             <input type="hidden" name="assign_id[]" value="">
-            <select name="assign_role[]" class="form-select" style="width:160px;">${buildRoleOptions(null)}</select>
-            <select name="assign_user[]" class="form-select" style="flex:1;">${buildUserOptions(null)}</select>
-            <button type="button" onclick="this.closest('.assign-row').remove()"
-                style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px; padding:6px 12px;cursor:pointer;font-weight:600;flex-shrink:0;">&times;</button>
+            <select name="assign_role[]" class="modern-select" style="width:250px;">${buildRoleOptions(null)}</select>
+            <select name="assign_user[]" class="modern-select" style="flex:1;">${buildUserOptions(null)}</select>
+            <button type="button" class="btn-delete" onclick="this.closest('.assign-row').remove()">&times; Batal</button>
         `;
         container.appendChild(row);
     }
+
     function removeExistingRow(btn) {
         const row = btn.closest('.assign-row');
         const hidden = row.querySelector('.delete-id-input');
         if (hidden) { hidden.name = 'delete_ids[]'; hidden.disabled = false; }
+        
         const assignIdInput = row.querySelector('.assign-id-input');
         if (assignIdInput) { assignIdInput.disabled = true; }
+        
         row.querySelectorAll('select').forEach(s => s.disabled = true);
-        row.style.opacity = '0.4';
-        row.style.textDecoration = 'line-through';
-        btn.textContent = 'Batalkan';
-        btn.style.background = '#e2e8f0'; btn.style.color = '#94a3b8';
+        
+        // Visual cue that it's deleted
+        row.style.opacity = '0.5';
+        row.style.background = '#f1f5f9';
+        
+        btn.textContent = 'Undo Hapus';
+        btn.style.background = '#e2e8f0'; 
+        btn.style.color = '#475569';
+        btn.style.borderColor = '#cbd5e1';
         btn.onclick = () => cancelDelete(btn);
     }
+
     function cancelDelete(btn) {
         const row = btn.closest('.assign-row');
         const hidden = row.querySelector('.delete-id-input');
         if (hidden) { hidden.name = ''; hidden.disabled = true; }
+        
         const assignIdInput = row.querySelector('.assign-id-input');
         if (assignIdInput) { assignIdInput.disabled = false; }
+        
         row.querySelectorAll('select').forEach(s => s.disabled = false);
-        row.style.opacity = '1'; row.style.textDecoration = 'none';
-        btn.textContent = '×';
-        btn.style.background = '#fee2e2'; btn.style.color = '#dc2626';
+        
+        // Restore visual
+        row.style.opacity = '1'; 
+        row.style.background = '#f8fafc';
+        
+        btn.textContent = 'Hapus';
+        btn.style.background = '#fef2f2'; 
+        btn.style.color = '#dc2626';
+        btn.style.borderColor = '#fecaca';
         btn.onclick = () => removeExistingRow(btn);
     }
 </script>
