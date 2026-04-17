@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PMS - Alfamidi{% endblock %}</title>
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='assets/img/alfamidi.ico') }}"
+    >
 
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/img/alfamidi.ico') }}"/>
     
@@ -23,6 +28,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/master_role.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/master_user.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/edit_role.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/sr_adjustment.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/partials/_sr_detail_content.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/page-header.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}" />
