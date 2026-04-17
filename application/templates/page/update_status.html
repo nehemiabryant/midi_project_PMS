@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+/* ========================================= */
+/* BASE WADAH UTAMA                          */
+/* ========================================= */
+.page-content {
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 60px);
+    padding: 24px;
+    font-family: 'Poppins', 'Inter', sans-serif;
+}
+
+/* ========================================= */
+/* BAGIAN 1: LIST VIEW (TABEL)               */
+/* ========================================= */
+.list-section {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.list-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.search-box-modern {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-input {
+    padding: 10px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    width: 280px;
+    font-size: 13px;
+    outline: none;
+    transition: 0.2s;
+}
+
+.search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modern-data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-data-table th {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.modern-data-table td {
+    padding: 16px;
+    font-size: 13px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+/* Efek Hover Baris & Kursor Pointer */
+.modern-data-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.modern-data-table tbody tr:hover {
+    background-color: #eff6ff; /* Sorotan biru muda saat di-hover */
+}
+
+.col-sr { font-weight: 700; color: #0f172a; }
+.col-judul { font-weight: 600; color: #3b82f6; }
+
+
+/* ========================================= */
+/* BAGIAN 2: DETAIL VIEW (FORM)              */
+/* ========================================= */
+.detail-section {
+    display: none; /* Sembunyikan form di awal */
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.back-btn-container {
+    margin-bottom: 20px;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-back:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.form-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.form-card-header {
+    background: #f8fafc;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 700;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.form-card-body {
+    padding: 24px;
+}
+
+/* Grid Layout untuk Form */
+.grid-2-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.grid-4-col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* Readonly Text (Informasi SR) */
+.readonly-text-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+.readonly-text-sub {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+/* Input & Select Modern */
+.modern-input, .modern-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #0f172a;
+    background-color: #ffffff;
+    outline: none;
+    transition: 0.2s;
+    box-sizing: border-box;
+}
+
+.modern-input:focus, .modern-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Bottom Actions */
+.action-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.btn-submit {
+    padding: 10px 24px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-submit:hover {
+    background: #1d4ed8;
+}
+
+/* Responsif HP */
+@media (max-width: 900px) {
+    .grid-4-col { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+    .grid-2-col, .grid-4-col { grid-template-columns: 1fr; }
+    .list-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .search-input { width: 100%; }
+}
+</style>
+
+<div class="page-content">
+
+    <div id="listView" class="list-section">
+        <div class="list-header">
+            <h2 class="list-title">Update Status Project</h2>
+            <div class="search-box-modern">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search No SR atau Judul..." onkeyup="filterTable()">
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="modern-data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">No SR</th>
+                        <th style="width: 35%;">Judul SR</th>
+                        <th style="width: 20%;">Maker</th>
+                        <th style="width: 20%;">Tgl Buat</th>
+                    </tr>
+                </thead>
+                <tbody id="srTableBody">
+                    <tr onclick="openDetail('0001/P/MUI-FIS/SZ01/2024', 'Menu Clerk Audit Toko', 'NINING SUPRIYANTI', '02-Nov-23 15:51:46')">
+                        <td class="col-sr">0001/P/MUI-FIS/SZ01/2024</td>
+                        <td class="col-judul">Menu Clerk Audit Toko</td>
+                        <td>NINING SUPRIYANTI</td>
+                        <td>2024-01-09 17:46:02</td>
+                    </tr>
+                    <tr onclick="openDetail('0002/P/MUI-FIS/SZ01/2024', 'Implementasi Aplikasi SDA', 'BOGI HERMAWAN', '04-Feb-24 08:14:54')">
+                        <td class="col-sr">0002/P/MUI-FIS/SZ01/2024</td>
+                        <td class="col-judul">Implementasi Aplikasi SDA</td>
+                        <td>BOGI HERMAWAN</td>
+                        <td>2024-02-04 08:14:54</td>
+                    </tr>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div id="detailView" class="detail-section">
+        
+        <div class="back-btn-container">
+            <button type="button" class="btn-back" onclick="closeDetail()">
+                ← Kembali ke Daftar
+            </button>
+        </div>
+
+        <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" id="form_sr_no" name="sr_no" value=""/>
+
+            <div class="form-card">
+                <div class="form-card-header">Informasi SR</div>
+                <div class="form-card-body grid-2-col">
+                    <div class="form-group">
+                        <span class="form-label">Aplikasi / Judul SR</span>
+                        <div class="readonly-text-title" id="lbl_judul">Menu Clerk Audit Toko</div>
+                        <div class="readonly-text-sub" id="lbl_sr_no">0001/P/MUI-FIS/SZ01/2024</div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-label">Maker / Tanggal Buat</span>
+                        <div class="readonly-text-title" id="lbl_maker">NINING SUPRIYANTI</div>
+                        <div class="readonly-text-sub" id="lbl_tgl">02-Nov-23 15:51:46</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <div class="form-card-header">Status & Timeline</div>
+                <div class="form-card-body grid-4-col">
+                    <div class="form-group">
+                        <label class="form-label">Mulai</label>
+                        <input type="month" name="timeline_mulai" class="modern-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Selesai</label>
+                        <input type="month" name="timeline_selesai" class="modern-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status Midikriing</label>
+                        <select name="status_midikriing" class="modern-select">
+                            <option value="Tidak">Tidak</option>
+                            <option value="Ya">Ya</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Target</label>
+                        <select name="target_q" class="modern-select">
+                            <option value="Q1">Q1</option>
+                            <option value="Q2">Q2</option>
+                            <option value="Q3">Q3</option>
+                            <option value="Q4">Q4</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <div class="form-card-header">Status & Klasifikasi Project</div>
+                <div class="form-card-body grid-4-col" style="grid-template-columns: repeat(3, 1fr);">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Status SR</label>
+                        <select name="status_sr" class="modern-select">
+                            <option value="DIVISIONAL">DIVISIONAL</option>
+                            <option value="MSM">MSM</option>
+                            <option value="SAT">SAT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status Project</label>
+                        <select name="status_project" class="modern-select">
+                            <option value="">Pilih</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Giliran SR</label>
+                        <select name="giliran_sr" class="modern-select">
+                            <option value="BACKLOG SCRUM">BACKLOG SCRUM</option>
+                            <option value="NEXT SPRINT">NEXT SPRINT</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Departemen IT</label>
+                        <select name="dept_it" class="modern-select">
+                            <option value="Operation">Operation</option>
+                            <option value="Development">Development</option>
+                            <option value="Infrastructure">Infrastructure</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Melibatkan Cabang</label>
+                        <select name="libat_cabang" class="modern-select">
+                            <option value="Ya">Ya</option>
+                            <option value="Tidak">Tidak</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Dokumentasi</label>
+                        <select name="dokumentasi" class="modern-select">
+                            <option value="Tidak">Tidak</option>
+                            <option value="Ya">Ya</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="action-footer">
+                <button type="submit" class="btn-submit">Simpan Perubahan</button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+
+<script>
+    // Fungsi Pencarian di Tabel List
+    function filterTable() {
+        const input = document.getElementById("searchInput").value.toLowerCase();
+        const tr = document.getElementById("srTableBody").getElementsByTagName("tr");
+
+        for (let i = 0; i < tr.length; i++) {
+            const tdNo = tr[i].getElementsByTagName("td")[0];
+            const tdJudul = tr[i].getElementsByTagName("td")[1];
+            
+            if (tdNo || tdJudul) {
+                const textNo = tdNo.textContent || tdNo.innerText;
+                const textJudul = tdJudul.textContent || tdJudul.innerText;
+                
+                if (textNo.toLowerCase().indexOf(input) > -1 || textJudul.toLowerCase().indexOf(input) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }       
+        }
+    }
+
+    // Fungsi Buka Form Detail
+    function openDetail(srNo, judul, maker, tgl) {
+        // 1. Sembunyikan List, Tampilkan Detail
+        document.getElementById('listView').style.display = 'none';
+        document.getElementById('detailView').style.display = 'block';
+
+        // 2. Isi data Informasi SR di Header Form agar sesuai dengan yang diklik
+        document.getElementById('lbl_sr_no').innerText = srNo;
+        document.getElementById('lbl_judul').innerText = judul;
+        document.getElementById('lbl_maker').innerText = maker;
+        document.getElementById('lbl_tgl').innerText = tgl;
+        
+        // 3. Set input hidden agar saat form disubmit, ID SR-nya terbawa
+        document.getElementById('form_sr_no').value = srNo;
+
+        // (Opsional) Di tahap ini, pada aplikasi real Flask, Anda bisa menggunakan fetch() 
+        // untuk mengambil sisa data detail spesifik SR tersebut dari database.
+    }
+
+    // Fungsi Tutup Form (Kembali ke List)
+    function closeDetail() {
+        document.getElementById('detailView').style.display = 'none';
+        document.getElementById('listView').style.display = 'block';
+    }
+</script>
+{% endblock %}
