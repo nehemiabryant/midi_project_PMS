@@ -120,7 +120,7 @@
                 <tr>
                     <th style="width: 220px;">No SR</th>
                     <th>Judul SR</th>
-                    <th style="width: 220px;">Maker</th>
+                    <th style="width: 220px;">Requester</th>
                     <th style="width: 180px;">Tgl Buat</th>
                 </tr>
             </thead>
@@ -129,7 +129,7 @@
                 <tr onclick="window.location.href='{{ url_for('owh_sr.adjustment_menu', sr_no=sr.sr_no) }}'">
                     <td>{{ sr.sr_no }}</td>
                     <td>{{ sr.name }}</td>
-                    <td class="td-maker">{{ sr.maker_name | default('-', true) }}</td>
+                    <td class="td-maker">{{ sr.requester_name | default('-', true) }}</td>
                     <td class="td-date">{{ sr.created_at | format_wib}}</td>
                 </tr>
                 {% else %}
