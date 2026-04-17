@@ -434,7 +434,7 @@ def adjustment_menu(sr_no):
         mode='adjustment', 
         user=session.get('user'), 
         role=session.get('role'), 
-        active_menu='my_sr', 
+        active_menu='update_status',
         sr_data=sr_data, 
         options=options,
         categories=categories,
