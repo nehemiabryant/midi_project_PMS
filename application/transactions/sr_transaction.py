@@ -150,6 +150,29 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str, current_smk_id: int) 
         Log.error(f'Exception | Update SR Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     
+def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
+    try:
+        db_params = {
+            'sr_no': sr_no,
+            'ctg_id': raw_data.get('ctg_id'),
+            # We will add target_date and actual_date here later
+        }
+
+        # Basic validation
+        if not db_params['ctg_id']:
+            return {'status': False, 'msg': 'Category ID cannot be empty.'}
+        
+        result = sr_model.update_sr_adjustment(db_params)
+        
+        if result.get('status'):
+            return {'status': True, 'msg': 'SR successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+            
+    except Exception as e:
+        Log.error(f'Exception | Update SR Adjustment Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    
 def get_full_dashboard_trx() -> dict:
     """
     Fetches both the top cards and the grid data, returning a complete 
@@ -277,4 +300,27 @@ def get_active_pics_for_sr_trx(sr_no: str, current_smk_id: int) -> list:
         return convert_to_dicts(rows, headers)
     except Exception as e:
         Log.error(f"Exception | get_active_pics_for_sr_trx | Msg: {str(e)}")
+        return []
+    
+def get_all_categories_trx() -> list:
+    """
+    Retrieves and parses SR categories into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_categories()
+        categories = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for ctg in convert_to_dicts(rows, headers):
+                categories.append(ctg)
+
+        return categories
+    except Exception as e:
+        Log.error(f"Exception | Get All Categories Trx | Msg: {str(e)}")
         return []

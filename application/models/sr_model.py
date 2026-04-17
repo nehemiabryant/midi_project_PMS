@@ -163,6 +163,33 @@ def update_sr(db_params: dict, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
+def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
+    # Right now it only updates ctg_id, but it's ready for target_date and actual_date later!
+    sql = """
+        UPDATE public.sr_request 
+        SET 
+            ctg_id = %(ctg_id)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        return shared_conn.selectData(sql, db_params)
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase", autocommit=True)
+        if conn:
+            return conn.selectData(sql, db_params)
+        else:
+            Log.error('DB Error | update_sr_adjustment | Connection failed.')
+            return {'status': False, 'data': [], 'msg': 'Database connection failed.'}
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_adjustment | Msg: {str(e)}')
+        return {'status': False, 'msg': 'Failed to adjust SR'}
+    finally:
+        if conn: conn.close()
+
 def update_sr_prog(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE sr_request 
@@ -400,5 +427,35 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
     except Exception as e:
         Log.error(f'DB Exception | get_sr_detail | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': 'Failed to fetch SR detail'}
+    finally:
+        if conn: conn.close()
+
+def get_all_categories(shared_conn=None) -> dict:
+    """
+    Fetches all available SR categories from the sr_ms_ctg table.
+    """
+    sql = """
+        SELECT ctg_id, category
+        FROM public.sr_ms_ctg
+        ORDER BY ctg_id ASC
+    """
+    
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Connection setup failed.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_categories_model | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
