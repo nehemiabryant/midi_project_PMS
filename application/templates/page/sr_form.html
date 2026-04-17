@@ -54,21 +54,15 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Kategori SR</label>
-                    <div class="kategori-radio-group">
-                        <label class="kategori-option">
-                            <input type="radio" name="kategori_sr" value="1" {% if not sr_data or sr_data.ctg_id == 1 %}checked{% endif %} />
-                            <span class="kategori-badge">MSM</span>
-                        </label>
-                        <label class="kategori-option">
-                            <input type="radio" name="kategori_sr" value="2" {% if sr_data and sr_data.ctg_id == 2 %}checked{% endif %} />
-                            <span class="kategori-badge">Divisional</span>
-                        </label>
-                        <label class="kategori-option">
-                            <input type="radio" name="kategori_sr" value="3" {% if sr_data and sr_data.ctg_id == 3 %}checked{% endif %} />
-                            <span class="kategori-badge">SAT</span>
-                        </label>
-                    </div>
+                    <label class="form-label" for="kategori_sr">Kategori SR</label>
+                    <select name="kategori_sr" id="kategori_sr" class="form-control form-select">
+                        {% for ctg in categories %}
+                            <option value="{{ ctg.ctg_id }}" 
+                                    {% if (not sr_data and loop.first) or (sr_data and sr_data.ctg_id == ctg.ctg_id) %}selected{% endif %}>
+                                {{ ctg.category }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="form-group">

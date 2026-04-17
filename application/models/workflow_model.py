@@ -130,3 +130,33 @@ def get_required_role_for_phase(current_smk_id: int, shared_conn=None) -> int:
         return None
     finally:
         if conn: conn.close()
+
+def get_all_phases_model(shared_conn=None) -> dict:
+    """
+    Fetches all available SR phases for PM adjustment override.
+    """
+    sql = """
+        SELECT smk_id, smk_ket
+        FROM public.sr_ms_ket
+        ORDER BY smk_id ASC
+    """
+    
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Connection setup failed.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_phases_model | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()

@@ -253,7 +253,7 @@ def pmo_reassign(sr_no):
     else:
         flash(result.get('msg', 'Assignment berhasil diperbarui.'), 'success')
 
-    return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
 @dashboard_bp.route('/myWork/detail/<path:sr_no>/pmo-replace-sm', methods=['POST'])                                                   
 @login_required                                                    
@@ -272,7 +272,7 @@ def pmo_replace_sm(sr_no):
     else:
         flash(result.get('msg', 'IT SM berhasil diganti.'), 'success')
     
-    return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
 @dashboard_bp.route('/uploadDraft', methods=['GET', 'POST'])
 @login_required
