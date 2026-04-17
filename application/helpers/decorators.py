@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, jsonify
+from flask import session, redirect, url_for, jsonify, flash
 from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
@@ -24,6 +24,17 @@ def super_admin_required(f):
                 'error': 'forbidden',
                 'details': 'Akses ditolak. Diperlukan permission manage_roles.'
             }), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+def it_pm_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from application.transactions.workflow_transaction import IT_PM_NIK
+        user_nik = session.get('user', {}).get('nik', '')
+        if user_nik != IT_PM_NIK:
+            flash('Akses ditolak. Halaman ini hanya untuk Project Manager.', 'error')
+            return redirect(url_for('owh_dashboard.dashboard_menu'))
         return f(*args, **kwargs)
     return decorated_function
 
