@@ -300,12 +300,38 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
         WHERE assign_id = %(assign_id)s
           AND deleted_at IS NULL
     """
+
+    # 1. Query untuk cek siapa user yang saat ini aktif di role tersebut
+    sql_check_active = """
+        SELECT assigned_user 
+        FROM sr_assignments 
+        WHERE sr_no = %(sr_no)s 
+          AND it_role_id = %(it_role_id)s 
+          AND is_active = TRUE 
+          AND deleted_at IS NULL
+        LIMIT 1
+    """
+
+    # 2. Query untuk menonaktifkan user lama (Audit-Friendly)
+    sql_soft_delete = """
+        UPDATE sr_assignments
+        SET is_active = false,
+            deleted_at = NOW(),
+            assigned_by = %(assigned_by)s
+        WHERE sr_no = %(sr_no)s
+          AND it_role_id = %(it_role_id)s
+          AND is_active = true
+          AND deleted_at IS NULL
+    """
+
     sql_insert = """
         INSERT INTO sr_assignments (sr_no, assigned_user, assigned_by, it_role_id, assigned_at, is_active)
         VALUES (%(sr_no)s, %(assigned_user)s, %(assigned_by)s, %(it_role_id)s, NOW(), %(is_active)s)
     """
 
     def _execute_all(conn):
+        SINGLE_USER_ROLES = {1, 2, 3, 8, 9}
+
         for a in assignments:
             if a.get('assign_id'):
                 sql = sql_update
@@ -315,18 +341,45 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
                     'it_role_id': a['it_role_id'],
                     'assigned_by': assigned_by,
                 }
+                result = conn.executeDataNoCommit(sql, params)
+                if not result.get('status'):
+                    return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal update assignment')}
             else:
+                role_id = int(a['it_role_id'])
+
+                # ONLY run the soft-delete check for single-user roles
+                if role_id in SINGLE_USER_ROLES:
+                    check_res = conn.selectData(sql_check_active, {'sr_no': sr_no, 'it_role_id': role_id})
+                    
+                    if check_res.get('status') and check_res.get('data'):
+                        current_active_nik = check_res['data'][0][0]
+                        
+                        if current_active_nik == a['nik']:
+                            Log.info(f"Assignment Smart Bypass | SR: {sr_no} | Role: {role_id} | NIK {a['nik']} is already active.")
+                            continue 
+                            
+                        sd_params = {
+                            'sr_no': sr_no,
+                            'it_role_id': role_id,
+                            'assigned_by': assigned_by
+                        }
+                        sd_result = conn.executeDataNoCommit(sql_soft_delete, sd_params)
+                        if not sd_result.get('status'):
+                            return {'status': False, 'data': [], 'msg': sd_result.get('msg', 'Gagal soft-delete assignment lama')}
+
+                # Standard Insert runs for everyone (Multi-users skip the soft-delete above)
                 sql = sql_insert
                 params = {
                     'sr_no': sr_no,
                     'assigned_user': a['nik'],
                     'assigned_by': assigned_by,
-                    'it_role_id': a['it_role_id'],
-                    'is_active': a.get('is_active', True),
+                    'it_role_id': role_id,
+                    'is_active': a.get('is_active', False), # Uses the value assigned in Step 5
                 }
-            result = conn.executeDataNoCommit(sql, params)
-            if not result.get('status'):
-                return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal upsert assignment')}
+                result = conn.executeDataNoCommit(sql, params)
+                if not result.get('status'):
+                    return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal upsert assignment')}
+                    
         return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan.'}
 
     if shared_conn:

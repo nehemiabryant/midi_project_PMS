@@ -163,6 +163,33 @@ def update_sr(db_params: dict, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
+def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
+    # Right now it only updates ctg_id, but it's ready for target_date and actual_date later!
+    sql = """
+        UPDATE public.sr_request 
+        SET 
+            ctg_id = %(ctg_id)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        return shared_conn.selectData(sql, db_params)
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase", autocommit=True)
+        if conn:
+            return conn.selectData(sql, db_params)
+        else:
+            Log.error('DB Error | update_sr_adjustment | Connection failed.')
+            return {'status': False, 'data': [], 'msg': 'Database connection failed.'}
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_adjustment | Msg: {str(e)}')
+        return {'status': False, 'msg': 'Failed to adjust SR'}
+    finally:
+        if conn: conn.close()
+
 def update_sr_prog(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE sr_request 
@@ -252,50 +279,43 @@ def get_dashboard_top_cards(shared_conn=None) -> dict:
 
 def get_dashboard_grid(shared_conn=None) -> dict:
     """
-    Uses a CTE to calculate global division progress (excluding 'Takeout'),
-    then groups active tickets by phase and division.
+    Calculates dynamic progress based on the specific steps available 
+    within each phase.
     """
     sql = """
-        WITH all_phases AS (
-            -- STEP 1: Get the master list of phases AND a sorting key
+        WITH phase_bounds AS (
+            -- STEP 1: Find the total steps and boundaries for each phase dynamically
             SELECT 
                 phase AS phase_name,
-                MIN(smk_id) AS phase_sort_order  -- Grabs the lowest ID for this phase to use for sorting
+                MIN(smk_id) AS min_id,
+                MAX(smk_id) AS max_id,
+                -- Calculate how many steps are in this specific phase
+                (MAX(smk_id) - MIN(smk_id) + 1.0) AS phase_total_steps
             FROM public.sr_ms_ket
             GROUP BY phase
         ),
-        division_progress AS (
-            -- STEP 2: Calculate global progress per division 
-            SELECT 
-                r.division,
-                ROUND((SUM(r.smk_id - 100) / (COUNT(r.sr_no) * 16.0)) * 100) AS global_progress
-            FROM public.sr_request r
-            JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
-            WHERE m.phase != 'Takeout'
-            GROUP BY r.division
-        ),
         active_data AS (
-            -- STEP 3: Group active tickets by phase and division
+            -- STEP 2: Group tickets and calculate local "in-phase" progress
             SELECT 
                 m.phase AS phase_name,
                 r.division,
                 COUNT(r.sr_no) AS ticket_count,
-                dp.global_progress
+                -- Formula: (Sum of current position in phase) / (Total possible steps for these tickets in this phase)
+                ROUND((SUM(r.smk_id - pb.min_id + 1) / (COUNT(r.sr_no) * pb.phase_total_steps)) * 100) AS phase_progress
             FROM public.sr_request r
             JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
-            JOIN division_progress dp ON r.division = dp.division
-            WHERE m.phase != 'Takeout'
-            GROUP BY m.phase, r.division, dp.global_progress
+            JOIN phase_bounds pb ON m.phase = pb.phase_name
+            GROUP BY m.phase, r.division, pb.min_id, pb.phase_total_steps
         )
-        -- STEP 4: LEFT JOIN and sort by the numeric ID instead of alphabetical text
+        -- STEP 3: LEFT JOIN to ensure ordering
         SELECT 
-            p.phase_name,
+            pb.phase_name,
             a.division,
             COALESCE(a.ticket_count, 0) AS ticket_count,
-            COALESCE(a.global_progress, 0) AS global_progress
-        FROM all_phases p
-        LEFT JOIN active_data a ON p.phase_name = a.phase_name
-        ORDER BY p.phase_sort_order ASC, a.division ASC;
+            COALESCE(a.phase_progress, 0) AS global_progress -- Keeping your original alias
+        FROM phase_bounds pb
+        LEFT JOIN active_data a ON pb.phase_name = a.phase_name
+        ORDER BY pb.min_id ASC, a.division ASC;
     """
 
     if shared_conn:
@@ -407,5 +427,35 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
     except Exception as e:
         Log.error(f'DB Exception | get_sr_detail | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': 'Failed to fetch SR detail'}
+    finally:
+        if conn: conn.close()
+
+def get_all_categories(shared_conn=None) -> dict:
+    """
+    Fetches all available SR categories from the sr_ms_ctg table.
+    """
+    sql = """
+        SELECT ctg_id, category
+        FROM public.sr_ms_ctg
+        ORDER BY ctg_id ASC
+    """
+    
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Connection setup failed.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_categories_model | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()

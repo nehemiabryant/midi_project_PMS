@@ -54,21 +54,15 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Kategori SR</label>
-                    <div class="kategori-radio-group">
-                        <label class="kategori-option">
-                            <input type="radio" name="kategori_sr" value="1" {% if not sr_data or sr_data.ctg_id == 1 %}checked{% endif %} />
-                            <span class="kategori-badge">MSM</span>
-                        </label>
-                        <label class="kategori-option">
-                            <input type="radio" name="kategori_sr" value="2" {% if sr_data and sr_data.ctg_id == 2 %}checked{% endif %} />
-                            <span class="kategori-badge">Divisional</span>
-                        </label>
-                        <label class="kategori-option">
-                            <input type="radio" name="kategori_sr" value="3" {% if sr_data and sr_data.ctg_id == 3 %}checked{% endif %} />
-                            <span class="kategori-badge">SAT</span>
-                        </label>
-                    </div>
+                    <label class="form-label" for="kategori_sr">Kategori SR</label>
+                    <select name="kategori_sr" id="kategori_sr" class="form-control form-select">
+                        {% for ctg in categories %}
+                            <option value="{{ ctg.ctg_id }}" 
+                                    {% if (not sr_data and loop.first) or (sr_data and sr_data.ctg_id == ctg.ctg_id) %}selected{% endif %}>
+                                {{ ctg.category }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -185,6 +179,7 @@
 
                 <div class="form-group full-width" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                     
+                    {% if sr_data %}
                     <div class="action-section" style="margin-bottom: 20px;">
                         <label for="sr_action" class="form-label">Tindakan <span style="color: #ef4444;">*</span></label>
                         <select name="sr_action" id="sr_action" class="form-input" required style="max-width: 400px;">
@@ -193,6 +188,7 @@
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
                     
                     <div class="form-actions" style="justify-content: flex-end; gap: 10px;">
                         <a href="{{ url_for('owh_dashboard.dashboard_menu') }}" class="btn btn-cancel">Batal</a>

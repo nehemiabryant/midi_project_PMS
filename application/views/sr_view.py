@@ -35,6 +35,8 @@ def createSR_menu():
 
     current_files_dict = {}
 
+    categories = sr_transaction.get_all_categories_trx()
+
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
 
@@ -68,7 +70,7 @@ def createSR_menu():
             return redirect(request.url)
 
     return render_template('/page/sr_form.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
-                           , required_docs=ui_doc_blueprints, current_files=current_files_dict)
+                           , required_docs=ui_doc_blueprints, current_files=current_files_dict, categories=categories)
 
 
 @sr_bp.route('/editSR/<path:sr_no>', methods=['GET', 'POST'])
@@ -357,3 +359,127 @@ def api_get_sr_detail(sr_no):
         active_pics=active_pics,
         all_assignments=all_assignments,
     )
+
+@sr_bp.route('/adjustment/<path:sr_no>', methods=['GET'])
+@login_required
+def adjustment_menu(sr_no):
+    if not sr_no:
+        flash("Invalid or corrupted adjustment link.", "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    current_user = session.get('user', {}).get('nik', '')
+
+    # ==========================================
+    # 1. THE BOUNCER (Authorization)
+    # ==========================================
+    eligibility_result = workflow_transaction.authorize_sr_access(
+        sr_no=sr_no, 
+        user_nik=current_user,
+        intent='ADJUSTMENT' # Triggers the strict PM-only check and lightweight data fetch
+    )
+
+    if not eligibility_result.get('status'):
+        flash(eligibility_result.get('msg'), "error")
+        return redirect(url_for('owh_dashboard.dashboard_menu'))
+
+    # Extract the lightweight SR data 
+    sr_data = eligibility_result['data'][0]
+
+    categories = sr_transaction.get_all_categories_trx()
+    options = workflow_transaction.get_adjustment_dropdown_options()
+
+    target_dates_res = srlogs_transaction.get_target_date_trx(sr_no) # Adjust module name if needed
+    target_dates = target_dates_res.get('data', []) if target_dates_res.get('status') else []
+
+    roles_res = assignment_transaction.get_assignable_picroles_trx()
+    users_res = assignment_transaction.get_it_users_trx()
+
+    picroles = roles_res.get('data', [])
+    it_users = users_res.get('data', [])
+
+    assignable_role_ids = {r['it_role_id'] for r in picroles}
+    all_assignments = assignment_transaction.get_all_assignments_trx(sr_no)
+
+    sm_candidates = assignment_transaction.get_all_sm_niks_trx()
+
+    active_sm_nik = ""
+    for a in all_assignments:
+        # UPDATE THIS CONDITION based on how your app identifies the SM role 
+        # e.g., a.get('it_role_id') == 5 OR a.get('role_name') == 'Scrum Master'
+        if a.get('it_role_id') == 3:
+            active_sm_nik = a.get('assigned_user', '')
+            break
+
+    pmo_form_data = {
+        'picroles': picroles,
+        'it_users': it_users,
+        'current_assignments': [
+            a for a in all_assignments if a.get('it_role_id') in assignable_role_ids
+        ],
+        # Ensure sm_candidates is populated if needed for the SM Replacement form
+        'sm_candidates': sm_candidates,
+        'active_sm_nik': active_sm_nik
+    }
+
+    return render_template(
+        '/page/sr_adjustment.html', 
+        mode='adjustment', 
+        user=session.get('user'), 
+        role=session.get('role'), 
+        active_menu='my_sr', 
+        sr_data=sr_data, 
+        options=options,
+        categories=categories,
+        target_dates=target_dates,
+        pmo_form_data=pmo_form_data
+    )
+
+@sr_bp.route('/adjustment/<path:sr_no>/update-details', methods=['POST'])
+@login_required
+def pmo_update_details(sr_no):
+    """Only updates Category, etc."""
+    trx_result = sr_transaction.update_sr_adjustment_trx(request.form, sr_no)
+    if trx_result.get('status'):
+        flash("SR Details updated successfully!", "success")
+    else:
+        flash(f"Error: {trx_result.get('msg')}", "error")
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
+@sr_bp.route('/adjustment/<path:sr_no>/update-dates', methods=['POST'])
+@login_required
+def pmo_update_dates(sr_no):
+    """Only processes Target Dates."""
+    target_res = srlogs_transaction.process_target_dates_trx(sr_no, request.form)
+    if target_res.get('status'):
+        flash("Schedule updated successfully!", "success")
+    else:
+        flash(f"Error: {target_res.get('msg')}", "error")
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
+@sr_bp.route('/adjustment/<path:sr_no>/force-phase', methods=['POST'])
+@login_required
+def pmo_force_phase(sr_no):
+    """Only forces the ticket to a new phase."""
+    current_smk_id = int(request.form.get('current_smk_id'))
+    next_smk_id = int(request.form.get('sr_action'))
+    current_user = session.get('user', {}).get('nik', '')
+    
+    if next_smk_id == current_smk_id:
+        flash("Phase is already set to that status.", "info")
+        return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+        
+    advance_result = workflow_transaction.advance_sr_phase(
+        sr_no=sr_no,
+        current_smk_id=current_smk_id,
+        next_smk_id=next_smk_id,
+        action_by=current_user,
+        is_adjustment=True
+    )
+    
+    if advance_result.get('status'):
+        flash("Phase forcefully moved!", "success")
+    else:
+        flash(f"Error: {advance_result.get('msg')}", "error")
+        
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+    
