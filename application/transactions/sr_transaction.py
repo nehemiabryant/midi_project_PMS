@@ -154,7 +154,7 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
     try:
         db_params = {
             'sr_no': sr_no,
-            'ctg_id': raw_data.get('kategori_sr'), # Assuming your HTML select name is 'kategori_sr'
+            'ctg_id': raw_data.get('ctg_id'),
             # We will add target_date and actual_date here later
         }
 

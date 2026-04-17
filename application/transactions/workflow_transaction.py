@@ -402,8 +402,8 @@ def get_adjustment_dropdown_options() -> list:
             for opt in converters.convert_to_dicts(rows, headers):
                 # Map standard columns to the names expected by the UI template
                 options.append({
-                    'next_smk_id': opt.get('smk_id'),
-                    'rule_detail': opt.get('smk_ket'),
+                    'smk_id': opt.get('smk_id'),
+                    'smk_ket': opt.get('smk_ket'),
                     'action_type': 'adjust' # Custom tag in case UI needs to know it's forced
                 })
 

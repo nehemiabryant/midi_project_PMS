@@ -207,7 +207,16 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
     except Exception as e:
         Log.error(f'Exception | get_gm_assign_page_data_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
-
+    
+def get_all_sm_niks_trx() -> list:
+    try:
+        sm_niks = list(workflow_transaction.IT_SM_NIKS)
+        sm_result = assignment_model.get_sm_options_model(sm_niks)
+        sm_options = parse_rows(sm_result)
+        return sm_options
+    except Exception as e:
+        Log.error(f'Exception | get_all_sm_niks_trx | Msg: {str(e)}')
+        return []
 
 def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
     """
@@ -472,15 +481,21 @@ def pmo_update_assign_trx(sr_no: str, nik: str, form_data: dict) -> dict:
             freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
             existing_active_roles -= freed_roles
         
+        SINGLE_USER_ROLES = {1, 2, 3, 8, 9}
         seen_new_roles = set()
+
         for a in assignments:
             if not a.get('assign_id'):
                 role_id = a['it_role_id']
-                if role_id not in existing_active_roles and role_id not in seen_new_roles:
+                if role_id in SINGLE_USER_ROLES:
+                    # Single-user roles: new assignments always take over as Active
                     a['is_active'] = True
-                    seen_new_roles.add(role_id)
                 else:
-                    a['is_active'] = False
+                    if role_id not in existing_active_roles and role_id not in seen_new_roles:
+                        a['is_active'] = True
+                        seen_new_roles.add(role_id)
+                    else:
+                        a['is_active'] = False
 
         # 6. Eksekusi atomik: hapus dulu, lalu upsert
         shared_conn = DatabasePG("supabase", autocommit=False)
@@ -668,3 +683,25 @@ def get_sr_actors_trx(sr_no: str) -> dict:
         # Always close the connection
         if conn:
             conn.close()
+    
+def get_assignable_picroles_trx() -> dict:
+    try:
+        response = assignment_model.get_assignable_picroles_model()
+        if not response.get('status'):
+            return {'status': False, 'data': [], 'msg': response.get('msg')}
+            
+        return {'status': True, 'data': parse_rows(response), 'msg': 'Success'}
+    except Exception as e:
+        Log.error(f'Transaction Exception | get_assignable_picroles_trx | {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+
+def get_it_users_trx() -> dict:
+    try:
+        response = assignment_model.get_it_users_model()
+        if not response.get('status'):
+            return {'status': False, 'data': [], 'msg': response.get('msg')}
+            
+        return {'status': True, 'data': parse_rows(response), 'msg': 'Success'}
+    except Exception as e:
+        Log.error(f'Transaction Exception | get_it_users_trx | {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
