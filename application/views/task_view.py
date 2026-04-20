@@ -61,22 +61,3 @@ def delete_task(task_id):
         return jsonify({'status': 'F', 'data': [], 'msg': result.get('msg')}), 400
 
     return jsonify({'status': 'T', 'data': [], 'msg': result.get('msg')}), 200
-
-
-@task_bp.route('/timeline/<path:sr_no>', methods=['GET'])
-@login_required
-def task_timeline(sr_no):
-    """Halaman timeline task untuk satu SR. Bisa diakses semua user yang login."""
-    task_result = task_transaction.get_timeline_trx(sr_no)
-    tasks = task_result.get('data', [])
-
-    actual_date_result = srlogs_transaction.get_phase_logs_trx(sr_no)
-    actual_dates = actual_date_result.get('data', [])
-    return render_template(
-        '/page/task_timeline.html',
-        user=session['user'],
-        role=session['role'],
-        sr_no=sr_no,
-        tasks=tasks,
-        actual_dates=actual_dates
-    )
