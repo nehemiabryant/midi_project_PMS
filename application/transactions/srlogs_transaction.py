@@ -27,26 +27,35 @@ def get_sr_logs_trx(sr_no: str) -> dict:
         Log.error(f"Exception | Get SR Logs Trx | Msg: {str(e)}")
         return {'status': False, 'data': [], 'msg': str(e)}
 
-def get_active_log_id_trx(sr_no: str, shared_conn=None) -> int:
+def get_active_log_id_trx(sr_no: str, shared_conn=None) -> dict:
     """
-    Fetches the active log ID for a given SR. This is used to know which log entry to update when closing a phase.
+    Fetches the active log ID for a given SR. 
+    Returns a cleanly formatted dictionary.
     """
     try:
         db_result = srlogs_model.get_active_log_id(sr_no, shared_conn)
         
-        if not db_result.get('status') or not db_result.get('data') or len(db_result['data']) < 2:
-            return db_result
+        # Guard clause for empty or failed results
+        if not db_result or not db_result.get('status') or not db_result.get('data') or len(db_result['data']) < 2:
+            return {'status': False, 'data': [], 'msg': 'No active log found'}
         
         headers = db_result['data'][0]
         rows = db_result['data'][1]
             
         formatted_data = converters.convert_to_dicts(rows, headers)
-            
+        
+        # THE INTEGER FIX: Force the IDs to be integers to prevent the string > int crash
+        for row in formatted_data:
+            if row.get('logs_id') is not None:
+                row['logs_id'] = int(row['logs_id'])
+            if row.get('smk_id') is not None:
+                row['smk_id'] = int(row['smk_id'])
+                
         return {'status': True, 'data': formatted_data}
         
     except Exception as e:
         Log.error(f"Exception | Get Active Log ID Trx | Msg: {str(e)}")
-        return -1  # Return an invalid ID to signify failure
+        return {'status': False, 'msg': str(e)}
 
 def create_sr_log_trx(raw_data: dict, shared_conn=None) -> dict:
     """
@@ -85,51 +94,77 @@ def update_sr_log_trx(logs_id: int, shared_conn=None) -> dict:
     except Exception as e:
         Log.error(f"Exception | Update SR Log Trx | Msg: {str(e)}")
         return {'status': False, 'msg': str(e)}
+    
+def sync_actual_date_trx(sr_no: str, smk_id: int, shared_conn=None) -> dict:
+    """
+    Syncs the latest start/finish dates into the actual_date table.
+    """
+    try:
+        result = srlogs_model.sync_actual_date_from_logs(sr_no, smk_id, shared_conn)
+        
+        # THE FIX: If the database wrapper returns a list, wrap it in a dict 
+        # so the parent flow doesn't crash when calling .get('status')!
+        if isinstance(result, list):
+            return {'status': True, 'data': result}
+            
+        # If it returns None for some reason, default to a success dict
+        if not result:
+            return {'status': True}
+            
+        return result
+        
+    except Exception as e:
+        Log.error(f"Exception | Sync Actual Date Trx | Msg: {str(e)}")
+        return {'status': False, 'msg': str(e)}
 
-def get_phase_logs_trx(sr_no: str, shared_conn=None) -> dict:
-    db_result = srlogs_model.get_phase_logs(sr_no, shared_conn)
+def get_actual_date_trx(sr_no: str) -> dict:
+    # 1. Call the new staging table function
+    db_result = srlogs_model.get_actual_date(sr_no)
     
     if not db_result or not db_result.get('status') or not db_result.get('data'):
         return {'status': False, 'data': []}
 
     formatted_data = []
 
-    for row in db_result['data']:
+    raw_data = db_result['data']
+    rows = raw_data[1] if len(raw_data) == 2 and isinstance(raw_data[0], list) else raw_data
+
+    for row in rows:
         is_dict = isinstance(row, dict)
-        smk_id = row['smk_id'] if is_dict else row[0]
-        phase_name = row['phase_name'] if is_dict else row[1]
-        started_at = row['first_iteration_start'] if is_dict else row[2]
-        finished_at = row['last_iteration_finish'] if is_dict else row[3]
+        
+        # 2. Map to the NEW keys from sr_actual_date
+        phase_id = row['phase_id'] if is_dict else row[0]
+        phase_name = row['phase_detail'] if is_dict else row[1]
+        start_date= row['start_date'] if is_dict else row[2]
+        finish_date = row['finish_date'] if is_dict else row[3]
 
         phase_data = {
-            'smk_id': smk_id,
+            'phase_id': phase_id,       # Changed from smk_id
             'phase_name': phase_name,
-            'started_at': started_at,
-            'finished_at': finished_at,
-            'is_milestone': False # Default flag for frontend to know it's a phase
+            'start_date': start_date,
+            'finish_date': finish_date,
+            'is_milestone': False       # Default flag
         }
 
-        # Status Logic
-        if started_at is None:
+        # 3. Standard Status Logic
+        if start_date is None:
             phase_data['status_text'] = "Not Started"
             phase_data['status_color'] = "secondary"
-        elif finished_at is None:
+        elif finish_date is None:
             phase_data['status_text'] = "In Progress"
             phase_data['status_color'] = "warning"
         else:
             phase_data['status_text'] = "Completed"
             phase_data['status_color'] = "success"
 
-        # --- ROLLOUT (116) CUSTOM LOGIC ---
-        # --- ROLLOUT (116) CUSTOM LOGIC ---
-        if smk_id == 116:
+        # 4. --- ROLLOUT CUSTOM LOGIC ---
+        # Assuming smk_id 116 maps to phase_id 6 in your sr_ms_phase table
+        if phase_id == 6:
             phase_data['is_milestone'] = True
-            if started_at:
-                # If it has started, it is effectively Live/Deployed. 
-                # We ignore finished_at entirely for UI purposes.
+            if start_date:
                 phase_data['status_text'] = "Live" 
                 phase_data['status_color'] = "success" 
-                phase_data['milestone_date'] = started_at
+                phase_data['milestone_date'] = start_date
             else:
                 phase_data['status_text'] = "Pending Rollout"
                 phase_data['status_color'] = "secondary"
@@ -193,7 +228,7 @@ def get_target_date_trx(sr_no: str) -> dict:
 
     return {'status': True, 'data': formatted_data}
 
-def process_target_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
+def process_actual_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
     """Extracts dates and saves them within the shared transaction."""
     phase_ids = form_data.getlist('phase_id[]')
     start_dates = form_data.getlist('start_date[]')
@@ -215,7 +250,7 @@ def process_target_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
             if phase_id != 6: 
                 date_utils.validate_date_range(start, finish, context=f"Fase {phase_id}")
 
-            res = srlogs_model.upsert_target_date(sr_no, phase_id, start, finish, shared_conn=shared_conn)
+            res = srlogs_model.upsert_actual_date(sr_no, phase_id, start, finish, shared_conn=shared_conn)
             
             # If ANY phase fails to save, break the transaction!
             if not res.get('status'):

@@ -193,42 +193,132 @@ def get_active_log_id(sr_no: str, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
-def get_phase_logs(sr_no: str, shared_conn=None) -> dict:
-    sql = """
-        SELECT 
-            mk.smk_id, 
-            mk.phase AS phase_name,  -- Change 'phase' to your actual column name if different
-            (ARRAY_AGG(l.started_at ORDER BY l.logs_id ASC))[1] AS first_iteration_start,
-            (ARRAY_AGG(l.finished_at ORDER BY l.logs_id DESC))[1] AS last_iteration_finish
-        FROM public.sr_ms_ket mk
-        LEFT JOIN public.sr_logs l 
-            ON mk.smk_id = l.smk_id AND l.sr_no = %(sr_no)s
-        WHERE mk.smk_id IN (106, 109, 111, 113, 115, 116)
-        GROUP BY mk.smk_id, mk.phase
-        ORDER BY mk.smk_id ASC;
+def sync_actual_date_from_logs(sr_no: str, smk_id: int, shared_conn=None) -> dict:
     """
+    Checks if the log belongs to a mapped phase. If so, calculates min/max 
+    from sr_logs and upserts the result into sr_actual_date.
+    """
+    # 1. Map smk_id (from sr_logs) to phase_id (for sr_actual_date)
+    phase_mapping = {
+        106: 1,
+        109: 2,
+        111: 3,
+        113: 4,
+        115: 5,
+        116: 6
+    }
+
+    # 2. Guard Clause: If the log isn't one of these 6 phases, we don't sync it.
+    if smk_id not in phase_mapping:
+        # Return True so we don't break the parent transaction; it's an expected skip.
+        return {'status': True, 'msg': f'smk_id {smk_id} is not mapped to a phase. Sync skipped.'}
+
+    phase_id = phase_mapping[smk_id]
+
+    # 3. Proceed with the sync using BOTH IDs
+    sql = """
+        INSERT INTO sr_actual_date (sr_no, phase_id, start_date, finish_date)
+        SELECT 
+            %(sr_no)s,
+            %(phase_id)s,
+            (ARRAY_AGG(started_at ORDER BY logs_id ASC))[1],
+            (ARRAY_AGG(finished_at ORDER BY logs_id DESC))[1]
+        FROM sr_logs
+        WHERE sr_no = %(sr_no)s AND smk_id = %(smk_id)s
+        ON CONFLICT (sr_no, phase_id) 
+        DO UPDATE SET 
+            start_date = EXCLUDED.start_date,
+            finish_date = EXCLUDED.finish_date;
+    """
+    
+    params = {
+        'sr_no': sr_no, 
+        'phase_id': phase_id, 
+        'smk_id': smk_id
+    }
+    
+    # Use shared connection if part of an existing transaction
+    if shared_conn:
+        return shared_conn.executeDataNoCommit(sql, params)
+        
+    # Standalone execution fallback
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'): 
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.executeData(sql, params)
+    except Exception as e:
+        Log.error(f'DB Exception | sync_actual_date_from_logs | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()
+
+def get_actual_date(sr_no: str) -> dict:                                                                                                                                                                             
+    """ Get all actual_date for a given SR """                                                                                 
+    sql = """                                                                                                                                                                                                        
+        SELECT 
+            m.phase_id, 
+            m.phase_detail, 
+            a.start_date, 
+            a.finish_date
+        FROM 
+            sr_ms_phase m
+        LEFT JOIN 
+            sr_actual_date a ON m.phase_id = a.phase_id AND a.sr_no = %(sr_no)s
+        ORDER BY 
+            m.phase_id ASC;                                                                                                  
+    """        
+    conn = None                                                                                                                                                                                                      
+    try:        
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):                                                                                                                                                                            
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}                                                                                                                                      
+        return conn.selectDataHeader(sql, {'sr_no': sr_no})                                                                                                                                                          
+    except Exception as e:                                                                                                                                                                                           
+        Log.error(f'DB Exception | get_actual_date | Msg: {str(e)}')                                                                                                                                           
+        return {'status': False, 'data': [], 'msg': str(e)}                                                                                                                                                          
+    finally:
+        if conn: conn.close()  
+
+def upsert_actual_date(sr_no: str, phase_id: int, start_date: str, finish_date: str, shared_conn=None) -> dict:
+    """Upsert actual dates for a specific SR and Phase."""
+    sql = """
+        INSERT INTO sr_actual_date (sr_no, phase_id, start_date, finish_date)
+        VALUES (%(sr_no)s, %(phase_id)s, %(start_date)s, %(finish_date)s)
+        ON CONFLICT (sr_no, phase_id) 
+        DO UPDATE SET 
+            start_date = EXCLUDED.start_date,
+            finish_date = EXCLUDED.finish_date;
+    """
+    
+    # Handle empty strings from the frontend, converting them to None (NULL in DB)
+    params = {
+        'sr_no': sr_no,
+        'phase_id': phase_id,
+        'start_date': start_date if start_date else None,
+        'finish_date': finish_date if finish_date else None
+    }
 
     if shared_conn:
-        result = shared_conn.selectData(sql, {'sr_no': sr_no})
+        result = shared_conn.executeDataNoCommit(sql, params)
         return result
     
     conn = None
-    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
-
     try:
         conn = DatabasePG("supabase")
-        if conn:
-            result = conn.selectData(sql, {'sr_no': sr_no})
-            return result
-        else:
-            Log.error(f'DB Error | Msg: {result.get("msg")}')
-            return None
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.executeData(sql, params)
     except Exception as e:
-        Log.error(f'DB Exception | get_phase_logs | Msg: {str(e)}')
-        return None
+        Log.error(f'DB Exception | upsert_actual_date | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
     finally:
-        if conn: conn.close()
-
+        if conn: 
+            conn.close()
 
 def get_target_date(sr_no: str) -> dict:                                                                                                        
     """ Get all target_date """                                                           

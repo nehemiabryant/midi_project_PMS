@@ -103,6 +103,7 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
         try:
 
             latest_log = srlogs_transaction.get_active_log_id_trx(sr_no, shared_conn)
+
             db_logs_id = 0
             db_log_smk_id = 0
 
@@ -126,6 +127,10 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
 
                 if not drift_close_res.get('status'):
                     return {'status': False, 'msg': 'Failed to heal database drift.'}
+                
+                sync_drift = srlogs_transaction.sync_actual_date_trx(sr_no, next_smk_id, shared_conn)
+                if not sync_drift.get('status'):
+                    return {'status': False, 'msg': sync_drift.get('msg')}
 
                 # Heal Step 2: Since we just closed the old log, we tell the engine
                 # there is no active log left to close in the normal flow.
@@ -141,6 +146,10 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                 close_result = srlogs_transaction.update_sr_log_trx(db_logs_id, shared_conn)
                 if not close_result.get('status'):
                     return {'status': False, 'msg': f"Failed to close current log: {close_result.get('msg')}"}
+                
+                sync_close = srlogs_transaction.sync_actual_date_trx(sr_no, db_log_smk_id, shared_conn)
+                if not sync_close.get('status'):
+                    return {'status': False, 'msg': sync_close.get('msg')}
 
             # 5. Open the new phase log
             new_phase_data = {
@@ -151,6 +160,10 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
             create_log_result = srlogs_transaction.create_sr_log_trx(new_phase_data, shared_conn)
             if not create_log_result.get('status'):
                 return {'status': False, 'msg': f"Failed to start new log: {create_log_result.get('msg')}"}
+            
+            sync_open = srlogs_transaction.sync_actual_date_trx(sr_no, next_smk_id, shared_conn)
+            if not sync_open.get('status'):
+                return {'status': False, 'msg': sync_open.get('msg')}
 
             # 6. Update the master SR request table so the system knows where the SR currently is
             sr_prog_result = sr_model.update_sr_prog({'sr_no': sr_no, 'smk_id': next_smk_id}, shared_conn)
