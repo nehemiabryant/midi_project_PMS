@@ -475,10 +475,24 @@ def pmo_update_assign_trx(sr_no: str, nik: str, form_data: dict) -> dict:
                 if a['nik'] not in valid_niks:
                     return {'status': False, 'data': [], 'msg': f"NIK {a['nik']} tidak terdaftar sebagai User IT."}
 
+        # 4b. Validasi: tidak boleh menghapus satu-satunya user dari mandatory role
+        freed_roles = set()
+        if delete_ids:
+            picroles = parse_rows(assignment_model.get_assignable_picroles_model())
+            mandatory_role_ids = {r['it_role_id'] for r in picroles}
+            role_name_map = {r['it_role_id']: r['it_role_detail'] for r in picroles}
+
+            freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
+            final_role_ids = {a['it_role_id'] for a in assignments}
+
+            for role_id in freed_roles & mandatory_role_ids:
+                if role_id not in final_role_ids:
+                    role_name = role_name_map.get(role_id, str(role_id))
+                    return {'status': False, 'data': [], 'msg': f'Tidak dapat menghapus. Role {role_name} harus memiliki minimal 1 user yang di-assign.'}
+
         # 5. is_active: kurangi existing_active_roles dengan role yang akan delete.
         existing_active_roles = assignment_model.get_active_role_ids_on_sr_model(sr_no)
-        if delete_ids:
-            freed_roles = assignment_model.get_active_role_ids_by_assign_ids_model(delete_ids)
+        if freed_roles:
             existing_active_roles -= freed_roles
         
         SINGLE_USER_ROLES = {1, 2, 3, 8, 9}

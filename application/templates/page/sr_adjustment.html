@@ -259,20 +259,38 @@
 
     function removeExistingRow(btn) {
         const row = btn.closest('.assign-row');
+
+        // Cek apakah ini satu-satunya user untuk role ini
+        const roleSelect = row.querySelector('select[name="assign_role[]"]');
+        if (roleSelect) {
+            const roleId = roleSelect.value;
+            const allRows = document.querySelectorAll('#pmo-assign-rows .assign-row');
+            const activeForRole = Array.from(allRows).filter(r => {
+                const isMarkedDelete = r.querySelector('.delete-id-input')?.name === 'delete_ids[]';
+                const rSelect = r.querySelector('select[name="assign_role[]"]');
+                return !isMarkedDelete && rSelect && rSelect.value == roleId && r !== row;
+            });
+            if (activeForRole.length === 0) {
+                const roleName = roleSelect.options[roleSelect.selectedIndex]?.text || roleId;
+                alert(`Tidak dapat menghapus. Role "${roleName}" harus memiliki minimal 1 user yang di-assign.`);
+                return;
+            }
+        }
+
         const hidden = row.querySelector('.delete-id-input');
         if (hidden) { hidden.name = 'delete_ids[]'; hidden.disabled = false; }
-        
+
         const assignIdInput = row.querySelector('.assign-id-input');
         if (assignIdInput) { assignIdInput.disabled = true; }
-        
+
         row.querySelectorAll('select').forEach(s => s.disabled = true);
-        
+
         // Visual cue that it's deleted
         row.style.opacity = '0.5';
         row.style.background = '#f1f5f9';
-        
+
         btn.textContent = 'Undo Hapus';
-        btn.style.background = '#e2e8f0'; 
+        btn.style.background = '#e2e8f0';
         btn.style.color = '#475569';
         btn.style.borderColor = '#cbd5e1';
         btn.onclick = () => cancelDelete(btn);
