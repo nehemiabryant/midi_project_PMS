@@ -194,17 +194,17 @@
                             {% if phase.is_milestone %}
                                 <td colspan="2" class="text-muted text-center">
                                     {% if phase.milestone_date %}
-                                        <span class="fw-semibold">Go-Live:</span> {{ phase.milestone_date | format_wib }}
+                                        <span class="fw-semibold">Go-Live:</span> {{ phase.milestone_date | format_date_wib }}
                                     {% else %}
                                         -
                                     {% endif %}
                                 </td>
                             {% else %}
                                 <td class="text-muted">
-                                    {{ phase.started_at | format_wib if phase.started_at else '-' }}
+                                    {{ phase.start_date | format_date_wib if phase.start_date else '-' }}
                                 </td>
                                 <td class="text-muted">
-                                    {{ phase.finished_at | format_wib if phase.finished_at else '-' }}
+                                    {{ phase.finish_date | format_date_wib if phase.finish_date else '-' }}
                                 </td>
                             {% endif %}
 
@@ -255,10 +255,10 @@
                         </td>
                         <td>{{ t.task_detail }}</td>
                         <td class="text-muted">
-                            {{ t.target_date if t.target_date else '-' }}
+                            {{ t.target_date | format_wib if t.target_date else '-' }}
                         </td>
                         <td style="color: {% if t.actual_date %}#10b981{% else %}#9ca3af{% endif %}; font-weight: 500;">
-                            {{ t.actual_date if t.actual_date else '-' }}
+                            {{ t.actual_date | format_wib if t.actual_date else '-' }}
                         </td>
                     </tr>
                     {% endfor %}

@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, render_template, url_for, flash, session, request
+from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
 from ..helpers.decorators import login_required, it_pm_required
@@ -342,7 +342,7 @@ def api_get_sr_detail(sr_no):
     target_date_result = srlogs_transaction.get_target_date_trx(clean_sr_no)
     target_dates = target_date_result.get('data', []) if isinstance(target_date_result, dict) else []
 
-    actual_date_result = srlogs_transaction.get_phase_logs_trx(clean_sr_no)
+    actual_date_result = srlogs_transaction.get_actual_date_trx(clean_sr_no)
     actual_dates = actual_date_result.get('data', []) if isinstance(actual_date_result, dict) else []
 
     current_smk_id = sr_data.get('smk_id') if sr_data else None
@@ -360,85 +360,93 @@ def api_get_sr_detail(sr_no):
         all_assignments=all_assignments,
     )
 
-@sr_bp.route('/adjustment', methods=['GET'])
+@sr_bp.route('/api/adjustment/lov', methods=['GET'])
 @login_required
 @it_pm_required
-def update_status_menu():
+def api_adjustment_lov():
     result = sr_transaction.get_all_sr_trx()
     sr_data = result.get('data', [])
-    return render_template('/page/update_status.html', user=session.get('user'), role=session.get('role'), active_menu='update_status', sr_data=sr_data)
+    return jsonify({
+        "status": True,
+        "data": sr_data
+    })
 
+@sr_bp.route('/adjustment', defaults={'sr_no': None}, methods=['GET'])
 @sr_bp.route('/adjustment/<path:sr_no>', methods=['GET'])
 @login_required
+@it_pm_required
 def adjustment_menu(sr_no):
-    if not sr_no:
-        flash("Invalid or corrupted adjustment link.", "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
+    sr_data = None
+    options = []
+    categories = []
+    actual_dates = []
+    pmo_form_data = {}
 
-    current_user = session.get('user', {}).get('nik', '')
+    if sr_no:
 
-    # ==========================================
-    # 1. THE BOUNCER (Authorization)
-    # ==========================================
-    eligibility_result = workflow_transaction.authorize_sr_access(
-        sr_no=sr_no, 
-        user_nik=current_user,
-        intent='ADJUSTMENT' # Triggers the strict PM-only check and lightweight data fetch
-    )
+        current_user = session.get('user', {}).get('nik', '')
 
-    if not eligibility_result.get('status'):
-        flash(eligibility_result.get('msg'), "error")
-        return redirect(url_for('owh_dashboard.dashboard_menu'))
+        # ==========================================
+        # 1. THE BOUNCER (Authorization)
+        # ==========================================
+        eligibility_result = workflow_transaction.authorize_sr_access(
+            sr_no=sr_no, 
+            user_nik=current_user,
+            intent='ADJUSTMENT' # Triggers the strict PM-only check and lightweight data fetch
+        )
 
-    # Extract the lightweight SR data 
-    sr_data = eligibility_result['data'][0]
+        if not eligibility_result.get('status'):
+            flash(eligibility_result.get('msg'), "error")
+            return redirect(url_for('owh_dashboard.dashboard_menu'))
 
-    categories = sr_transaction.get_all_categories_trx()
-    options = workflow_transaction.get_adjustment_dropdown_options()
+        # Extract the lightweight SR data 
+        sr_data = eligibility_result['data'][0]
 
-    target_dates_res = srlogs_transaction.get_target_date_trx(sr_no) # Adjust module name if needed
-    target_dates = target_dates_res.get('data', []) if target_dates_res.get('status') else []
+        categories = sr_transaction.get_all_categories_trx()
+        options = workflow_transaction.get_adjustment_dropdown_options()
 
-    roles_res = assignment_transaction.get_assignable_picroles_trx()
-    users_res = assignment_transaction.get_it_users_trx()
+        actual_dates_res = srlogs_transaction.get_actual_date_trx(sr_no) # Adjust module name if needed
+        actual_dates = actual_dates_res.get('data', []) if actual_dates_res.get('status') else []
 
-    picroles = roles_res.get('data', [])
-    it_users = users_res.get('data', [])
+        roles_res = assignment_transaction.get_assignable_picroles_trx()
+        users_res = assignment_transaction.get_it_users_trx()
 
-    assignable_role_ids = {r['it_role_id'] for r in picroles}
-    all_assignments = assignment_transaction.get_all_assignments_trx(sr_no)
+        picroles = roles_res.get('data', [])
+        it_users = users_res.get('data', [])
 
-    sm_candidates = assignment_transaction.get_all_sm_niks_trx()
+        assignable_role_ids = {r['it_role_id'] for r in picroles}
+        all_assignments = assignment_transaction.get_all_assignments_trx(sr_no)
 
-    active_sm_nik = ""
-    for a in all_assignments:
-        # UPDATE THIS CONDITION based on how your app identifies the SM role 
-        # e.g., a.get('it_role_id') == 5 OR a.get('role_name') == 'Scrum Master'
-        if a.get('it_role_id') == 3:
-            active_sm_nik = a.get('assigned_user', '')
-            break
+        sm_candidates = assignment_transaction.get_all_sm_niks_trx()
 
-    pmo_form_data = {
-        'picroles': picroles,
-        'it_users': it_users,
-        'current_assignments': [
-            a for a in all_assignments if a.get('it_role_id') in assignable_role_ids
-        ],
-        # Ensure sm_candidates is populated if needed for the SM Replacement form
-        'sm_candidates': sm_candidates,
-        'active_sm_nik': active_sm_nik
-    }
+        active_sm_nik = ""
+        for a in all_assignments:
+            # UPDATE THIS CONDITION based on how your app identifies the SM role 
+            # e.g., a.get('it_role_id') == 5 OR a.get('role_name') == 'Scrum Master'
+            if a.get('it_role_id') == 3:
+                active_sm_nik = a.get('assigned_user', '')
+                break
+
+        pmo_form_data = {
+            'picroles': picroles,
+            'it_users': it_users,
+            'current_assignments': [
+                a for a in all_assignments if a.get('it_role_id') in assignable_role_ids
+            ],
+            # Ensure sm_candidates is populated if needed for the SM Replacement form
+            'sm_candidates': sm_candidates,
+            'active_sm_nik': active_sm_nik
+        }
 
     return render_template(
         '/page/sr_adjustment.html', 
-        mode='adjustment', 
         user=session.get('user'), 
         role=session.get('role'), 
         active_menu='update_status',
         sr_data=sr_data, 
         options=options,
         categories=categories,
-        target_dates=target_dates,
+        actual_dates=actual_dates,
         pmo_form_data=pmo_form_data
     )
 
@@ -457,7 +465,7 @@ def pmo_update_details(sr_no):
 @login_required
 def pmo_update_dates(sr_no):
     """Only processes Target Dates."""
-    target_res = srlogs_transaction.process_target_dates_trx(sr_no, request.form)
+    target_res = srlogs_transaction.process_actual_dates_trx(sr_no, request.form)
     if target_res.get('status'):
         flash("Schedule updated successfully!", "success")
     else:
