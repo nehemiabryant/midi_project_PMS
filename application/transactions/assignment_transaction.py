@@ -1,4 +1,4 @@
-from application.transactions import srlogs_transaction, workflow_transaction
+from application.transactions import sr_transaction, srlogs_transaction, workflow_transaction
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
 from ..models import assignment_model, my_work_model
@@ -52,6 +52,10 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         target_dates_result = srlogs_transaction.get_target_date_trx(sr_no)
         target_dates = target_dates_result.get('data', [])
 
+        quarter = sr_transaction.get_all_quarters_trx()
+        if not quarter:
+            quarter = []
+
         return {
             'status': True,
             'data': {
@@ -60,7 +64,8 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
                 'it_users': it_users,
                 'current_assignments': current_assignments,
                 'is_locked': is_locked,
-                'target_dates': target_dates
+                'target_dates': target_dates,
+                'quarter': quarter
             }
         }
     except Exception as e:
@@ -397,6 +402,12 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
         date_result = srlogs_transaction.process_target_dates_trx(sr_no, form_data, shared_conn=shared_conn)
         if not date_result.get('status'):
             raise Exception(date_result.get('msg'))
+        
+        q_id = form_data.get('q_id')
+        if q_id:
+            quarter_result = sr_transaction.update_sr_quarter_trx(sr_no=sr_no, q_id=q_id, shared_conn=shared_conn)
+            if not quarter_result.get('status'):
+                raise Exception(f"Update quarter gagal: {quarter_result.get('msg')}")
 
         # 2. Execute the Phase Advancement
         advance_result = workflow_transaction.advance_sr_phase(
@@ -407,7 +418,7 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
             raise Exception(f"Advance phase gagal: {advance_result.get('msg')}")
 
         shared_conn._conn.commit()
-        return {'status': True, 'msg': 'Tim PIC berhasil di-assign dan phase SR diupdate.'}
+        return {'status': True, 'msg': 'Tim PIC berhasil di-assign, Target Date berhasil di set dan phase SR diupdate.'}
 
     except Exception as e:
         if shared_conn:

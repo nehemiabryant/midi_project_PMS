@@ -165,11 +165,10 @@ def update_sr(db_params: dict, shared_conn=None) -> dict:
         if conn: conn.close()
 
 def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
-    # Right now it only updates ctg_id, but it's ready for target_date and actual_date later!
     sql = """
         UPDATE public.sr_request 
         SET 
-            ctg_id = %(ctg_id)s
+            ctg_id = %(ctg_id)s, q_id = %(q_id)s
         WHERE sr_no = %(sr_no)s
         RETURNING sr_no;
     """
@@ -190,6 +189,33 @@ def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
         return {'status': False, 'msg': 'Failed to adjust SR'}
     finally:
         if conn: conn.close()
+
+def update_sr_quarter(db_params: dict, shared_conn=None) -> dict:
+    """Update the quarter for a specific SR."""
+    sql = """
+        UPDATE sr_request 
+        SET q_id = %(q_id)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.selectData(sql, db_params)
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_quarter | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()
 
 def update_sr_prog(db_params: dict, shared_conn=None) -> dict:
     sql = """
@@ -285,35 +311,30 @@ def get_dashboard_grid(shared_conn=None) -> dict:
     """
     sql = """
         WITH phase_bounds AS (
-            -- STEP 1: Find the total steps and boundaries for each phase dynamically
             SELECT 
                 phase AS phase_name,
-                MIN(smk_id) AS min_id,
-                MAX(smk_id) AS max_id,
-                -- Calculate how many steps are in this specific phase
-                (MAX(smk_id) - MIN(smk_id) + 1.0) AS phase_total_steps
+                MIN(smk_id) AS min_id
             FROM public.sr_ms_ket
             GROUP BY phase
         ),
         active_data AS (
-            -- STEP 2: Group tickets and calculate local "in-phase" progress
             SELECT 
                 m.phase AS phase_name,
                 r.division,
                 COUNT(r.sr_no) AS ticket_count,
-                -- Formula: (Sum of current position in phase) / (Total possible steps for these tickets in this phase)
-                ROUND((SUM(r.smk_id - pb.min_id + 1) / (COUNT(r.sr_no) * pb.phase_total_steps)) * 100) AS phase_progress
+                ROUND(
+                    (COUNT(r.sr_no) * 100.0) / 
+                    NULLIF(SUM(COUNT(r.sr_no)) OVER (PARTITION BY r.division), 0)
+                ) AS phase_progress
             FROM public.sr_request r
             JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
-            JOIN phase_bounds pb ON m.phase = pb.phase_name
-            GROUP BY m.phase, r.division, pb.min_id, pb.phase_total_steps
+            GROUP BY m.phase, r.division
         )
-        -- STEP 3: LEFT JOIN to ensure ordering
         SELECT 
             pb.phase_name,
             a.division,
             COALESCE(a.ticket_count, 0) AS ticket_count,
-            COALESCE(a.phase_progress, 0) AS global_progress -- Keeping your original alias
+            COALESCE(a.phase_progress, 0) AS global_progress
         FROM phase_bounds pb
         LEFT JOIN active_data a ON pb.phase_name = a.phase_name
         ORDER BY pb.min_id ASC, a.division ASC;
@@ -402,11 +423,14 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
             r.num_user,
             k.smk_ket AS current_status,
             r.smk_id,
-            LEAST(GREATEST(ROUND(((r.smk_id - 100) / 16.0) * 100), 0), 100) AS ticket_progress
+            LEAST(GREATEST(ROUND(((r.smk_id - 100) / 16.0) * 100), 0), 100) AS ticket_progress,
+            r.q_id,
+            q.quarter
         FROM public.sr_request r
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
         JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
         JOIN public.karyawan_all ka ON r.req_id = ka.nik
+        LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
         WHERE r.sr_no = %(sr_no)s
         LIMIT 1;
     """
@@ -457,6 +481,36 @@ def get_all_categories(shared_conn=None) -> dict:
             return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
     except Exception as e:
         Log.error(f'DB Exception | get_all_categories_model | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_all_quarters(shared_conn=None) -> dict:
+    """
+    Fetches all available quarters from the sr_ms_quarter table.
+    """
+    sql = """
+        SELECT q_id, quarter
+        FROM public.sr_ms_quarter
+        ORDER BY q_id ASC
+    """
+    
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Connection setup failed.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_quarters_model | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()

@@ -78,7 +78,7 @@
 
     <div class="detail-card">
         <h3 class="section-title">Lampiran Dokumen</h3>
-        <form method="POST" action="{{ url_for('owh_dashboard.sr_detail_menu', sr_no=sr_detail.sr_no) }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=sr_detail.sr_no) }}" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="smk_id" value="{{ sr_detail.smk_id }}">
 

@@ -154,13 +154,16 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
     try:
         db_params = {
             'sr_no': sr_no,
-            'ctg_id': raw_data.get('ctg_id'),
-            # We will add target_date and actual_date here later
+            'q_id': raw_data.get('q_id'),
+            'ctg_id': raw_data.get('ctg_id')
         }
 
         # Basic validation
         if not db_params['ctg_id']:
             return {'status': False, 'msg': 'Category ID cannot be empty.'}
+        
+        if not db_params['q_id']:
+            return {'status': False, 'msg': 'Target Quarter cannot be empty.'}
         
         result = sr_model.update_sr_adjustment(db_params)
         
@@ -173,6 +176,27 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
         Log.error(f'Exception | Update SR Adjustment Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     
+def update_sr_quarter_trx(sr_no: str, q_id: int, shared_conn=None) -> dict:
+    try:
+        db_params = {
+            'sr_no': sr_no,
+            'q_id': q_id
+        }
+
+        if not db_params['q_id']:
+            return {'status': False, 'msg': 'Target Quarter cannot be empty.'}
+        
+        result = sr_model.update_sr_quarter(db_params, shared_conn)
+
+        if result.get('status'):
+            return {'status': True, 'msg': 'Target Quarter successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+    
+    except Exception as e:
+        Log.error(f'Exception | Update SR Quarter Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+
 def get_full_dashboard_trx() -> dict:
     """
     Fetches both the top cards and the grid data, returning a complete 
@@ -323,4 +347,27 @@ def get_all_categories_trx() -> list:
         return categories
     except Exception as e:
         Log.error(f"Exception | Get All Categories Trx | Msg: {str(e)}")
+        return []
+    
+def get_all_quarters_trx() -> list:
+    """
+    Retrieves and parses SR quarters into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_quarters()
+        quarters = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for q in convert_to_dicts(rows, headers):
+                quarters.append(q)
+
+        return quarters
+    except Exception as e:
+        Log.error(f"Exception | Get All Quarters Trx | Msg: {str(e)}")
         return []

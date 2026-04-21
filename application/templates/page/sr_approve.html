@@ -436,6 +436,23 @@ legend {
                                     <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Jadwal project sudah terkunci.</p>
                                 {% endif %}
 
+                                <div style="margin-bottom: 16px;">
+                                    <label style="display: block; font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px;">
+                                        Target Quarter
+                                    </label>
+                                    <select name="q_id" class="compact-input" style="width: 100%; max-width: 300px;" {% if assignment_data.is_locked %}disabled{% endif %}>
+                                        <option value="">-- Pilih Quarter --</option>
+                                        
+                                        {% for q in assignment_data.quarter %}
+                                            
+                                            <option value="{{ q.q_id }}" {% if assignment_data.sr_detail.q_id == q.q_id %}selected{% endif %}>
+                                                {{ q.quarter }}
+                                            </option>
+                                            
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
                                 <table class="modern-inner-table">
                                     <thead>
                                         <tr>
