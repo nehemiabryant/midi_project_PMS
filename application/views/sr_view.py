@@ -380,6 +380,7 @@ def adjustment_menu(sr_no):
     options = []
     categories = []
     actual_dates = []
+    quarter = []
     pmo_form_data = {}
 
     if sr_no:
@@ -407,6 +408,8 @@ def adjustment_menu(sr_no):
 
         actual_dates_res = srlogs_transaction.get_actual_date_trx(sr_no) # Adjust module name if needed
         actual_dates = actual_dates_res.get('data', []) if actual_dates_res.get('status') else []
+
+        quarter = sr_transaction.get_all_quarters_trx()
 
         roles_res = assignment_transaction.get_assignable_picroles_trx()
         users_res = assignment_transaction.get_it_users_trx()
@@ -447,6 +450,7 @@ def adjustment_menu(sr_no):
         options=options,
         categories=categories,
         actual_dates=actual_dates,
+        quarter=quarter,
         pmo_form_data=pmo_form_data
     )
 

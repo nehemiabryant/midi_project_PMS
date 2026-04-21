@@ -17,12 +17,6 @@ def dashboard_menu():
     return render_template('/page/dashboard.html', user=session['user'], role=session['role'], active_menu='dashboard'
                            , top_cards=dashboard_data.get('top_cards', {}), dashboard_grid=dashboard_data.get('grid', {}))
 
-#BEING KEPT AS A REFERENCE IN CASE SOMETHING GOES WRONG
-@dashboard_bp.route('/dashboard-design', methods=['GET', 'POST'])
-@login_required
-def dashboard_design():
-    return render_template('/page/dashboard_design.html', user=session['user'], role=session['role'], active_menu='dashboard')
-
 @dashboard_bp.route('/myWork', methods=['GET'])
 @login_required
 def myWork_menu():
