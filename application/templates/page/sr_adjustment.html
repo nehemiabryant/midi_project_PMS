@@ -80,9 +80,10 @@
             <div class="pmo-grid-2">
                 
                 <div class="pmo-card">
-                    <h3 class="pmo-card-header">Kategori SR</h3>
+                    <h3 class="pmo-card-header">Detail SR</h3>
                     <form action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
                         <div class="form-group">
                             <label class="info-label">Ubah Kategori</label>
                             <select name="ctg_id" class="modern-select">
@@ -95,7 +96,20 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="submit" class="btn-primary">Update Kategori</button>
+
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label class="info-label">Ubah Quarter</label>
+                            <select name="q_id" class="modern-select">
+                                <option value="">-- Pilih Quarter --</option>
+                                {% for q in quarter %}
+                                    <option value="{{ q.q_id }}" {% if sr_data.q_id == q.q_id %}selected{% endif %}>
+                                        {{ q.quarter }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="margin-top: 15px;">Update Detail</button>
                     </form>
                 </div>
 

@@ -82,7 +82,11 @@
                       <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
                       
                   {% else %}
+                    {% if item.is_pic %}
+                      <a href="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=item.sr_no) }}" class="my-work-detail-btn">Manage</a>
+                    {% else %}
                       <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
+                    {% endif %}
                   {% endif %}
               </td>
               </tr>

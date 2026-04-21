@@ -41,6 +41,10 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
         result = my_work_model.get_my_work_items_model(nik)
         rows = parse_rows(result)
 
+        territory_map = my_work_model.get_role_territory_model()
+        picroles_result = assignment_model.get_assignable_picroles_model()
+        assignable_role_ids = {r['it_role_id'] for r in parse_rows(picroles_result)}
+
         # Group by sr_no — kumpulkan roles per SR
         sr_map = {}
         for row in rows:
@@ -57,6 +61,7 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
                     'created_at': row.get('created_at', ''),
                     'roles': [],
                     'role_ids': [],
+                    'is_pic': False,
                 }
             role_id = row.get('it_role_id')
             if role_id and role_id not in sr_map[sr_no]['role_ids']:
@@ -64,6 +69,21 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
                 sr_map[sr_no]['roles'].append(row.get('it_role_detail', ''))
 
         items = list(sr_map.values())
+
+        for item in items:
+            current_smk_id = item['smk_id']
+            
+            # Check A: Is user acting as IT PMO during UAT phases?
+            is_pm = ('IT PMO' in item['roles']) and (current_smk_id in UAT_PHASES)
+            
+            # Check B: Does user have a standard active PIC role for this specific phase?
+            has_active_pic_role = any(
+                role_id in assignable_role_ids and current_smk_id in territory_map.get(role_id, [])
+                for role_id in item['role_ids']
+            )
+            
+            # Attach the final boolean
+            item['is_pic'] = has_active_pic_role or is_pm
 
         # Filter berdasarkan search query
         if search_query:

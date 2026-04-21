@@ -41,7 +41,7 @@
 
                 <div class="progress-header">
                     <div style="width: 30%;">Divisi</div>
-                    {% if phase_data.phase_name in ['RO', 'Takeout'] %}
+                    {% if phase_data.phase_name in ['Takeout'] %}
                         <div style="width: 50%;">Ticket Count</div>
                         <div style="width: 20%; text-align: right;">#</div>
                     {% else %}
@@ -57,7 +57,7 @@
                         <div class="division-row page-{{ page_num }}" data-page="{{ page_num }}" style="{% if page_num > 1 %}display: none;{% endif %}">
                             <div class="div-name">{{ div.name }}</div>
                             
-                            {% if phase_data.phase_name in ['RO', 'Takeout'] %}
+                            {% if phase_data.phase_name in ['Takeout'] %}
                                 <div class="progress-bar-container" style="background: transparent; box-shadow: none;">
                                     <span style="font-weight: bold; color: #4b5563;">{{ div.count }} Tickets</span>
                                 </div>

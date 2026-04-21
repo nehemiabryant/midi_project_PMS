@@ -260,3 +260,36 @@ def process_actual_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
             continue # Skip if somehow phase_id is not an integer
 
     return {'status': True, 'msg': 'Jadwal berhasil disimpan.'}
+
+def process_target_dates_trx(sr_no: str, form_data, shared_conn=None) -> dict:
+    """Extracts dates and saves them within the shared transaction."""
+    phase_ids = form_data.getlist('phase_id[]')
+    start_dates = form_data.getlist('start_date[]')
+    finish_dates = form_data.getlist('finish_date[]')
+
+    if len(start_dates) == 0:
+        return {'status': True, 'msg': 'Schedule locked, skipping update.'}
+    
+    if not phase_ids:
+        return {'status': True, 'msg': 'No phase dates to process.'}
+        
+    for idx, pid in enumerate(phase_ids):
+        try:
+            phase_id = int(pid)
+            start = start_dates[idx] if idx < len(start_dates) else None
+            finish = finish_dates[idx] if idx < len(finish_dates) else None
+            
+            # Pass the shared_conn down to the model
+            if phase_id != 6: 
+                date_utils.validate_date_range(start, finish, context=f"Fase {phase_id}")
+
+            res = srlogs_model.upsert_target_date(sr_no, phase_id, start, finish, shared_conn=shared_conn)
+            
+            # If ANY phase fails to save, break the transaction!
+            if not res.get('status'):
+                raise Exception(f"Failed to save dates for phase {phase_id}: {res.get('msg')}")
+                
+        except ValueError:
+            continue # Skip if somehow phase_id is not an integer
+
+    return {'status': True, 'msg': 'Jadwal berhasil disimpan.'}
