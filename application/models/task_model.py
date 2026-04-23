@@ -164,3 +164,29 @@ def get_all_tasks_by_sr_model(sr_no: str) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}                                                                                               
     finally:
         if conn: conn.close()  
+
+def get_incomplete_tasks_count_by_role_model(sr_no: str, it_role_id: int) -> int:
+    """Hitung task yang belum lengkap (target_date atau actual_date kosong)
+    untuk role tiap phase pada SR."""
+    sql = """
+        SELECT COUNT(*)
+        FROM sr_task t
+        JOIN sr_assignments sa ON t.assign_id = sa.assign_id
+        WHERE sa.sr_no = %(sr_no)s
+          AND sa.it_role_id = %(it_role_id)s
+          AND (t.target_date IS NULL OR t.actual_date IS NULL)
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return 0
+        result = conn.selectData(sql, {'sr_no': sr_no, 'it_role_id': it_role_id})
+        if result.get('status') and result.get('data'):
+            return int(result['data'][0][0])
+        return 0
+    except Exception as e:
+        Log.error(f'DB Exception | get_incomplete_task_count_by_role | Msg: {str(e)}')
+        return 0
+    finally:
+        if conn: conn.close()

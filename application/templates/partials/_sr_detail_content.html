@@ -255,10 +255,10 @@
                         </td>
                         <td>{{ t.task_detail }}</td>
                         <td class="text-muted">
-                            {{ t.target_date | format_wib if t.target_date else '-' }}
+                            {{ t.target_date | format_date_wib if t.target_date else '-' }}
                         </td>
                         <td style="color: {% if t.actual_date %}#10b981{% else %}#9ca3af{% endif %}; font-weight: 500;">
-                            {{ t.actual_date | format_wib if t.actual_date else '-' }}
+                            {{ t.actual_date | format_date_wib if t.actual_date else '-' }}
                         </td>
                     </tr>
                     {% endfor %}

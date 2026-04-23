@@ -450,7 +450,7 @@ def get_assignment_by_id_model(assign_id: int) -> dict:
         SELECT assign_id, sr_no, assigned_user, it_role_id, is_active
         FROM sr_assignments
         WHERE assign_id = %(assign_id)s
-          AND sa.deleted_at IS NULL
+          AND deleted_at IS NULL
     """
     conn = None
     try:
