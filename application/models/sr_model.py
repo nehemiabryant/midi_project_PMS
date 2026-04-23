@@ -366,18 +366,29 @@ def get_srs_by_phase(phase_name: str, shared_conn=None) -> dict:
     Fetches lightweight SR data for the Master-Detail sidebar based on the macro-phase.
     """
     sql = """
-        SELECT 
+        SELECT
             r.sr_no,
             r.name AS app_name,
             r.division,
             k.smk_ket AS current_status,
             r.smk_id,
-            -- Calculate individual ticket progress (Step 1 to 16)
-            LEAST(GREATEST(ROUND(((r.smk_id - 100) / 16.0) * 100), 0), 100) AS ticket_progress
+            CASE
+                WHEN r.smk_id < 106 THEN 0
+                WHEN task_counts.total IS NULL OR task_counts.total = 0 THEN 0
+                ELSE ROUND(task_counts.completed::numeric / task_counts.total * 100)
+            END AS ticket_progress
         FROM public.sr_request r
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
+        LEFT JOIN (
+            SELECT sa.sr_no,
+                   COUNT(*) AS total,
+                   COUNT(CASE WHEN t.target_date IS NOT NULL AND t.actual_date IS NOT NULL THEN 1 END) AS completed
+            FROM sr_task t
+            JOIN sr_assignments sa ON t.assign_id = sa.assign_id
+            GROUP BY sa.sr_no
+        ) task_counts ON r.sr_no = task_counts.sr_no
         WHERE k.phase = %(phase_name)s
-        ORDER BY r.sr_no ASC; 
+        ORDER BY r.sr_no ASC;
     """
     
     if shared_conn:
@@ -423,7 +434,11 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
             r.num_user,
             k.smk_ket AS current_status,
             r.smk_id,
-            LEAST(GREATEST(ROUND(((r.smk_id - 100) / 16.0) * 100), 0), 100) AS ticket_progress,
+            CASE
+                WHEN r.smk_id < 106 THEN 0
+                WHEN task_counts.total IS NULL OR task_counts.total = 0 THEN 0
+                ELSE ROUND(task_counts.completed::numeric / task_counts.total * 100)
+            END AS ticket_progress,
             r.q_id,
             q.quarter
         FROM public.sr_request r
@@ -431,6 +446,14 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
         JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
         JOIN public.karyawan_all ka ON r.req_id = ka.nik
         LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
+        LEFT JOIN (
+            SELECT sa.sr_no,
+                   COUNT(*) AS total,
+                   COUNT(CASE WHEN t.target_date IS NOT NULL AND t.actual_date IS NOT NULL THEN 1 END) AS completed
+            FROM sr_task t
+            JOIN sr_assignments sa ON t.assign_id = sa.assign_id
+            GROUP BY sa.sr_no
+        ) task_counts ON r.sr_no = task_counts.sr_no
         WHERE r.sr_no = %(sr_no)s
         LIMIT 1;
     """

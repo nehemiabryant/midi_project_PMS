@@ -1,6 +1,6 @@
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
-from ..models import sr_model, workflow_model, karyawan, assignment_model
+from ..models import sr_model, workflow_model, karyawan, assignment_model, task_model
 from ..transactions import srlogs_transaction, sr_transaction
 from ..utils import converters
 
@@ -72,7 +72,10 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                 is_assigned = assignment_model.check_role_assignment_model(sr_no, action_by, allowed_role)
                 if not is_assigned:
                     Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Tidak ter-assign dengan role {allowed_role}')
-                    return {'status': False, 'msg': 'You must be specifically assigned to this ticket to execute this phase.'}
+                    return {'status': False, 'msg': 'You must be specifically assigned to this ticket to execute this phase.'}    
+                incomplete_count = task_model.get_incomplete_tasks_count_by_role_model(sr_no, allowed_role)
+                if incomplete_count > 0:
+                    return {'status': False, 'msg': f'Terdapat {incomplete_count} task yang belum lengkap. Isi target date dan actual date semua task sebelum melanjutkan.'}
 
             # ==========================================
             # 4. Validate Mandatory Documents
@@ -92,7 +95,7 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                     return {'status': False, 'msg': f'Cannot advance phase. Missing required document categories: {missing_docs}'}
 
         # ==========================================
-        # 5. Execute the Database Log Updates
+        # 5. Execute the Database Log Update
         # ==========================================
 
         # Jika shared_conn diberikan dari luar, pakai itu (tidak commit/rollback sendiri)

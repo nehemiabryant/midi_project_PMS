@@ -43,24 +43,6 @@ def myWork_menu():
         search_query=search_query
     )
 
-
-@dashboard_bp.route('/myWork/detail/<path:sr_no>', methods=['GET'])
-@login_required
-def sr_detail_menu(sr_no):
-    """Dispatcher — redirect ke sub-route yang sesuai berdasarkan akses user di fase SR saat ini."""
-    nik = session['user']['nik']
-    access = my_work_transaction.resolve_sr_access_trx(sr_no, nik)
-
-    if not access.get('status'):
-        flash(access.get('msg', 'Gagal memuat detail SR.'), 'error')
-        return redirect(url_for('owh_dashboard.myWork_menu'))
-
-    if access['data']['is_pic']:
-        return redirect(url_for('owh_dashboard.sr_detail_pic', sr_no=sr_no))
-
-    return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
-
-
 @dashboard_bp.route('/myWork/detail/<path:sr_no>/pic', methods=['GET', 'POST'])
 @login_required
 def sr_detail_pic(sr_no):
@@ -94,7 +76,7 @@ def sr_detail_pic(sr_no):
         else:
             flash('Tidak ada file yang dipilih.', 'warning')
 
-        return redirect(url_for('owh_dashboard.sr_detail_pic', sr_no=sr_no))
+        return redirect(url_for('owh_dashboard.myWork_menu'))
 
     dropdown_options = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, nik)
     return render_template(
@@ -112,25 +94,25 @@ def sr_detail_pic(sr_no):
     )
 
 
-
 @dashboard_bp.route('/myWork/detail/<path:sr_no>/workflow', methods=['POST'])
 @login_required
 def pic_workflow_action(sr_no):
     """PIC melanjutkan status SR atau mengoper ke PIC lain di role yang sama."""
     nik = session['user']['nik']
-    data = request.get_json(silent=True) or {}
-    action_type = data.get('action_type', 'advance')
+    action_type = request.form.get('action_type', 'advance')
 
     if action_type == 'handover':
-        target_assign_id = data.get('target_assign_id')
+        target_assign_id = request.form.get('target_assign_id')
         if not target_assign_id:
-            return jsonify({'status': 'F', 'msg': 'target_assign_id tidak ditemukan.'}), 400
+            flash('target_assign_id tidak ditemukan.', 'error')
+            return redirect(url_for('owh_dashboard.sr_detail_pic', sr_no=sr_no))
         result = assignment_transaction.handover_pic_trx(sr_no, nik, int(target_assign_id))
     else:
-        current_smk_id = data.get('current_smk_id')
-        next_smk_id = data.get('next_smk_id')
+        current_smk_id = request.form.get('current_smk_id')
+        next_smk_id = request.form.get('next_smk_id')
         if not current_smk_id or not next_smk_id:
-            return jsonify({'status': 'F', 'msg': 'current_smk_id atau next_smk_id tidak ditemukan.'}), 400
+            flash('Data aksi tidak lengkap.', 'error')
+            return redirect(url_for('owh_dashboard.sr_detail_pic', sr_no=sr_no))
         result = workflow_transaction.advance_sr_phase(
             sr_no=sr_no,
             current_smk_id=int(current_smk_id),
@@ -140,10 +122,12 @@ def pic_workflow_action(sr_no):
 
     if not result.get('status'):
         Log.warning(f'pic_workflow_action | SR: {sr_no} | NIK: {nik} | action: {action_type} | Msg: {result.get("msg")}')
-        return jsonify({'status': 'F', 'msg': result.get('msg', 'Gagal.')}), 400
+        flash(result.get('msg', 'Gagal.'), 'error')
+        return redirect(url_for('owh_dashboard.sr_detail_pic', sr_no=sr_no))
 
     Log.info(f'pic_workflow_action | SR: {sr_no} | NIK: {nik} | action: {action_type} | Berhasil')
-    return jsonify({'status': 'T', 'msg': result.get('msg', 'Berhasil.')}), 200
+    flash(result.get('msg', 'Status SR berhasil dilanjutkan.'), 'success')
+    return redirect(url_for('owh_dashboard.myWork_menu'))
 
 
 @dashboard_bp.route('/myWork/detail/<path:sr_no>/assign', methods=['POST'])

@@ -54,25 +54,28 @@
     {% if dropdown_options %}
     <div class="detail-card" style="background: #f8fafc;">
         <h3 class="section-title" style="border-bottom: none; margin-bottom: 12px; padding-bottom: 0;">Lanjutkan / Oper SR</h3>
-        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <select id="workflow-select" class="form-select-modern" style="max-width: 320px;">
-                <option value="" disabled selected>-- Pilih Aksi --</option>
-                {% for opt in dropdown_options %}
-                    <option
-                        value="{{ loop.index0 }}"
-                        data-action-type="{{ opt.action_type }}"
-                        data-next-smk-id="{{ opt.next_smk_id or '' }}"
-                        data-target-assign-id="{{ opt.target_assign_id or '' }}"
-                        data-current-smk-id="{{ sr_detail.smk_id }}">
-                        {{ opt.rule_detail }}
-                    </option>
-                {% endfor %}
-            </select>
-            <button type="button" onclick="submitWorkflowAction()" class="btn-submit" style="margin-top: 0;">
-                Jalankan
-            </button>
-        </div>
-        <div id="workflow-msg" style="margin-top: 12px; font-size: 14px; font-weight: 500; display: none;"></div>
+        <form method="POST" action="{{ url_for('owh_dashboard.pic_workflow_action', sr_no=sr_detail.sr_no) }}" onsubmit="return validateWorkflowSubmit(event)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" id="hidden-action-type" value="">
+            <input type="hidden" name="current_smk_id" value="{{ sr_detail.smk_id }}">
+            <input type="hidden" name="next_smk_id" id="hidden-next-smk-id" value="">
+            <input type="hidden" name="target_assign_id" id="hidden-target-assign-id" value="">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <select id="workflow-select" class="form-select-modern" style="max-width: 320px;" onchange="onWorkflowSelectChange(this)">
+                    <option value="" disabled selected>-- Pilih Aksi --</option>
+                    {% for opt in dropdown_options %}
+                        <option
+                            value="{{ loop.index0 }}"
+                            data-action-type="{{ opt.action_type }}"
+                            data-next-smk-id="{{ opt.next_smk_id or '' }}"
+                            data-target-assign-id="{{ opt.target_assign_id or '' }}">
+                            {{ opt.rule_detail }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-submit" style="margin-top: 0;">Jalankan</button>
+            </div>
+        </form>
     </div>
     {% endif %}
 
@@ -194,59 +197,41 @@
 <script>
 const SR_NO = "{{ sr_detail.sr_no }}";
 
-function submitWorkflowAction() {
-    const select = document.getElementById('workflow-select');
-    const msgEl = document.getElementById('workflow-msg');
+function onWorkflowSelectChange(select) {
     const selected = select.options[select.selectedIndex];
-
-    if (!selected || !selected.value && selected.value !== '0') {
-        showWorkflowMsg('Pilih aksi terlebih dahulu.', 'error');
-        return;
-    }
-
-    const actionType = selected.dataset.actionType;
-    const payload = { action_type: actionType };
-
-    if (actionType === 'handover') {
-        payload.target_assign_id = parseInt(selected.dataset.targetAssignId);
-    } else {
-        payload.current_smk_id = parseInt(selected.dataset.currentSmkId);
-        payload.next_smk_id = parseInt(selected.dataset.nextSmkId);
-    }
-
-    const confirmMsg = actionType === 'handover'
-        ? `Yakin ingin mengoper SR ini ke ${selected.text}?`
-        : `Yakin ingin melanjutkan status SR: "${selected.text}"?`;
-
-    if (!confirm(confirmMsg)) return;
-
-    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-    fetch(`/myWork/detail/${SR_NO}/workflow`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.status === 'T') {
-            showWorkflowMsg(data.msg, 'success');
-            setTimeout(() => location.reload(), 1200);
-        } else {
-            showWorkflowMsg(data.msg || 'Gagal.', 'error');
-        }
-    })
-    .catch(() => showWorkflowMsg('Terjadi kesalahan koneksi.', 'error'));
+    document.getElementById('hidden-action-type').value = selected.dataset.actionType || '';
+    document.getElementById('hidden-next-smk-id').value = selected.dataset.nextSmkId || '';
+    document.getElementById('hidden-target-assign-id').value = selected.dataset.targetAssignId || '';
 }
 
-function showWorkflowMsg(msg, type) {
-    const el = document.getElementById('workflow-msg');
-    el.style.display = 'block';
-    el.style.color = type === 'success' ? '#16a34a' : '#dc2626';
-    el.textContent = msg;
+function validateWorkflowSubmit(event) {
+    const actionType = document.getElementById('hidden-action-type').value;
+    if (!actionType) {
+        alert('Pilih aksi terlebih dahulu.');
+        event.preventDefault();
+        return false;
+    }
+
+    if (actionType === 'advance') {
+        const taskRows = document.querySelectorAll('.task-row');
+        for (const row of taskRows) {
+            const target = row.querySelector('.task-target-edit')
+                ? row.querySelector('.task-target-edit').value
+                : row.querySelector('.task-target-display').textContent.trim();
+            const actual = row.querySelector('.task-actual-edit')
+                ? row.querySelector('.task-actual-edit').value
+                : row.querySelector('.task-actual-display').textContent.trim();
+            if (!target || !actual || target === '-' || actual === '-') {
+                alert('Semua task harus memiliki target date dan actual date sebelum melanjutkan status SR.');
+                event.preventDefault();
+                return false;
+            }
+        }
+    }
+
+    const select = document.getElementById('workflow-select');
+    const selected = select.options[select.selectedIndex];
+    return confirm(`Yakin ingin melanjutkan: "${selected.text}"?`);
 }
 
 function showAddTaskForm(roleId) {
