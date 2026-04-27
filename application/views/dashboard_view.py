@@ -198,39 +198,6 @@ def sr_detail_view(sr_no):
         sr_no=clean_sr_no,
     )
 
-@dashboard_bp.route('/myWork/detail/<path:sr_no>/pmo-reassign', methods=['POST'])
-@login_required
-def pmo_reassign(sr_no):
-    """IT PMO meng-update assignment PIC pada SR di fase manapun."""
-    nik = session['user']['nik']
-    result = assignment_transaction.pmo_update_assign_trx(sr_no, nik, request.form)
-
-    if not result.get('status'):
-        flash(result.get('msg', 'Gagal memperbarui assignment.'), 'error')
-    else:
-        flash(result.get('msg', 'Assignment berhasil diperbarui.'), 'success')
-
-    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
-
-@dashboard_bp.route('/myWork/detail/<path:sr_no>/pmo-replace-sm', methods=['POST'])                                                   
-@login_required                                                    
-def pmo_replace_sm(sr_no):                                          
-    """IT PM mengganti IT SM pada SR."""
-    nik = session['user']['nik']
-    new_sm_nik = request.form.get('new_sm_nik', '').strip()
-
-    if not new_sm_nik:
-        flash('Pilih IT SM terlebih dahulu.', 'error')
-        return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
-    
-    result = assignment_transaction.pmo_replace_sm_trx(sr_no, nik, new_sm_nik)
-    if not result.get('status'):
-        flash(result.get('msg', 'Gagal mengganti IT SM.'), 'error')
-    else:
-        flash(result.get('msg', 'IT SM berhasil diganti.'), 'success')
-    
-    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
-
 @dashboard_bp.route('/uploadDraft', methods=['GET', 'POST'])
 @login_required
 def uploadDraft_menu():

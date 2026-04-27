@@ -190,10 +190,11 @@
 
             <div class="pmo-card">
                 <h3 class="pmo-card-header">Resource & Team Management</h3>
-
+                
+                {% if not user_is_sm %}
                 <div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #e2e8f0;">
                     <label class="info-label" style="display:block; margin-bottom:10px;">Scrum Master / Project Manager</label>
-                    <form action="{{ url_for('owh_dashboard.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
+                    <form action="{{ url_for('owh_sr.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <select name="new_sm_nik" class="modern-select" required>
@@ -208,11 +209,12 @@
                         <button type="submit" class="btn-primary" style="flex-shrink: 0;">Update SM</button>
                     </form>
                 </div>
+                {% endif %}
 
                 <div>
                     <label class="info-label" style="display:block; margin-bottom:10px;">Kelola Tim PIC (IT Role)</label>
                     
-                    <form method="POST" action="{{ url_for('owh_dashboard.pmo_reassign', sr_no=sr_data.sr_no) }}" id="pmo-reassign-form">
+                    <form method="POST" action="{{ url_for('owh_sr.pmo_reassign', sr_no=sr_data.sr_no) }}" id="pmo-reassign-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <div id="pmo-assign-rows">

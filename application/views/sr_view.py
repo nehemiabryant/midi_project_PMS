@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
-from ..helpers.decorators import login_required, it_pm_required
+from ..helpers.decorators import login_required, bypass_required
 import urllib.parse
 
 Log = Logger()
@@ -362,7 +362,7 @@ def api_get_sr_detail(sr_no):
 
 @sr_bp.route('/api/adjustment/lov', methods=['GET'])
 @login_required
-@it_pm_required
+@bypass_required
 def api_adjustment_lov():
     result = sr_transaction.get_all_sr_trx()
     sr_data = result.get('data', [])
@@ -374,7 +374,7 @@ def api_adjustment_lov():
 @sr_bp.route('/adjustment', defaults={'sr_no': None}, methods=['GET'])
 @sr_bp.route('/adjustment/<path:sr_no>', methods=['GET'])
 @login_required
-@it_pm_required
+@bypass_required
 def adjustment_menu(sr_no):
     sr_data = None
     options = []
@@ -382,9 +382,9 @@ def adjustment_menu(sr_no):
     actual_dates = []
     quarter = []
     pmo_form_data = {}
+    user_is_sm = False
 
     if sr_no:
-
         current_user = session.get('user', {}).get('nik', '')
 
         # ==========================================
@@ -429,6 +429,11 @@ def adjustment_menu(sr_no):
             if a.get('it_role_id') == 3:
                 active_sm_nik = a.get('assigned_user', '')
                 break
+        
+        user_is_sm = any(
+            a.get('assigned_user') == current_user and a.get('it_role_id') == 3
+            for a in all_assignments
+        )
 
         pmo_form_data = {
             'picroles': picroles,
@@ -451,11 +456,13 @@ def adjustment_menu(sr_no):
         categories=categories,
         actual_dates=actual_dates,
         quarter=quarter,
+        user_is_sm=user_is_sm,
         pmo_form_data=pmo_form_data
     )
 
 @sr_bp.route('/adjustment/<path:sr_no>/update-details', methods=['POST'])
 @login_required
+@bypass_required
 def pmo_update_details(sr_no):
     """Only updates Category, etc."""
     trx_result = sr_transaction.update_sr_adjustment_trx(request.form, sr_no)
@@ -467,6 +474,7 @@ def pmo_update_details(sr_no):
 
 @sr_bp.route('/adjustment/<path:sr_no>/update-dates', methods=['POST'])
 @login_required
+@bypass_required
 def pmo_update_dates(sr_no):
     """Only processes Target Dates."""
     target_res = srlogs_transaction.process_actual_dates_trx(sr_no, request.form)
@@ -478,6 +486,7 @@ def pmo_update_dates(sr_no):
 
 @sr_bp.route('/adjustment/<path:sr_no>/force-phase', methods=['POST'])
 @login_required
+@bypass_required
 def pmo_force_phase(sr_no):
     """Only forces the ticket to a new phase."""
     current_smk_id = int(request.form.get('current_smk_id'))
@@ -501,5 +510,40 @@ def pmo_force_phase(sr_no):
     else:
         flash(f"Error: {advance_result.get('msg')}", "error")
         
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
+@sr_bp.route('/adjustment/<path:sr_no>/reassign-pic', methods=['POST'])
+@login_required
+@bypass_required
+def pmo_reassign(sr_no):
+    """Update assignment PIC pada SR."""
+    nik = session['user']['nik']
+    result = assignment_transaction.pmo_update_assign_trx(sr_no, nik, request.form)
+
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal memperbarui assignment.'), 'error')
+    else:
+        flash(result.get('msg', 'Assignment berhasil diperbarui.'), 'success')
+
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
+@sr_bp.route('/adjustment/<path:sr_no>/replace-sm', methods=['POST'])                                                   
+@login_required            
+@bypass_required                                        
+def pmo_replace_sm(sr_no):                                          
+    """Ganti IT SM pada SR."""
+    nik = session['user']['nik']
+    new_sm_nik = request.form.get('new_sm_nik', '').strip()
+
+    if not new_sm_nik:
+        flash('Pilih IT SM terlebih dahulu.', 'error')
+        return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
+    
+    result = assignment_transaction.pmo_replace_sm_trx(sr_no, nik, new_sm_nik)
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal mengganti IT SM.'), 'error')
+    else:
+        flash(result.get('msg', 'IT SM berhasil diganti.'), 'success')
+    
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
     

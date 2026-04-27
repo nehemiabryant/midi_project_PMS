@@ -113,45 +113,50 @@ def master_user_menu():
 @super_admin_required
 def master_user_assign():
     nik = request.form.get('nik', '').strip()
-    approle_id = request.form.get('approle_id', '').strip()
+    approle_ids= request.form.getlist('approle_id')
 
-    if not nik or not approle_id:
-        flash('NIK dan role harus diisi.', 'error')
+    if not nik or not approle_ids:
+        flash('NIK dan minimal satu role harus diisi.', 'error')
         return redirect(url_for('role_mgmt.master_user_menu'))
 
-    result = role_transaction.assign_role_trx(nik, int(approle_id))
-    if not result.get('status'):
-        flash(result.get('msg', 'Gagal assign role.'), 'error')
-    else:
-        flash('Role berhasil di-assign.', 'success')
+    success_count = 0
+    for approle_id in approle_ids:
+        result = role_transaction.assign_role_trx(nik, int(approle_id))
+        if result.get('status'):
+            success_count += 1
+        else:
+            flash(result.get('msg', 'Gagal assign salah satu role.'), 'error')
+        
+    if success_count > 0:
+        flash(f'{success_count} role berhasil di-assign.', 'success')
     return redirect(url_for('role_mgmt.master_user_menu'))
 
 
-@role_mgmt_bp.route('/masterUser/<int:user_id>/update', methods=['POST'])
+@role_mgmt_bp.route('/masterUser/<string:nik>/update-roles', methods=['POST'])
 @login_required
 @super_admin_required
-def master_user_update(user_id):
-    approle_id = request.form.get('approle_id', '').strip()
-    if not approle_id:
-        flash('Role harus dipilih.', 'error')
+def master_user_update_roles(nik):
+    approle_ids = request.form.getlist('approle_id')
+    if not approle_ids:
+        flash('Pilih minimal satu role.', 'error')
         return redirect(url_for('role_mgmt.master_user_menu'))
 
-    result = role_transaction.update_assigned_role_trx(user_id, int(approle_id))
+    result = role_transaction.reassign_roles_trx(nik, approle_ids)
     if not result.get('status'):
         flash(result.get('msg', 'Gagal update role.'), 'error')
     else:
-        flash('Role berhasil diupdate.', 'success')
+        flash(result.get('msg', 'Role berhasil diupdate.'), 'success')
     return redirect(url_for('role_mgmt.master_user_menu'))
 
 
-@role_mgmt_bp.route('/masterUser/<int:user_id>/remove', methods=['POST'])
+@role_mgmt_bp.route('/masterUser/<string:nik>/remove', methods=['POST'])
 @login_required
 @super_admin_required
-def master_user_remove(user_id):
-    result = role_transaction.remove_assigned_role_trx(user_id)
+def master_user_remove(nik):
+    result = role_transaction.remove_all_roles_by_nik_trx(nik)
     if not result.get('status'):
-        flash(result.get('msg', 'Gagal menghapus assignment.'), 'error')
+        flash(result.get('msg', 'Gagal menghapus user.'), 'error')
     else:
-        flash('Assignment berhasil dihapus.', 'success')
+        flash('User berhasil dihapus.', 'success')
     return redirect(url_for('role_mgmt.master_user_menu'))
 

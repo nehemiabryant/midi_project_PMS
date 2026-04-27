@@ -563,11 +563,7 @@ def pmo_replace_sm_trx(sr_no: str, nik: str, new_sm_nik: str) -> dict:
     - Insert SM baru dengan is_active ditentukan via freed_roles logic                                                               
     Validasi: caller harus IT PM, new_sm_nik harus dari IT_SM_NIKS. 
     """
-    try:
-        # 1. Validasi: hanya IT PM
-        if nik != workflow_transaction.IT_PM_NIK:
-            return {'status': False, 'data': [], 'msg': 'Hanya IT PM yang dapat mengganti IT SM.'}
-        
+    try:  
         # 2. Validasi: SM baru harus dari IT_SM_NIKS
         if new_sm_nik not in workflow_transaction.IT_SM_NIKS:
             return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
