@@ -14,10 +14,10 @@ def _set_role_session(nik: str):
     from application.transactions.auth_transaction import get_user_role_info_trx
     role_info = get_user_role_info_trx(nik)
     session['role'] = {
-        'name': role_info.get('name', ''),
+        'name': role_info.get('name', []),
         'permissions': role_info.get('permissions', [])
     }
-    Log.info(f"LOGIN | Phase 2 | NIK: {nik} | Role: {role_info.get('name', '-')} | Permissions: {role_info.get('permissions', [])}")
+    Log.info(f"LOGIN | Phase 2 | NIK: {nik} | Role: {', '.join(role_info.get('name', []))} | Permissions: {role_info.get('permissions', [])}")
 
 def validate_user_gateway(nik, password):
     app_name = 'OWH'

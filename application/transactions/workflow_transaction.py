@@ -268,27 +268,20 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
             
             if assigned_role:
                 user_it_role = assigned_role
-            else:
-                if user_nik == IT_PM_NIK:
-                    user_it_role = 2 
+                
+        if intent in ['ADJUSTMENT', 'REASSIGN']:
+            return {'status': True,
+                'msg': 'Bypass access granted.',
+                'data': [sr_dict]}
 
         if user_it_role is None:
             return {'status': False, 'msg': 'Unauthorized: You have no assigned role for this Service Request.'}
 
         sr_dict['user_it_role'] = user_it_role
-        
-        # ==========================================
-        # 3. THE PHASE THRESHOLD CHECK 
-        # ==========================================
-        if user_it_role == 2 and intent in ['ADJUSTMENT', 'REASSIGN']:
-            return {'status': True, 'msg': f'PM Admin access granted for {intent}.', 'data': [sr_dict]}
 
-        if intent == 'ADJUSTMENT':
-            return {
-                'status': False, 
-                'msg': 'Access Denied: Only the IT Project Manager can access the Adjustment menu.'
-            }
-        
+        # ==========================================
+        # 3. THE PHASE THRESHOLD CHECK
+        # ==========================================
         if intent == 'VIEW':
             # If they just want to read it, and they survived the role check above, let them in!
             pass
@@ -318,12 +311,6 @@ def authorize_sr_access(sr_no: str, user_nik: str, intent: str, max_allowed_smk_
                     'status': False,
                     'msg': 'Access Denied: This ticket has already been processed or is waiting on another department.'
                 }
-
-        elif intent == 'REASSIGN':
-            return {
-                'status': False,
-                'msg': 'Hanya IT PMO yang dapat melakukan reassignment pada SR ini.'
-            }
 
         # If they survive the Bouncer, hand them the data!
         return {'status': True, 'msg': 'Access granted.', 'data': [sr_dict]}

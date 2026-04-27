@@ -27,7 +27,7 @@
         </div>
         <div class="sidebar-user-info">
             <p class="user-name">{{ session.get('user', {}).get('nama', 'Guest') }}</p>
-            <p class="user-role">{{ session.get('role', {}).get('name', '-') }}</p>
+            <p class="user-role">{{ session.get('role', {}).get('name', []) | join(', ') or '-' }}</p>
         </div>
     </div>
 
@@ -101,7 +101,6 @@
         </div>
         {% endif %}
 
-        {% set is_it_pm = session.get('user', {}).get('nik') == '0214083545' %}
         {% if 'manage_roles' in user_permissions %}
         <span class="nav-section-label">IT Transaction</span>
         <div class="nav-item">
@@ -125,7 +124,7 @@
                 class="nav-sublink {{ 'active' if active_menu == 'update_timetable' }}">
                     <i class="fas fa-circle"></i> <span class="nav-text">Update Timetable</span>
                 </a>
-                {% if is_it_pm %}
+                {% if 'bypass' in user_permissions %}
                 <a href="{{ url_for('owh_sr.adjustment_menu') }}"
                     class="nav-sublink {{ 'active' if active_menu == 'update_status' }}">
                     <i class="fas fa-circle"></i> <span class="nav-text">Update Status</span>

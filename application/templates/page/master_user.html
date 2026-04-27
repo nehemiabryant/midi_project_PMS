@@ -5,14 +5,12 @@
 {% include 'components/header.html' %}
 {% endwith %}
 
-<!-- Action Bar -->
 <div class="action-bar">
     <button type="button" id="btnAssignRole">
         <i class="fas fa-user-plus"></i> Tambah User
     </button>
 </div>
 
-<!-- Tabel Assigned Users -->
 <table id="userTable">
     <thead>
         <tr>
@@ -23,34 +21,17 @@
             <th>Aksi</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="userTableBody">
         {% for user in assigned_users %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ user.nik }}</td>
-            <td>{{ user.nama if user.nama else '—' }}</td>
-            <td>{{ user.approle_name }}</td>
-            <td>
-                 <button type="button" class="btn-edit"
-                    data-user-id="{{ user.user_id }}"
-                    data-nik="{{ user.nik }}"
-                    data-nama="{{ user.nama }}"
-                    data-role-id="{{ user.approle_id }}"
-                    data-role-name="{{ user.approle_name }}">
-                    Edit
-                </button>
-
-                <button type="button" class="btn-delete"
-                    data-user-id="{{ user.user_id }}"
-                    data-nik="{{ user.nik }}">
-                   Hapus
-                </button>
-            </td>
+        <tr class="raw-user-row" style="display:none;"
+            data-user-id="{{ user.user_id }}"
+            data-nik="{{ user.nik }}"
+            data-nama="{{ user.nama if user.nama else '' }}"
+            data-role-id="{{ user.approle_id }}"
+            data-role-name="{{ user.approle_name }}">
         </tr>
         {% else %}
-        <tr>
-            <td colspan="5">Belum ada akun yang ter-assign.</td>
-        </tr>
+        <tr><td colspan="5">Belum ada akun yang ter-assign.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -59,7 +40,7 @@
 <div id="modalAssign" style="display:none;">
     <div class="modal-content">
         <h5>Assign Role ke Akun</h5>
-        <form method="POST" action="{{ url_for('role_mgmt.master_user_assign') }}">
+        <form method="POST" action="{{ url_for('role_mgmt.master_user_assign') }}" id="formAssign">
 
             <div class="form-group">
                 <label for="inputNik">NIK Karyawan</label>
@@ -71,13 +52,27 @@
             </div>
 
             <div class="form-group">
-                <label for="selectRole">Role</label>
-                <select id="selectRole" name="approle_id">
-                    <option value="">-- Pilih Role --</option>
+                <label>Role <span style="font-size:12px; color:#64748b;">(pilih satu atau lebih)</span></label>
+                <div id="roleCheckboxList" style="
+                    border: 1px solid #e2e8f0; border-radius: 8px;
+                    max-height: 180px; overflow-y: auto;
+                    padding: 4px 0; background: #fff;
+                ">
                     {% for role in roles %}
-                    <option value="{{ role.approle_id }}">{{ role.approle_name }}</option>
+                    <label style="
+                        display:flex; align-items:center; gap:10px;
+                        padding:8px 14px; cursor:pointer;
+                        transition:background 0.15s; font-weight:normal; margin:0;
+                    " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="approle_id" value="{{ role.approle_id }}"
+                            style="width:16px; height:16px; accent-color:#3b82f6; cursor:pointer; flex-shrink:0;">
+                        <span style="font-size:14px; color:#1e293b;">{{ role.approle_name }}</span>
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
+                <p id="roleError" style="display:none; color:#ef4444; font-size:12px; margin-top:4px;">
+                    Pilih minimal satu role.
+                </p>
             </div>
 
             <div class="modal-actions">
@@ -92,35 +87,42 @@
 <div id="modalEdit" class="modal-overlay">
     <div class="modal-content">
         <h5>Edit Role User</h5>
-
         <form method="POST" id="formEditRole">
-
             <div class="form-group">
                 <label>NIK</label>
                 <input type="text" id="editNik" disabled>
             </div>
-
             <div class="form-group">
                 <label>Nama</label>
                 <input type="text" id="editNama" disabled>
             </div>
-
             <div class="form-group">
-                <label>Role</label>
-                <select id="editRole" name="approle_id">
+                <label>Role <span style="font-size:12px; color:#64748b;">(pilih satu atau lebih)</span></label>
+                <div id="editRoleCheckboxList" style="
+                    border: 1px solid #e2e8f0; border-radius: 8px;
+                    max-height: 180px; overflow-y: auto;
+                    padding: 4px 0; background: #fff;
+                ">
                     {% for role in roles %}
-                    <option value="{{ role.approle_id }}">
-                        {{ role.approle_name }}
-                    </option>
+                    <label style="
+                        display:flex; align-items:center; gap:10px;
+                        padding:8px 14px; cursor:pointer;
+                        transition:background 0.15s; font-weight:normal; margin:0;
+                    " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" name="approle_id" value="{{ role.approle_id }}"
+                            style="width:16px; height:16px; accent-color:#3b82f6; cursor:pointer; flex-shrink:0;">
+                        <span style="font-size:14px; color:#1e293b;">{{ role.approle_name }}</span>
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
+                <p id="editRoleError" style="display:none; color:#ef4444; font-size:12px; margin-top:4px;">
+                    Pilih minimal satu role.
+                </p>
             </div>
-
             <div class="modal-actions">
                 <button type="button" id="btnBatalEdit">Batal</button>
                 <button type="submit">Update</button>
             </div>
-
         </form>
     </div>
 </div>
@@ -128,8 +130,8 @@
 <!-- Modal Konfirmasi Hapus -->
 <div id="modalHapus" style="display:none;">
     <div class="modal-content">
-        <h5>Hapus Assignment</h5>
-        <p>Yakin ingin menghapus role untuk NIK <strong id="hapusNik"></strong>?</p>
+        <h5>Hapus User</h5>
+        <p>Yakin ingin menghapus user NIK <strong id="hapusNik"></strong>?</p>
         <form method="POST" id="formHapus" action="">
             <div class="modal-actions">
                 <button type="button" id="btnBatalHapus">Batal</button>
@@ -143,6 +145,81 @@
 
 {% block scripts %}
 <script>
+// ===== GROUP TABLE BY NIK =====
+function buildGroupedTable() {
+    const rawRows = [...document.querySelectorAll('.raw-user-row')];
+    const tbody = document.getElementById('userTableBody');
+    if (!rawRows.length) return;
+
+    const grouped = {};
+    const nikOrder = [];
+    rawRows.forEach(row => {
+        const nik = row.dataset.nik;
+        if (!grouped[nik]) {
+            grouped[nik] = { nik, nama: row.dataset.nama, roles: [] };
+            nikOrder.push(nik);
+        }
+        grouped[nik].roles.push({ roleId: row.dataset.roleId, roleName: row.dataset.roleName });
+    });
+
+    tbody.innerHTML = nikOrder.map((nik, idx) => {
+        const u = grouped[nik];
+        const roleText = u.roles.map(r => r.roleName).join(', ');
+        const roleIds = u.roles.map(r => r.roleId).join(',');
+        return `
+            <tr>
+                <td>${idx + 1}</td>
+                <td>${u.nik}</td>
+                <td>${u.nama || '—'}</td>
+                <td>${roleText}</td>
+                <td>
+                    <button type="button" class="btn-edit"
+                        data-nik="${u.nik}"
+                        data-nama="${u.nama}"
+                        data-role-ids="${roleIds}">
+                        Edit
+                    </button>
+                    <button type="button" class="btn-delete"
+                        data-nik="${u.nik}">
+                        Hapus
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    attachTableListeners();
+}
+
+function attachTableListeners() {
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nik = btn.dataset.nik;
+            const currentRoleIds = new Set((btn.dataset.roleIds || '').split(',').filter(Boolean));
+
+            document.getElementById('editNik').value = nik;
+            document.getElementById('editNama').value = btn.dataset.nama;
+            document.getElementById('editRoleError').style.display = 'none';
+            document.getElementById('editRoleCheckboxList')
+                .querySelectorAll('input[type=checkbox]')
+                .forEach(cb => { cb.checked = currentRoleIds.has(cb.value); });
+
+            document.getElementById('formEditRole').action = `/masterUser/${nik}/update-roles`;
+            document.getElementById('modalEdit').style.display = 'flex';
+        });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('hapusNik').textContent = btn.dataset.nik;
+            document.getElementById('formHapus').action = `/masterUser/${btn.dataset.nik}/remove`;
+            document.getElementById('modalHapus').style.display = 'flex';
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', buildGroupedTable);
+
 // --- Assign modal ---
 document.getElementById('btnAssignRole').addEventListener('click', () => {
     document.getElementById('inputNik').value = '';
@@ -150,7 +227,8 @@ document.getElementById('btnAssignRole').addEventListener('click', () => {
     document.getElementById('selectedNama').style.display = 'none';
     document.getElementById('selectedNama').textContent = '';
     document.getElementById('nikSuggestions').style.display = 'none';
-    document.getElementById('selectRole').value = '';
+    document.getElementById('roleCheckboxList').querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    document.getElementById('roleError').style.display = 'none';
     document.getElementById('modalAssign').style.display = 'flex';
 });
 document.getElementById('btnBatalAssign').addEventListener('click', () => {
@@ -164,33 +242,24 @@ document.getElementById('inputNik').addEventListener('input', () => {
     const q = document.getElementById('inputNik').value.trim();
     document.getElementById('selectedNik').value = '';
     document.getElementById('selectedNama').style.display = 'none';
-
-    if (q.length < 2) {
-        document.getElementById('nikSuggestions').style.display = 'none';
-        return;
-    }
-
+    if (q.length < 2) { document.getElementById('nikSuggestions').style.display = 'none'; return; }
     searchTimeout = setTimeout(async () => {
         try {
             const res = await fetch(`/karyawan/search?q=${encodeURIComponent(q)}&limit=8`);
             const json = await res.json();
             renderSuggestions(json.data || []);
-        } catch {
-            document.getElementById('nikSuggestions').style.display = 'none';
-        }
+        } catch { document.getElementById('nikSuggestions').style.display = 'none'; }
     }, 300);
 });
 
 function renderSuggestions(results) {
     const box = document.getElementById('nikSuggestions');
     if (!results.length) { box.style.display = 'none'; return; }
-
     box.innerHTML = results.map(k => `
         <div class="suggestion-item" data-nik="${k.nik}" data-nama="${k.nama}">
             ${k.nik} — ${k.nama}
         </div>
     `).join('');
-
     box.querySelectorAll('.suggestion-item').forEach(item => {
         item.addEventListener('click', () => {
             document.getElementById('inputNik').value = item.dataset.nik;
@@ -204,50 +273,32 @@ function renderSuggestions(results) {
 }
 
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('#inputNik') && !e.target.closest('#nikSuggestions')) {
+    if (!e.target.closest('#inputNik') && !e.target.closest('#nikSuggestions'))
         document.getElementById('nikSuggestions').style.display = 'none';
-    }
 });
 
-// Validasi sebelum submit assign
-document.getElementById('btnSimpanAssign').closest('form').addEventListener('submit', (e) => {
+document.getElementById('formAssign').addEventListener('submit', (e) => {
     if (!document.getElementById('selectedNik').value) {
-        e.preventDefault();
-        alert('Pilih karyawan dari daftar terlebih dahulu.');
+        e.preventDefault(); alert('Pilih karyawan dari daftar terlebih dahulu.'); return;
     }
+    const checked = document.getElementById('roleCheckboxList').querySelectorAll('input[type=checkbox]:checked');
+    if (checked.length === 0) {
+        e.preventDefault(); document.getElementById('roleError').style.display = 'block'; return;
+    }
+    document.getElementById('roleError').style.display = 'none';
 });
 
-// ===== EDIT ROLE =====
-document.querySelectorAll('.btn-edit').forEach(btn => {
-    btn.addEventListener('click', () => {
-
-        const userId = btn.dataset.userId
-        const nik = btn.dataset.nik
-        const nama = btn.dataset.nama
-        const roleId = btn.dataset.roleId
-
-        document.getElementById('editNik').value = nik
-        document.getElementById('editNama').value = nama
-        document.getElementById('editRole').value = roleId
-
-        document.getElementById('formEditRole').action = `/masterUser/${userId}/update`
-
-        document.getElementById('modalEdit').style.display = 'flex'
-    })
-})
+document.getElementById('formEditRole').addEventListener('submit', (e) => {
+    const checked = document.getElementById('editRoleCheckboxList').querySelectorAll('input[type=checkbox]:checked');
+    if (checked.length === 0) {
+        e.preventDefault(); document.getElementById('editRoleError').style.display = 'block';
+    }
+});
 
 document.getElementById('btnBatalEdit').addEventListener('click', () => {
-    document.getElementById('modalEdit').style.display = 'none'
-})
-
-// --- Hapus modal ---
-document.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.getElementById('hapusNik').textContent = btn.dataset.nik;
-        document.getElementById('formHapus').action = `/masterUser/${btn.dataset.userId}/remove`;
-        document.getElementById('modalHapus').style.display = 'flex';
-    });
+    document.getElementById('modalEdit').style.display = 'none';
 });
+
 document.getElementById('btnBatalHapus').addEventListener('click', () => {
     document.getElementById('modalHapus').style.display = 'none';
 });

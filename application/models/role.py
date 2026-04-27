@@ -265,73 +265,23 @@ def assign_role_model(nik: str, approle_id: int) -> dict:
         if conn: conn.close()
 
 
-def update_assigned_role_model(user_id: int, approle_id: int) -> dict:
-    sql = "UPDATE sr_user SET approle_id = %(approle_id)s WHERE user_id = %(user_id)s"
+def delete_all_roles_by_nik_model(nik: str, conn) -> dict:
+    sql = "DELETE FROM sr_user WHERE nik = %(nik)s"
+    return conn.executeData(sql, {'nik': nik})
+
+
+def remove_all_roles_by_nik_model(nik: str) -> dict:
+    sql = "DELETE FROM sr_user WHERE nik = %(nik)s"
     conn = None
     try:
         conn = DatabasePG("supabase")
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.executeData(sql, {'user_id': user_id, 'approle_id': approle_id})
+        return conn.executeData(sql, {'nik': nik})
     except Exception as e:
-        Log.error(f'DB Exception | update_assigned_role | Msg: {str(e)}')
+        Log.error(f'DB Exception | remove_all_roles_by_nik | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
 
 
-def remove_assigned_role_model(user_id: int) -> dict:
-    sql = "DELETE FROM sr_user WHERE user_id = %(user_id)s"
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.executeData(sql, {'user_id': user_id})
-    except Exception as e:
-        Log.error(f'DB Exception | remove_assigned_role | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
-
-
-def get_user_permissions_model(nik: str) -> dict:
-    sql = """
-        SELECT DISTINCT p.permission_detail
-        FROM sr_user su
-        JOIN sr_role_permission rp ON su.approle_id = rp.approle_id
-        JOIN sr_ms_permission p ON rp.permission_id = p.permission_id
-        WHERE su.nik = %(nik)s
-    """
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'nik': nik})
-    except Exception as e:
-        Log.error(f'DB Exception | get_user_permissions | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
-
-
-def get_user_role_name_model(nik: str) -> dict:
-    sql = """
-        SELECT r.approle_name
-        FROM sr_user su
-        JOIN sr_ms_app_role r ON su.approle_id = r.approle_id
-        WHERE su.nik = %(nik)s
-        LIMIT 1
-    """
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'nik': nik})
-    except Exception as e:
-        Log.error(f'DB Exception | get_user_role_name | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
