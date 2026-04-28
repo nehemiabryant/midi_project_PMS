@@ -684,3 +684,64 @@ def get_all_project_status(shared_conn=None) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def get_monitoring_cards(db_params: dict, shared_conn=None) -> dict:
+    """
+    Calculates the global totals based on filters. 
+    Notice we dropped the sr_no, LIMIT, OFFSET, and the OVER() clauses.
+    """
+    sql = """
+        SELECT 
+            COUNT(*) AS total_count,
+            COALESCE(SUM(CASE WHEN r.smk_id = 16 THEN 1 ELSE 0 END), 0) AS count_completed,
+            COALESCE(SUM(CASE WHEN r.smk_id > 0 AND r.smk_id < 16 THEN 1 ELSE 0 END), 0) AS count_progress,
+            COALESCE(SUM(CASE WHEN r.smk_id = 0 OR r.smk_id IS NULL THEN 1 ELSE 0 END), 0) AS count_not_started
+        FROM public.sr_request r
+        LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        WHERE 
+            RIGHT(r.sr_no, 4) = COALESCE(%(filter_year)s, TO_CHAR(NOW(), 'YYYY'))
+            AND (%(filter_q_id)s IS NULL OR r.q_id = %(filter_q_id)s)
+            AND (%(filter_ctg_id)s IS NULL OR r.ctg_id = %(filter_ctg_id)s)
+            AND (%(filter_midikriing)s IS NULL OR r.status_midikriing = %(filter_midikriing)s)
+    """
+    
+    # ... standard connection logic using selectDataHeader ...
+    if shared_conn: return shared_conn.selectDataHeader(sql, db_params)
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, db_params) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_filtered_sr_no(db_params: dict, shared_conn=None) -> dict:
+    """
+    Fetches strictly the IDs for the current page. Extremely lightweight.
+    """
+    sql = """
+        SELECT r.sr_no
+        FROM public.sr_request r
+        LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        WHERE 
+            RIGHT(r.sr_no, 4) = COALESCE(%(filter_year)s, TO_CHAR(NOW(), 'YYYY'))
+            AND (%(filter_q_id)s IS NULL OR r.q_id = %(filter_q_id)s)
+            AND (%(filter_ctg_id)s IS NULL OR r.ctg_id = %(filter_ctg_id)s)
+            AND (%(filter_midikriing)s IS NULL OR r.status_midikriing = %(filter_midikriing)s)
+        ORDER BY r.sr_no DESC
+    """
+    
+    if shared_conn: return shared_conn.selectDataHeader(sql, db_params)
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, db_params) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
