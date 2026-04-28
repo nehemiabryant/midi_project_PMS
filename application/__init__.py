@@ -9,6 +9,7 @@ from application.views.sr_view import sr_bp
 from application.views.role_view import role_mgmt_bp
 from application.views.task_view import task_bp
 from application.views.karyawan_view import kry_bp
+from application.views.monitoring_view import mnt_bp
 
 csrf = CSRFProtect()
 
@@ -30,6 +31,7 @@ def create_app(config_filename=None):
     app.register_blueprint(role_mgmt_bp)
     app.register_blueprint(task_bp)
     app.register_blueprint(kry_bp)
+    app.register_blueprint(mnt_bp)
 
     app.jinja_env.filters['format_date_wib'] = format_date_wib
     app.jinja_env.filters['format_wib'] = format_wib

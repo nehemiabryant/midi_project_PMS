@@ -363,7 +363,6 @@ def get_sr_detail_trx(sr_no: str) -> dict:
         Log.error(f"Exception | Get SR Detail Trx | Msg: {str(e)}")
         return None
 
-
 def get_active_pics_for_sr_trx(sr_no: str, current_smk_id: int) -> list:
     """Ambil active PIC yang relevan dengan fase saat ini. Returns list of dicts."""
     try:
@@ -423,7 +422,53 @@ def get_all_quarters_trx() -> list:
     except Exception as e:
         Log.error(f"Exception | Get All Quarters Trx | Msg: {str(e)}")
         return []
-    
+
+def get_all_years_trx() -> list:
+    """
+    Retrieves and parses SR years into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_years()
+        years = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for y in convert_to_dicts(rows, headers):
+                years.append(y)
+
+        return years
+    except Exception as e:
+        Log.error(f"Exception | Get All Years Trx | Msg: {str(e)}")
+        return []
+
+def get_all_departments_trx() -> list:
+    """
+    Retrieves and parses departments into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_departments()
+        departments = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for dept in convert_to_dicts(rows, headers):
+                departments.append(dept)
+
+        return departments
+    except Exception as e:
+        Log.error(f"Exception | Get All Departments Trx | Msg: {str(e)}")
+        return []
+
 def get_all_project_status_trx() -> list:
     """
     Retrieves and parses project statuses into a list of dictionaries.
@@ -446,3 +491,51 @@ def get_all_project_status_trx() -> list:
     except Exception as e:
         Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
+    
+def get_monitoring_cards_trx(filter_year: str = None, 
+                             filter_q_id: int = None, 
+                             filter_ctg_id: int = None, 
+                             filter_midikriing: bool = None) -> dict:
+    try:
+        db_params = {
+            'filter_year': filter_year,
+            'filter_q_id': filter_q_id,
+            'filter_ctg_id': filter_ctg_id,
+            'filter_midikriing': filter_midikriing
+        }
+
+        db_result = sr_model.get_monitoring_cards(db_params)
+        if not db_result.get('status') or not db_result.get('data'):
+            return {'total': 0, 'on_track': 0, 'at_risk': 0, 'off_track': 0}
+        
+        headers = db_result['data'][0]
+        row = db_result['data'][1][0]
+        return dict(zip(headers, row))
+    except Exception as e:
+        Log.error(f"Exception | Get Monitoring Card Trx | Msg: {str(e)}")
+        return {'total': 0, 'on_track': 0, 'at_risk': 0, 'off_track': 0}
+    
+def get_filtered_sr_no_trx(filter_year: str = None, 
+                            filter_q_id: int = None, 
+                            filter_ctg_id: int = None, 
+                            filter_midikriing: bool = None) -> dict:
+    try:
+        db_params = {
+            'filter_year': filter_year,
+            'filter_q_id': filter_q_id,
+            'filter_ctg_id': filter_ctg_id,
+            'filter_midikriing': filter_midikriing,
+        }
+
+        db_result = sr_model.get_filtered_sr_no(db_params)
+        if not db_result.get('status') or not db_result.get('data'):
+            return {'sr_nos': [], 'total_count': 0}
+        
+        headers = db_result['data'][0]
+        rows = db_result['data'][1]
+        sr_nos = [row[headers.index('sr_no')] for row in rows]
+
+        return {'sr_nos': sr_nos}
+    except Exception as e:
+        Log.error(f"Exception | Get Filtered SR No Trx | Msg: {str(e)}")
+        return {'sr_nos': [], 'total_count': 0}
