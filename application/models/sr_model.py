@@ -537,3 +537,61 @@ def get_all_quarters(shared_conn=None) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
+
+def get_all_years(shared_conn=None) -> dict:
+    sql = """
+        SELECT DISTINCT RIGHT(sr_no, 4) AS filter_year 
+        FROM public.sr_request 
+        WHERE sr_no IS NOT NULL 
+        ORDER BY filter_year DESC
+    """
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_years | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch year filters'}
+    finally:
+        if conn: conn.close()
+
+def get_all_departments(shared_conn=None) -> dict:
+    sql = """
+        SELECT id_dept, departemen AS department_name
+        FROM public.master_departemen
+        ORDER BY id_dept ASC'
+    """
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_departments | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch department filters'}
+    finally:
+        if conn: conn.close()
+
