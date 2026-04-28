@@ -492,29 +492,6 @@ def get_all_project_status_trx() -> list:
         Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
     
-def get_monitoring_cards_trx(filter_year: str = None, 
-                             filter_q_id: int = None, 
-                             filter_ctg_id: int = None, 
-                             filter_midikriing: bool = None) -> dict:
-    try:
-        db_params = {
-            'filter_year': filter_year,
-            'filter_q_id': filter_q_id,
-            'filter_ctg_id': filter_ctg_id,
-            'filter_midikriing': filter_midikriing
-        }
-
-        db_result = sr_model.get_monitoring_cards(db_params)
-        if not db_result.get('status') or not db_result.get('data'):
-            return {'total': 0, 'on_track': 0, 'at_risk': 0, 'off_track': 0}
-        
-        headers = db_result['data'][0]
-        row = db_result['data'][1][0]
-        return dict(zip(headers, row))
-    except Exception as e:
-        Log.error(f"Exception | Get Monitoring Card Trx | Msg: {str(e)}")
-        return {'total': 0, 'on_track': 0, 'at_risk': 0, 'off_track': 0}
-    
 def get_filtered_sr_no_trx(filter_year: str = None, 
                             filter_q_id: int = None, 
                             filter_ctg_id: int = None, 
@@ -535,7 +512,112 @@ def get_filtered_sr_no_trx(filter_year: str = None,
         rows = db_result['data'][1]
         sr_nos = [row[headers.index('sr_no')] for row in rows]
 
-        return {'sr_nos': sr_nos}
+        return {'sr_nos': sr_nos, 'total_count': len(sr_nos)}
     except Exception as e:
         Log.error(f"Exception | Get Filtered SR No Trx | Msg: {str(e)}")
         return {'sr_nos': [], 'total_count': 0}
+    
+def get_monitoring_counts_trx(sr_list: list) -> dict:
+    try:
+        if not sr_list:
+            return {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}
+
+        db_result = sr_model.get_monitoring_counts(sr_list)
+        if not db_result.get('status') or not db_result.get('data'):
+            return {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}
+        
+        data = parse_single_row(db_result)
+        return {'status': True, 'data': data if data else {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}}
+    except Exception as e:
+        Log.error(f"Exception | Get Monitoring Counts Trx | Msg: {str(e)}")
+        return {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}
+    
+def get_monitoring_status_time_trx(sr_list: list) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': {'complete': 0, 'on_time': 0, 'over': 0}}
+        
+    try:
+        db_result = sr_model.get_monitoring_status_time(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        data = parse_single_row(db_result)
+        return {'status': True, 'data': data if data else {'complete': 0, 'on_time': 0, 'over': 0}}
+    except Exception as e:
+        Log.error(f'Exception | Get Status Time Trx | Msg: {str(e)}')
+        return {'status': False, 'data': None, 'msg': str(e)}
+
+def get_monitoring_status_overview_trx(sr_list: list) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': {'completed': 0, 'on_progress': 0, 'not_started': 0}}
+        
+    try:
+        db_result = sr_model.get_monitoring_status_overview(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        data = parse_single_row(db_result)
+        return {'status': True, 'data': data if data else {'completed': 0, 'on_progress': 0, 'not_started': 0}}
+    except Exception as e:
+        Log.error(f'Exception | Get Status Overview Trx | Msg: {str(e)}')
+        return {'status': False, 'data': None, 'msg': str(e)}
+
+def get_monitoring_overdue_projects_trx(sr_list: list, limit: int = 50, offset: int = 0) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': [], 'total_count': 0}
+        
+    try:
+        # Pass the whole list so the DB can find ALL overdue items
+        db_result = sr_model.get_monitoring_overdue_projects(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        all_items = parse_rows(db_result)
+        total_count = len(all_items)
+        
+        # Apply pagination slicing in Python
+        page_items = all_items[offset : offset + limit]
+        
+        return {'status': True, 'data': page_items, 'total_count': total_count}
+    except Exception as e:
+        Log.error(f'Exception | Get Overdue Projects Trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'total_count': 0}
+
+def get_monitoring_complete_projects_trx(sr_list: list, limit: int = 50, offset: int = 0) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': [], 'total_count': 0}
+        
+    try:
+        # Pass the whole list so the DB can find ALL complete items
+        db_result = sr_model.get_monitoring_complete_projects(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        all_items = parse_rows(db_result)
+        total_count = len(all_items)
+        
+        # Apply pagination slicing in Python
+        page_items = all_items[offset : offset + limit]
+        
+        return {'status': True, 'data': page_items, 'total_count': total_count}
+    except Exception as e:
+        Log.error(f'Exception | Get Complete Projects Trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'total_count': 0}
+    
+def get_monitoring_all_projects_trx(sr_list: list, limit: int = 50, offset: int = 0) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': [], 'total_count': 0}
+        
+    try:
+        # Ask the database for all the details
+        db_result = sr_model.get_monitoring_all_projects(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        # Parse the rows into dictionaries
+        all_items = parse_rows(db_result)
+        total_count = len(all_items)
+        
+        # Apply the exact pagination slice
+        page_items = all_items[offset : offset + limit]
+        
+        return {'status': True, 'data': page_items, 'total_count': total_count}
+        
+    except Exception as e:
+        Log.error(f'Exception | Get All Projects Trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'total_count': 0}
