@@ -200,6 +200,8 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         assigned_result = assignment_model.get_sr_assignments_model(sr_no, [sm_role_id] if sm_role_id else [])
         current_sm = parse_rows(assigned_result)
 
+        project_status = sr_transaction.get_all_project_status_trx()
+
         return {
             'status': True,
             'data': {
@@ -207,6 +209,7 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
                 'sm_options': sm_options,
                 'current_sm': current_sm,
                 'is_locked': is_locked,
+                'project_status': project_status,
             }
         }
     except Exception as e:
@@ -352,6 +355,37 @@ def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
             form_data=form_data, 
             shared_conn=shared_conn
         )
+
+        # ==========================================
+        # 2. Update Project Status (Jika ada di form)
+        # ==========================================
+        prj_id_raw = form_data.get('prj_id')
+        if prj_id_raw:
+            try:
+                prj_id = int(prj_id_raw)
+            except ValueError:
+                raise Exception("Format Project ID tidak valid.")
+            
+            update_project_status = sr_transaction.update_sr_project_status_trx(
+                sr_no=sr_no, 
+                prj_id=prj_id, 
+                shared_conn=shared_conn
+            )
+            if not update_project_status.get('status'):
+                raise Exception(f"Gagal update status project: {update_project_status.get('msg')}")
+
+        # ==========================================
+        # 3. Update Midikriing Status (Jika ada di form)
+        # ==========================================
+        status_midikriing = form_data.get('status_midikriing')
+        if status_midikriing:
+            update_midikriing_status = sr_transaction.update_sr_midikriing_status_trx(
+                sr_no=sr_no, 
+                status_midikriing=status_midikriing, 
+                shared_conn=shared_conn
+            )
+            if not update_midikriing_status.get('status'):
+                raise Exception(f"Gagal update status midikriing: {update_midikriing_status.get('msg')}")
         
         if not assign_result.get('status'):
             raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
