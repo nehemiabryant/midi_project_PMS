@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, jsonify, flash
+from flask import session, redirect, url_for, jsonify, flash, request
 from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
@@ -34,6 +34,23 @@ def bypass_required(f):
         if 'bypass' not in permissions:
             flash('Akses ditolak. Anda tidak memiliki permission.', 'error')
             return redirect(url_for('owh_dashboard.dashboard_menu'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def ajax_required(f):
+    """
+    Decorator to protect API endpoints from direct browser access.
+    Requires the X-Requested-With: XMLHttpRequest header.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+            # Return a clean JSON error with a 403 Forbidden HTTP status code
+            return jsonify({
+                'status': False, 
+                'msg': 'Forbidden: Direct access to this API is not allowed.'
+            }), 403
+            
         return f(*args, **kwargs)
     return decorated_function
 
