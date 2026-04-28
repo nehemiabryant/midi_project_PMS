@@ -85,7 +85,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <div class="form-group">
-                            <label class="info-label">Ubah Kategori</label>
+                            <label class="info-label">Kategori</label>
                             <select name="ctg_id" class="modern-select">
                                 <option value="">-- Pilih Kategori --</option>
                                 {% set cat_list = categories.data if categories.data is defined else categories %}
@@ -98,7 +98,7 @@
                         </div>
 
                         <div class="form-group" style="margin-top: 15px;">
-                            <label class="info-label">Ubah Quarter</label>
+                            <label class="info-label">Quarter</label>
                             <select name="q_id" class="modern-select">
                                 <option value="">-- Pilih Quarter --</option>
                                 {% for q in quarter %}
@@ -108,6 +108,28 @@
                                 {% endfor %}
                             </select>
                         </div>
+
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label class="info-label">Status Midikriing</label>
+                            <select name="status_midikriing" class="modern-select">
+                                <option value="">-- Pilih Status Midikriing --</option>
+                                <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
+                                <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label class="info-label">Status Project</label>
+                            <select name="prj_id" class="modern-select">
+                                <option value="">-- Pilih Status Project --</option>
+                                {% for ps in project_statuses %}
+                                <option value="{{ ps.prj_id }}" {% if sr_data.prj_id == ps.prj_id %}selected{% endif %}>
+                                    {{ ps.status_project }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
 
                         <button type="submit" class="btn-primary" style="margin-top: 15px;">Update Detail</button>
                     </form>
