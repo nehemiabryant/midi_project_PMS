@@ -13,7 +13,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
 def super_admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -27,13 +26,13 @@ def super_admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def it_pm_required(f):
+def bypass_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        from application.transactions.workflow_transaction import IT_PM_NIK
-        user_nik = session.get('user', {}).get('nik', '')
-        if user_nik != IT_PM_NIK:
-            flash('Akses ditolak. Halaman ini hanya untuk Project Manager.', 'error')
+        role = session.get('role', {})
+        permissions = role.get('permissions', [])
+        if 'bypass' not in permissions:
+            flash('Akses ditolak. Anda tidak memiliki permission.', 'error')
             return redirect(url_for('owh_dashboard.dashboard_menu'))
         return f(*args, **kwargs)
     return decorated_function

@@ -86,7 +86,7 @@
             Kelola Assignment PIC
             <span style="font-size: 12px; color: #64748b; font-weight: 400;">(IT PMO Only)</span>
         </h3>
-        <form method="POST" action="{{ url_for('owh_dashboard.pmo_reassign', sr_no=sr_detail.sr_no) }}" id="pmo-reassign-form">
+        <form method="POST" action="{{ url_for('owh_sr.pmo_reassign', sr_no=sr_detail.sr_no) }}" id="pmo-reassign-form">
 
             <div id="pmo-assign-rows">
                 {# Baris existing — tampil sebagai editable row dengan tombol hapus #}

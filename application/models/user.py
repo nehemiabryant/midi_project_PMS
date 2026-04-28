@@ -4,12 +4,12 @@ from common.midiconnectserver.midilog import Logger
 Log = Logger()
 
 def get_user_role_info_model(nik: str) -> dict:
-    """Ambil role name + semua permissions user berdasarkan NIK (untuk session login)."""
+    """Ambil semua role names + semua permission user berdasarkan NIK (untuk session login)."""
     sql = """
         SELECT
-            r.approle_name,
+            ARRAY_AGG(DISTINCT r.approle_name) AS role_names,
             COALESCE(
-                ARRAY_AGG(p.permission_detail) FILTER (WHERE p.permission_detail IS NOT NULL),
+                ARRAY_AGG(DISTINCT p.permission_detail) FILTER(WHERE p.permission_detail IS NOT NULL),
                 ARRAY[]::TEXT[]
             ) AS permissions
         FROM sr_user su
@@ -17,8 +17,6 @@ def get_user_role_info_model(nik: str) -> dict:
         LEFT JOIN sr_role_permission rp ON su.approle_id = rp.approle_id
         LEFT JOIN sr_ms_permission p ON rp.permission_id = p.permission_id
         WHERE su.nik = %(nik)s
-        GROUP BY r.approle_name
-        LIMIT 1
     """
     conn = None
     try:

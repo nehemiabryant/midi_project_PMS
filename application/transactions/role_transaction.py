@@ -155,46 +155,43 @@ def assign_role_trx(nik: str, approle_id: int) -> dict:
         return {'status': False, 'data': [], 'msg': str(e)}
 
 
-def update_assigned_role_trx(user_id: int, approle_id: int) -> dict:
+def remove_all_roles_by_nik_trx(nik: str) -> dict:
     try:
-        result = role_model.update_assigned_role_model(user_id, approle_id)
+        result = role_model.remove_all_roles_by_nik_model(nik)
         if not result.get('status'):
             return result
-        if result.get('rowcount', 0) == 0:
-            return {'status': False, 'data': [], 'msg': 'User tidak ditemukan'}
-        return {'status': True, 'data': [], 'msg': 'Role berhasil diupdate'}
+        return {'status': True, 'data': [], 'msg': 'User berhasil dihapus'}
     except Exception as e:
-        Log.error(f'Exception | update_assigned_role | Msg: {str(e)}')
+        Log.error(f'Exception | remove_all_roles_by_nik | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
 
-def remove_assigned_role_trx(user_id: int) -> dict:
+def reassign_roles_trx(nik: str, approle_ids: list) -> dict:
+    """Hapus semua role user lalu insert ulang secara atomik."""
+    from common.midiconnectserver import DatabasePG
+    conn = None
     try:
-        result = role_model.remove_assigned_role_model(user_id)
-        if not result.get('status'):
-            return result
-        if result.get('rowcount', 0) == 0:
-            return {'status': False, 'data': [], 'msg': 'Assignment tidak ditemukan'}
-        return {'status': True, 'data': [], 'msg': 'Assignment berhasil dihapus'}
+        conn = DatabasePG("supabase", autocommit=False)
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+
+        del_result = role_model.delete_all_roles_by_nik_model(nik, conn)
+        if not del_result.get('status'):
+            raise Exception(del_result.get('msg', 'Gagal menghapus role lama'))
+
+        for approle_id in approle_ids:
+            sql = "INSERT INTO sr_user (nik, approle_id) VALUES (%(nik)s, %(approle_id)s)"
+            ins = conn.executeData(sql, {'nik': nik, 'approle_id': int(approle_id)})
+            if not ins.get('status'):
+                raise Exception(ins.get('msg', 'Gagal insert role baru'))
+
+        conn._conn.commit()
+        return {'status': True, 'data': [], 'msg': f'{len(approle_ids)} role berhasil diupdate.'}
     except Exception as e:
-        Log.error(f'Exception | remove_assigned_role | Msg: {str(e)}')
+        try: conn._conn.rollback()
+        except Exception: pass
+        Log.error(f'Exception | reassign_roles | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
 
-# Permission checks (helper untuk decorator)
-def get_user_permissions_trx(nik: str) -> list:
-    """Return list of permission_detail strings untuk nik."""
-    try:
-        result = role_model.get_user_permissions_model(nik)
-        if not result.get('status'):
-            return []
-        raw = result.get('data', [[], []])
-        if not raw or len(raw) < 2:
-            return []
-        return [row[0] for row in raw[1]]
-    except Exception as e:
-        Log.error(f'Exception | get_user_permissions | Msg: {str(e)}')
-        return []
-
-
-def check_permission_trx(nik: str, permission: str) -> bool:
-    return permission in get_user_permissions_trx(nik)
