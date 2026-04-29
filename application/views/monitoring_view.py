@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
-from ..helpers.decorators import login_required, bypass_required
+from ..helpers.decorators import ajax_required, login_required, bypass_required
 import urllib.parse
 
 Log = Logger()
@@ -27,6 +27,7 @@ def monitoring_by_sr():
 
 @mnt_bp.route('/get_sr_no', methods=['GET'])
 @login_required
+@ajax_required
 def api_monitoring_get_sr_no():
     filter_year = request.args.get('year')
     filter_q_id = request.args.get('q_id')
@@ -34,86 +35,89 @@ def api_monitoring_get_sr_no():
     filter_midikriing = request.args.get('midikriing')
 
     db_result = sr_transaction.get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing)
+    if not db_result.get('status'):
+        return jsonify({'status': False, 'msg': 'Failed to fetch data', 'sr_list': []}), 400
+    
     return jsonify({'status': True, 'sr_list': db_result['data']['sr_list']})
 
-@mnt_bp.route('/by_SR/get_cards', methods=['GET'])
+@mnt_bp.route('/by_SR/get_cards', methods=['POST'])
 @login_required
+@ajax_required
 def monitoring_by_sr_cards():
-    filter_year = request.args.get('year')
-    filter_q_id = request.args.get('q_id')
-    filter_ctg_id = request.args.get('ctg_id')
-    filter_midikriing = request.args.get('midikriing')
+    req_data = request.get_json()
 
-    monitoring_counts = sr_transaction.get_monitoring_cards_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing)
+    sr_list = req_data.get('sr_nos', [])
+    monitoring_counts = sr_transaction.get_monitoring_counts_trx(sr_list)
 
-    return render_template('/partials/_monitoring_cards.html', 
-                           user=session.get('user'), 
-                           role=session.get('role'), 
-                           active_menu='monitoring_by_sr', 
-                           monitoring_counts=monitoring_counts)
+    return render_template('/partials/_monitoring_cards.html', monitoring_counts=monitoring_counts)
 
-@mnt_bp.route('/by_SR/time', methods=['GET'])
+from flask import request, render_template
+
+@mnt_bp.route('/by_SR/status_time', methods=['POST'])
 @login_required
+@ajax_required
 def monitoring_by_sr_time():
-    filter_year = request.args.get('year')
-    filter_q_id = request.args.get('q_id')
-    filter_ctg_id = request.args.get('ctg_id')
-    filter_midikriing = request.args.get('midikriing')
+    req_data = request.get_json()
+    sr_list = req_data.get('sr_nos', [])
 
+    trx_result = sr_transaction.get_monitoring_status_time_trx(sr_list)
+    
     return render_template('/partials/_monitoring_time.html', 
-                           user=session.get('user'), 
-                           role=session.get('role'), 
-                           active_menu='monitoring_by_sr')
+                           chart_data=trx_result.get('data'))
 
-@mnt_bp.route('/by_SR/overview', methods=['GET'])
+@mnt_bp.route('/by_SR/status_overview', methods=['POST'])
 @login_required
+@ajax_required
 def monitoring_by_sr_overview():
-    filter_year = request.args.get('year')
-    filter_q_id = request.args.get('q_id')
-    filter_ctg_id = request.args.get('ctg_id')
-    filter_midikriing = request.args.get('midikriing')
+    req_data = request.get_json()
+    sr_list = req_data.get('sr_nos', [])
 
+    trx_result = sr_transaction.get_monitoring_status_overview_trx(sr_list)
+    
     return render_template('/partials/_monitoring_overview.html', 
-                           user=session.get('user'), 
-                           role=session.get('role'), 
-                           active_menu='monitoring_by_sr')
+                           chart_data=trx_result.get('data'))
 
-@mnt_bp.route('/by_SR/overdue', methods=['GET'])
+@mnt_bp.route('/by_SR/overdue_projects', methods=['POST'])
 @login_required
+@ajax_required
 def monitoring_by_sr_overdue():
-    filter_year = request.args.get('year')
-    filter_q_id = request.args.get('q_id')
-    filter_ctg_id = request.args.get('ctg_id')
-    filter_midikriing = request.args.get('midikriing')
+    req_data = request.get_json()
+    sr_list = req_data.get('sr_nos', [])
+    limit = req_data.get('limit', 50)
+    offset = req_data.get('offset', 0)
 
+    trx_result = sr_transaction.get_monitoring_overdue_projects_trx(sr_list, limit, offset)
+    
     return render_template('/partials/_monitoring_overdue.html', 
-                           user=session.get('user'), 
-                           role=session.get('role'), 
-                           active_menu='monitoring_by_sr')
+                           items=trx_result.get('data'),
+                           total_count=trx_result.get('total_count'))
 
-@mnt_bp.route('/by_SR/completed', methods=['GET'])
+@mnt_bp.route('/by_SR/completed_projects', methods=['POST'])
 @login_required
+@ajax_required
 def monitoring_by_sr_completed():
-    filter_year = request.args.get('year')
-    filter_q_id = request.args.get('q_id')
-    filter_ctg_id = request.args.get('ctg_id')
-    filter_midikriing = request.args.get('midikriing')
+    req_data = request.get_json()
+    sr_list = req_data.get('sr_nos', [])
+    limit = req_data.get('limit', 50)
+    offset = req_data.get('offset', 0)
 
+    trx_result = sr_transaction.get_monitoring_complete_projects_trx(sr_list, limit, offset)
+    
     return render_template('/partials/_monitoring_completed.html', 
-                           user=session.get('user'), 
-                           role=session.get('role'), 
-                           active_menu='monitoring_by_sr')
+                           items=trx_result.get('data'),
+                           total_count=trx_result.get('total_count'))
 
-@mnt_bp.route('/by_SR/project', methods=['GET'])
+@mnt_bp.route('/by_SR/all_projects', methods=['POST'])
 @login_required
+@ajax_required
 def monitoring_by_sr_project():
-    filter_year = request.args.get('year')
-    filter_q_id = request.args.get('q_id')
-    filter_ctg_id = request.args.get('ctg_id')
-    filter_midikriing = request.args.get('midikriing')
+    req_data = request.get_json()
+    sr_list = req_data.get('sr_nos', [])
+    limit = req_data.get('limit', 50)
+    offset = req_data.get('offset', 0)
 
+    trx_result = sr_transaction.get_monitoring_all_projects_trx(sr_list, limit, offset)
+    
     return render_template('/partials/_monitoring_project.html', 
-                           user=session.get('user'), 
-                           role=session.get('role'), 
-                           active_menu='monitoring_by_sr')
-
+                           items=trx_result.get('data'),
+                           total_count=trx_result.get('total_count'))
