@@ -715,15 +715,21 @@ def get_filtered_sr_no(db_params: dict, shared_conn=None) -> dict:
     Fetches strictly the IDs for the current page. Extremely lightweight.
     """
     sql = """
-        SELECT r.sr_no
+        SELECT DISTINCT r.sr_no
         FROM public.sr_request r
         LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
         LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        LEFT JOIN public.sr_assignments sa
+            ON r.sr_no = sa.sr_no
+            AND sa.deleted_at IS NULL
+            AND sa.is_active = TRUE
+        LEFT JOIN public.master_departemen md ON sa.assigned_user = md.nik
         WHERE
             RIGHT(r.sr_no, 4) = COALESCE(%(filter_year)s, TO_CHAR(NOW(), 'YYYY'))
             AND (%(filter_q_id)s IS NULL OR r.q_id = %(filter_q_id)s)
             AND (%(filter_ctg_id)s IS NULL OR r.ctg_id = %(filter_ctg_id)s)
             AND (%(filter_midikriing)s IS NULL OR r.status_midikriing = %(filter_midikriing)s)
+            AND (%(filter_dept_id)s IS NULL OR md.id_dept = %(filter_dept_id)s::bigint)
         ORDER BY r.sr_no DESC
     """
     

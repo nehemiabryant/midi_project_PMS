@@ -504,16 +504,20 @@ def get_all_project_status_trx() -> list:
         Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
     
-def get_filtered_sr_no_trx(filter_year: str = None, 
-                            filter_q_id: int = None, 
-                            filter_ctg_id: int = None, 
-                            filter_midikriing: bool = None) -> dict:
+def get_filtered_sr_no_trx(
+    filter_year: str = None, 
+    filter_q_id: int = None, 
+    filter_ctg_id: int = None, 
+    filter_midikriing: bool = None,
+    filter_dept_id: str = None,
+    ) -> dict:
     try:
         db_params = {
             'filter_year': filter_year,
             'filter_q_id': filter_q_id,
             'filter_ctg_id': filter_ctg_id,
             'filter_midikriing': filter_midikriing,
+            'filter_dept_id': filter_dept_id,
         }
 
         db_result = sr_model.get_filtered_sr_no(db_params)
