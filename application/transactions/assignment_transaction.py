@@ -191,14 +191,14 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         is_locked = sr_detail.get('smk_id') != assignment_model.STATUS_IT_GM_REVIEW
 
         # 4. Ambil opsi IT SM dari NIK yang sudah dikonfigurasi
-        sm_niks = list(workflow_transaction.IT_SM_NIKS)
-        sm_result = assignment_model.get_sm_options_model(sm_niks)
-        sm_options = parse_rows(sm_result)
+        sm_options = sr_transaction.get_all_sm_trx()
 
         # 5. Cek apakah IT SM sudah ter-assign
         sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
         assigned_result = assignment_model.get_sr_assignments_model(sr_no, [sm_role_id] if sm_role_id else [])
         current_sm = parse_rows(assigned_result)
+
+        project_status = sr_transaction.get_all_project_status_trx()
 
         return {
             'status': True,
@@ -207,6 +207,7 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
                 'sm_options': sm_options,
                 'current_sm': current_sm,
                 'is_locked': is_locked,
+                'project_status': project_status,
             }
         }
     except Exception as e:
@@ -215,10 +216,7 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
     
 def get_all_sm_niks_trx() -> list:
     try:
-        sm_niks = list(workflow_transaction.IT_SM_NIKS)
-        sm_result = assignment_model.get_sm_options_model(sm_niks)
-        sm_options = parse_rows(sm_result)
-        return sm_options
+        return sr_transaction.get_all_sm_trx()
     except Exception as e:
         Log.error(f'Exception | get_all_sm_niks_trx | Msg: {str(e)}')
         return []
@@ -253,7 +251,8 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=
             return {'status': False, 'data': [], 'msg': 'Pilih salah satu IT SM terlebih dahulu.'}
 
         # 4. Validasi: harus salah satu dari NIK yang dikonfigurasi
-        if selected_sm_nik not in workflow_transaction.IT_SM_NIKS:
+        valid_sm_niks = {sm['nik'] for sm in sr_transaction.get_all_sm_trx()}
+        if selected_sm_nik not in valid_sm_niks:
             return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
 
         # 5. Ambil role ID IT SM dari DB
@@ -352,6 +351,37 @@ def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
             form_data=form_data, 
             shared_conn=shared_conn
         )
+
+        # ==========================================
+        # 2. Update Project Status (Jika ada di form)
+        # ==========================================
+        prj_id_raw = form_data.get('prj_id')
+        if prj_id_raw:
+            try:
+                prj_id = int(prj_id_raw)
+            except ValueError:
+                raise Exception("Format Project ID tidak valid.")
+            
+            update_project_status = sr_transaction.update_sr_project_status_trx(
+                sr_no=sr_no, 
+                prj_id=prj_id, 
+                shared_conn=shared_conn
+            )
+            if not update_project_status.get('status'):
+                raise Exception(f"Gagal update status project: {update_project_status.get('msg')}")
+
+        # ==========================================
+        # 3. Update Midikriing Status (Jika ada di form)
+        # ==========================================
+        status_midikriing = form_data.get('status_midikriing')
+        if status_midikriing:
+            update_midikriing_status = sr_transaction.update_sr_midikriing_status_trx(
+                sr_no=sr_no, 
+                status_midikriing=status_midikriing, 
+                shared_conn=shared_conn
+            )
+            if not update_midikriing_status.get('status'):
+                raise Exception(f"Gagal update status midikriing: {update_midikriing_status.get('msg')}")
         
         if not assign_result.get('status'):
             raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
@@ -565,7 +595,9 @@ def pmo_replace_sm_trx(sr_no: str, nik: str, new_sm_nik: str) -> dict:
     """
     try:  
         # 2. Validasi: SM baru harus dari IT_SM_NIKS
-        if new_sm_nik not in workflow_transaction.IT_SM_NIKS:
+        
+        valid_sm_niks = {sm['nik'] for sm in sr_transaction.get_all_sm_trx()}
+        if new_sm_nik not in valid_sm_niks:
             return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
         
         # 3. Validasi: SR ada

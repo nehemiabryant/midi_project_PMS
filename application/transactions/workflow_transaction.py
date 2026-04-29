@@ -10,7 +10,6 @@ Log = Logger()
 # TODO: Ganti dengan query DB ketika tabel sr_user mendukung designasi role SM/PM/GM
 IT_PM_NIK = "0214083545"
 IT_GM_NIK = "0201080005"
-IT_SM_NIKS = {"0201080008", "0208010095", "0208080011"}  # DW, BS, OPS
 
 # Auto-assign: ketika SR masuk ke status ini, langsung assign ke NIK yang sudah ditentukan
 AUTO_ASSIGN_ON_PHASE = {
@@ -64,7 +63,9 @@ def advance_sr_phase(sr_no: str, current_smk_id: int, next_smk_id: int, action_b
                     return {'status': False, 'msg': 'Only the IT Project Manager can approve this step.'}
 
             elif allowed_role == 3:
-                if action_by not in IT_SM_NIKS:
+                sm_result = sr_model.get_all_sm_from_departments()
+                sm_niks = {row[2] for row in sm_result.get('data', [[]])[1]} if sm_result.get('status') and len(sm_result.get('data', [])) >= 2 else set()
+                if action_by not in sm_niks:
                     Log.warning(f'advance_sr_phase | SR: {sr_no} | NIK: {action_by} | Bukan IT SM')
                     return {'status': False, 'msg': 'Only an IT Senior Manager can approve this step.'}
 

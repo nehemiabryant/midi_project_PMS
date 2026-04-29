@@ -107,9 +107,11 @@ def create_sr(db_params: dict, shared_conn=None) -> dict:
 
 def get_sr_by_no(sr_no: str, shared_conn=None) -> dict:
     sql = """
-        SELECT sr_no, smk_id, ctg_id, maker_id, req_id, division, name, module, purpose, details, 
-            frequency, value, value_det, num_user
-        FROM public.sr_request WHERE sr_no = %(sr_no)s"""
+        SELECT r.sr_no, r.smk_id, r.ctg_id, c.category, r.maker_id, r.req_id, r.division, r.name, r.module, r.purpose, r.details, 
+            r.frequency, r.value, r.value_det, r.num_user
+        FROM public.sr_request r
+        LEFT JOIN sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        WHERE r.sr_no = %(sr_no)s"""
     
     if shared_conn:
         result = shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
@@ -168,7 +170,7 @@ def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE public.sr_request 
         SET 
-            ctg_id = %(ctg_id)s, q_id = %(q_id)s
+            ctg_id = %(ctg_id)s, q_id = %(q_id)s, prj_id = %(prj_id)s, status_midikriing = %(status_midikriing)s
         WHERE sr_no = %(sr_no)s
         RETURNING sr_no;
     """
@@ -212,6 +214,60 @@ def update_sr_quarter(db_params: dict, shared_conn=None) -> dict:
         return conn.selectData(sql, db_params)
     except Exception as e:
         Log.error(f'DB Exception | update_sr_quarter | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()
+
+def update_sr_project_status(db_params: dict, shared_conn=None) -> dict:
+    """Update the project status for a specific SR."""
+    sql = """
+        UPDATE sr_request 
+        SET prj_id = %(prj_id)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.selectData(sql, db_params)
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_project_status | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()
+
+def update_sr_midikriing_status(db_params: dict, shared_conn=None) -> dict:
+    """Update the midikriing status for a specific SR."""
+    sql = """
+        UPDATE sr_request 
+        SET status_midikriing = %(status_midikriing)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.selectData(sql, db_params)
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_midikriing_status | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     finally:
         if conn: 
@@ -434,6 +490,9 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
             r.num_user,
             k.smk_ket AS current_status,
             r.smk_id,
+            r.status_midikriing,
+            r.prj_id,
+            pr.status_project,
             CASE
                 WHEN r.smk_id < 106 THEN 0
                 WHEN task_counts.total IS NULL OR task_counts.total = 0 THEN 0
@@ -445,6 +504,7 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
         JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
         JOIN public.karyawan_all ka ON r.req_id = ka.nik
+        JOIN public.sr_ms_project pr ON r.prj_id = pr.prj_id
         LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
         LEFT JOIN (
             SELECT sa.sr_no,
@@ -534,6 +594,372 @@ def get_all_quarters(shared_conn=None) -> dict:
             return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
     except Exception as e:
         Log.error(f'DB Exception | get_all_quarters_model | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_all_years(shared_conn=None) -> dict:
+    sql = """
+        SELECT DISTINCT RIGHT(sr_no, 4) AS filter_year 
+        FROM public.sr_request 
+        WHERE sr_no IS NOT NULL 
+        ORDER BY filter_year DESC
+    """
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_years | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch year filters'}
+    finally:
+        if conn: conn.close()
+
+def get_all_departments(shared_conn=None) -> dict:
+    sql = """
+        SELECT id_dept, departemen AS department_name, nik
+        FROM public.master_departemen
+        ORDER BY id_dept ASC
+    """
+    
+    if shared_conn:
+        result = shared_conn.selectDataHeader(sql, {})
+        return result
+
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_departments | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch department filters'}
+    finally:
+        if conn: conn.close()
+    
+def get_all_sm_from_departments(shared_conn=None) -> dict:
+    sql = """
+        SELECT md.id_dept, md.departemen AS department_name, md.nik, COALESCE(k.nama, '') AS nama
+        FROM public.master_departemen md 
+        LEFT JOIN public.karyawan_all k ON md.nik = k.nik
+        ORDER BY md.id_dept ASC
+    """
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+
+    conn = None
+    result = {'status':False, 'data': [], 'msg': 'Invalid parametes.'}
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            return conn.selectDataHeader(sql, {})
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {"status": False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_sm_from_departments | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch SM from departments'}
+    finally:
+        if conn: conn.close()
+
+def get_all_project_status(shared_conn=None) -> dict:
+    """
+    Fetches all available project statuses from the sr_ms_project table.
+    """
+    sql = """
+        SELECT prj_id, status_project
+        FROM public.sr_ms_project
+        ORDER BY prj_id ASC
+    """
+    
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+    
+    conn = None
+    result = {'status': False, 'data': [], 'msg': 'Connection setup failed.'}
+
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            result = conn.selectDataHeader(sql, {})
+            return result
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_project_status | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_filtered_sr_no(db_params: dict, shared_conn=None) -> dict:
+    """
+    Fetches strictly the IDs for the current page. Extremely lightweight.
+    """
+    sql = """
+        SELECT DISTINCT r.sr_no
+        FROM public.sr_request r
+        LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        LEFT JOIN public.sr_assignments sa
+            ON r.sr_no = sa.sr_no
+            AND sa.deleted_at IS NULL
+            AND sa.is_active = TRUE
+        LEFT JOIN public.master_departemen md ON sa.assigned_user = md.nik
+        WHERE
+            RIGHT(r.sr_no, 4) = COALESCE(%(filter_year)s, TO_CHAR(NOW(), 'YYYY'))
+            AND (%(filter_q_id)s IS NULL OR r.q_id = %(filter_q_id)s)
+            AND (%(filter_ctg_id)s IS NULL OR r.ctg_id = %(filter_ctg_id)s)
+            AND (%(filter_midikriing)s IS NULL OR r.status_midikriing = %(filter_midikriing)s)
+            AND (%(filter_dept_id)s IS NULL OR md.id_dept = %(filter_dept_id)s::bigint)
+        ORDER BY r.sr_no DESC
+    """
+    
+    if shared_conn: return shared_conn.selectDataHeader(sql, db_params)
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, db_params) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_counts(sr_list: list, shared_conn=None) -> dict:
+    """
+    Calculates the global totals based strictly on the provided array of sr_nos.
+    All complex filters and JOINs have been removed for maximum performance.
+    
+    Expected db_params: {'sr_list': ['SR-001', 'SR-002', ...]}
+    """
+    sql = """
+        SELECT 
+            COUNT(*) AS total_count,
+            COALESCE(SUM(CASE WHEN smk_id = 116 THEN 1 ELSE 0 END), 0) AS count_completed,
+            COALESCE(SUM(CASE WHEN smk_id >= 106 AND smk_id < 116 THEN 1 ELSE 0 END), 0) AS count_progress,
+            COALESCE(SUM(CASE WHEN smk_id < 106 OR smk_id IS NULL THEN 1 ELSE 0 END), 0) AS count_not_started
+        FROM public.sr_request
+        WHERE sr_no = ANY(%(sr_list)s)
+    """
+    
+    if shared_conn: return shared_conn.selectDataHeader(sql, {'sr_list': sr_list})
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_counts | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_status_time(sr_list: list, shared_conn=None) -> dict:
+    sql = """
+        SELECT
+            COALESCE(SUM(CASE WHEN r.smk_id = 116 THEN 1 ELSE 0 END), 0) AS complete,
+            COALESCE(SUM(CASE WHEN r.smk_id >= 101 AND r.smk_id < 116 AND CURRENT_DATE <= COALESCE(t.finish_date, '2099-12-31'::DATE) THEN 1 ELSE 0 END), 0) AS on_time,
+            COALESCE(SUM(CASE WHEN r.smk_id >= 101 AND r.smk_id < 116 AND CURRENT_DATE > t.finish_date THEN 1 ELSE 0 END), 0) AS over
+        FROM public.sr_request r
+        LEFT JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6
+        WHERE r.sr_no = ANY(%(sr_list)s)
+    """
+
+    if shared_conn: return shared_conn.selectDataHeader(sql, {'sr_list': sr_list})
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_status_time | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_status_overview(sr_list: list, shared_conn=None) -> dict:
+    sql = """
+        SELECT
+            COALESCE(SUM(CASE WHEN smk_id = 116 THEN 1 ELSE 0 END), 0) AS completed,
+            COALESCE(SUM(CASE WHEN smk_id >= 106 AND smk_id < 116 THEN 1 ELSE 0 END), 0) AS on_progress,
+            COALESCE(SUM(CASE WHEN smk_id < 106 OR smk_id IS NULL THEN 1 ELSE 0 END), 0) AS not_started
+        FROM public.sr_request
+        WHERE sr_no = ANY(%(sr_list)s)
+    """
+
+    if shared_conn: return shared_conn.selectDataHeader(sql, {'sr_list': sr_list})
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_status_overview | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_overdue_projects(sr_list: list, shared_conn=None) -> dict:
+    sql = """
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY t.finish_date ASC) AS no,
+            
+            (
+                SELECT STRING_AGG(COALESCE(k.nama, sa.assigned_user), ', ')
+                FROM public.sr_assignments sa
+                LEFT JOIN public.karyawan_all k ON sa.assigned_user = k.nik
+                WHERE sa.sr_no = r.sr_no
+                  AND sa.is_active = TRUE
+                  AND sa.deleted_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM public.sr_ms_workflow_rules wf
+                      WHERE wf.allowed_picrole = sa.it_role_id
+                        AND wf.current_smk_id = COALESCE(r.smk_id, 0)
+                  )
+            ) AS pic_name,
+            
+            r.sr_no, 
+            r.name AS aplikasi, 
+            c.category AS tipe, 
+            t.finish_date AS target_selesai,
+            
+            CASE 
+                WHEN r.smk_id < 106 OR r.smk_id IS NULL THEN 'Not Started'
+                ELSE 'In Progress'
+            END AS status
+            
+        FROM public.sr_request r
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        INNER JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6
+        
+        WHERE r.sr_no = ANY(%(sr_list)s)
+          AND COALESCE(r.smk_id, 0) < 116
+          AND CURRENT_DATE > t.finish_date
+    """
+
+    if shared_conn: return shared_conn.selectDataHeader(sql, {'sr_list': sr_list})
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_overdue_projects | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_complete_projects(sr_list: list, shared_conn=None) -> dict:
+    sql = """
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY a.finish_date DESC) AS no,
+            
+            (
+                SELECT STRING_AGG(COALESCE(k.nama, sa.assigned_user), ', ')
+                FROM public.sr_assignments sa
+                LEFT JOIN public.karyawan_all k ON sa.assigned_user = k.nik
+                WHERE sa.sr_no = r.sr_no
+                  AND sa.is_active = TRUE
+                  AND sa.deleted_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM public.sr_ms_workflow_rules wf
+                      WHERE wf.allowed_picrole = sa.it_role_id
+                        AND wf.current_smk_id = 116
+                  )
+            ) AS pic_name,
+            
+            r.sr_no, 
+            r.name AS aplikasi,
+            c.category AS tipe, 
+            t.finish_date AS target_selesai,
+            
+            CASE 
+                WHEN a.finish_date > COALESCE(t.finish_date, '2099-12-31'::DATE) THEN 'SELESAI TERLAMBAT'
+                ELSE 'TEPAT WAKTU'
+            END AS status
+            
+        FROM public.sr_request r
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        LEFT JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6
+        LEFT JOIN public.sr_actual_date a ON r.sr_no = a.sr_no AND a.phase_id = 6
+        
+        WHERE r.sr_no = ANY(%(sr_list)s)
+          AND r.smk_id = 116
+    """
+
+    if shared_conn: return shared_conn.selectDataHeader(sql, {'sr_list': sr_list})
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_complete_projects | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_all_projects(sr_list: list, shared_conn=None) -> dict:
+    sql = """
+        SELECT
+            -- Generates an auto-incrementing row number, newest SRs first
+            ROW_NUMBER() OVER(ORDER BY r.sr_no DESC) AS no,
+            
+            -- Subquery to fetch the current active PIC(s)
+            (
+                SELECT STRING_AGG(COALESCE(k.nama, sa.assigned_user), ', ')
+                FROM public.sr_assignments sa
+                LEFT JOIN public.karyawan_all k ON sa.assigned_user = k.nik
+                WHERE sa.sr_no = r.sr_no
+                  AND sa.is_active = TRUE
+                  AND sa.deleted_at IS NULL
+                  AND EXISTS (
+                      SELECT 1 FROM public.sr_ms_workflow_rules wf
+                      WHERE wf.allowed_picrole = sa.it_role_id
+                        AND wf.current_smk_id = COALESCE(r.smk_id, 0)
+                  )
+            ) AS pic_it,
+            
+            r.sr_no, 
+            r.name AS aplikasi,
+            r.module AS modul,      -- Replaced 'status' with 'module'
+            t.finish_date AS target_selesai,
+            c.category AS tipe
+            
+        FROM public.sr_request r
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        LEFT JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6
+        
+        WHERE r.sr_no = ANY(%(sr_list)s)
+    """
+
+    if shared_conn: return shared_conn.selectDataHeader(sql, {'sr_list': sr_list})
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_all_projects | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()

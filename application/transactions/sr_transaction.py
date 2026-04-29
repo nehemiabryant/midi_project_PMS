@@ -155,8 +155,14 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
         db_params = {
             'sr_no': sr_no,
             'q_id': raw_data.get('q_id'),
-            'ctg_id': raw_data.get('ctg_id')
+            'ctg_id': raw_data.get('ctg_id'),
+            'prj_id': raw_data.get('prj_id')
         }
+
+        if raw_data.get('status_midikriing') == 'true':
+            db_params['status_midikriing'] = True
+        elif raw_data.get('status_midikriing') == 'false':
+            db_params['status_midikriing'] = False
 
         # Basic validation
         if not db_params['ctg_id']:
@@ -164,6 +170,9 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
         
         if not db_params['q_id']:
             return {'status': False, 'msg': 'Target Quarter cannot be empty.'}
+        
+        if not db_params['prj_id']:
+            return {'status': False, 'msg': 'Project Status cannot be empty.'}
         
         result = sr_model.update_sr_adjustment(db_params)
         
@@ -195,6 +204,49 @@ def update_sr_quarter_trx(sr_no: str, q_id: int, shared_conn=None) -> dict:
     
     except Exception as e:
         Log.error(f'Exception | Update SR Quarter Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    
+def update_sr_project_status_trx(sr_no: str, prj_id: int, shared_conn=None) -> dict:
+    try:
+        db_params = {
+            'sr_no': sr_no,
+            'prj_id': prj_id
+        }
+
+        if not db_params['prj_id']:
+            return {'status': False, 'msg': 'Project Status cannot be empty.'}
+        
+        result = sr_model.update_sr_project_status(db_params, shared_conn)
+
+        if result.get('status'):
+            return {'status': True, 'msg': 'Project Status successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+    
+    except Exception as e:
+        Log.error(f'Exception | Update SR Project Status Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+
+def update_sr_midikriing_status_trx(sr_no: str, status_midikriing: str, shared_conn=None) -> dict:
+    try:
+        db_params = {
+            'sr_no': sr_no
+        }
+
+        if status_midikriing == 'true':
+            db_params['status_midikriing'] = True
+        elif status_midikriing == 'false':
+            db_params['status_midikriing'] = False
+
+        result = sr_model.update_sr_midikriing_status(db_params, shared_conn)
+
+        if result.get('status'):
+            return {'status': True, 'msg': 'Midikriing Status successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+
+    except Exception as e:
+        Log.error(f'Exception | Update SR Midikriing Status Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
 
 def get_full_dashboard_trx() -> dict:
@@ -311,7 +363,6 @@ def get_sr_detail_trx(sr_no: str) -> dict:
         Log.error(f"Exception | Get SR Detail Trx | Msg: {str(e)}")
         return None
 
-
 def get_active_pics_for_sr_trx(sr_no: str, current_smk_id: int) -> list:
     """Ambil active PIC yang relevan dengan fase saat ini. Returns list of dicts."""
     try:
@@ -371,3 +422,218 @@ def get_all_quarters_trx() -> list:
     except Exception as e:
         Log.error(f"Exception | Get All Quarters Trx | Msg: {str(e)}")
         return []
+
+def get_all_years_trx() -> list:
+    """
+    Retrieves and parses SR years into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_years()
+        years = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for y in convert_to_dicts(rows, headers):
+                years.append(y)
+
+        return years
+    except Exception as e:
+        Log.error(f"Exception | Get All Years Trx | Msg: {str(e)}")
+        return []
+
+def get_all_departments_trx() -> list:
+    """
+    Retrieves and parses departments into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_departments()
+        departments = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for dept in convert_to_dicts(rows, headers):
+                departments.append(dept)
+
+        return departments
+    except Exception as e:
+        Log.error(f"Exception | Get All Departments Trx | Msg: {str(e)}")
+        return []
+    
+def get_all_sm_trx() -> list:
+    try:
+        db_result = sr_model.get_all_sm_from_departments()
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            return [sm for sm in convert_to_dicts(rows, headers)]
+        return []
+    except Exception as e:
+        Log.error(f"Exception | Get All SM Trx | Msg: {str(e)}")
+        return []
+
+def get_all_project_status_trx() -> list:
+    """
+    Retrieves and parses project statuses into a list of dictionaries.
+    Uses uniform try-except styling and manual data unpacking.
+    """
+    try:
+        db_result = sr_model.get_all_project_status()
+        statuses = []
+
+        # Check if query was successful and data is properly formatted
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            
+            # Loop through the parsed dictionaries and append to our list
+            for status in convert_to_dicts(rows, headers):
+                statuses.append(status)
+
+        return statuses
+    except Exception as e:
+        Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
+        return []
+    
+def get_filtered_sr_no_trx(
+    filter_year: str = None, 
+    filter_q_id: int = None, 
+    filter_ctg_id: int = None, 
+    filter_midikriing: bool = None,
+    filter_dept_id: str = None,
+    ) -> dict:
+    try:
+        db_params = {
+            'filter_year': filter_year,
+            'filter_q_id': filter_q_id,
+            'filter_ctg_id': filter_ctg_id,
+            'filter_midikriing': filter_midikriing,
+            'filter_dept_id': filter_dept_id,
+        }
+
+        db_result = sr_model.get_filtered_sr_no(db_params)
+        if not db_result.get('status') or not db_result.get('data'):
+            return {'sr_nos': [], 'total_count': 0}
+        
+        headers = db_result['data'][0]
+        rows = db_result['data'][1]
+        sr_nos = [row[headers.index('sr_no')] for row in rows]
+
+        return {'sr_nos': sr_nos, 'total_count': len(sr_nos)}
+    except Exception as e:
+        Log.error(f"Exception | Get Filtered SR No Trx | Msg: {str(e)}")
+        return {'sr_nos': [], 'total_count': 0}
+    
+def get_monitoring_counts_trx(sr_list: list) -> dict:
+    try:
+        if not sr_list:
+            return {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}
+
+        db_result = sr_model.get_monitoring_counts(sr_list)
+        if not db_result.get('status') or not db_result.get('data'):
+            return {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}
+        
+        data = parse_single_row(db_result)
+        return {'status': True, 'data': data if data else {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}}
+    except Exception as e:
+        Log.error(f"Exception | Get Monitoring Counts Trx | Msg: {str(e)}")
+        return {'total_count': 0, 'count_completed': 0, 'count_progress': 0, 'count_not_started': 0}
+    
+def get_monitoring_status_time_trx(sr_list: list) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': {'complete': 0, 'on_time': 0, 'over': 0}}
+        
+    try:
+        db_result = sr_model.get_monitoring_status_time(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        data = parse_single_row(db_result)
+        return {'status': True, 'data': data if data else {'complete': 0, 'on_time': 0, 'over': 0}}
+    except Exception as e:
+        Log.error(f'Exception | Get Status Time Trx | Msg: {str(e)}')
+        return {'status': False, 'data': None, 'msg': str(e)}
+
+def get_monitoring_status_overview_trx(sr_list: list) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': {'completed': 0, 'on_progress': 0, 'not_started': 0}}
+        
+    try:
+        db_result = sr_model.get_monitoring_status_overview(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        data = parse_single_row(db_result)
+        return {'status': True, 'data': data if data else {'completed': 0, 'on_progress': 0, 'not_started': 0}}
+    except Exception as e:
+        Log.error(f'Exception | Get Status Overview Trx | Msg: {str(e)}')
+        return {'status': False, 'data': None, 'msg': str(e)}
+
+def get_monitoring_overdue_projects_trx(sr_list: list, limit: int = 50, offset: int = 0) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': [], 'total_count': 0}
+        
+    try:
+        # Pass the whole list so the DB can find ALL overdue items
+        db_result = sr_model.get_monitoring_overdue_projects(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        all_items = parse_rows(db_result)
+        total_count = len(all_items)
+        
+        # Apply pagination slicing in Python
+        page_items = all_items[offset : offset + limit]
+        
+        return {'status': True, 'data': page_items, 'total_count': total_count}
+    except Exception as e:
+        Log.error(f'Exception | Get Overdue Projects Trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'total_count': 0}
+
+def get_monitoring_complete_projects_trx(sr_list: list, limit: int = 50, offset: int = 0) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': [], 'total_count': 0}
+        
+    try:
+        # Pass the whole list so the DB can find ALL complete items
+        db_result = sr_model.get_monitoring_complete_projects(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        all_items = parse_rows(db_result)
+        total_count = len(all_items)
+        
+        # Apply pagination slicing in Python
+        page_items = all_items[offset : offset + limit]
+        
+        return {'status': True, 'data': page_items, 'total_count': total_count}
+    except Exception as e:
+        Log.error(f'Exception | Get Complete Projects Trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'total_count': 0}
+    
+def get_monitoring_all_projects_trx(sr_list: list, limit: int = 50, offset: int = 0) -> dict:
+    if not sr_list:
+        return {'status': True, 'data': [], 'total_count': 0}
+        
+    try:
+        # Ask the database for all the details
+        db_result = sr_model.get_monitoring_all_projects(sr_list)
+        if not db_result.get('status'): return db_result
+        
+        # Parse the rows into dictionaries
+        all_items = parse_rows(db_result)
+        total_count = len(all_items)
+        
+        # Apply the exact pagination slice
+        page_items = all_items[offset : offset + limit]
+        
+        return {'status': True, 'data': page_items, 'total_count': total_count}
+        
+    except Exception as e:
+        Log.error(f'Exception | Get All Projects Trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'total_count': 0}

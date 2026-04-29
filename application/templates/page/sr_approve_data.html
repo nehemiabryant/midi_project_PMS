@@ -324,7 +324,7 @@ legend {
                                 {% for sm in gm_assign_data.sm_options %}
                                     <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
                                         <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
-                                        {{ sm.nik }} - {{ sm.nama }}
+                                        {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
                                     </label>
                                 {% endfor %}
                             </div>

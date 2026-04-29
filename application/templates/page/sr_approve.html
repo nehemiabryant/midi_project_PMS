@@ -349,18 +349,40 @@ legend {
                         
                         {% if is_gm and gm_assign_data %}
                             <fieldset>
-                                <legend>Assign IT Senior Manager</legend>
+                                <legend>Assign IT Senior Manager & Status</legend>
                                 
                                 {% if not gm_assign_data.is_locked %}
                                     <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
-                                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
                                         {% for sm in gm_assign_data.sm_options %}
                                             <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
                                                 <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
-                                                {{ sm.nik }} - {{ sm.nama }}
+                                                {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
                                             </label>
                                         {% endfor %}
                                     </div>
+
+                                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+
+                                    <div style="margin-bottom: 15px;">
+                                        <label for="prj_id" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Project Status</label>
+                                        <select name="prj_id" id="prj_id" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                            <option value="" disabled selected>-- Pilih Project Status --</option>
+                                            {% for status in gm_assign_data.project_status %}
+                                                <option value="{{ status.prj_id }}" {% if sr_data.prj_id == status.prj_id %}selected{% endif %}>{{ status.status_project }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div style="margin-bottom: 10px;">
+                                        <label for="status_midikriing" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Status Midikriing</label>
+                                        <select name="status_midikriing" id="status_midikriing" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                            <option value="" disabled selected>-- Pilih Status Midikriing --</option>
+                                            <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
+                                            <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
+                                        </select>
+                                    </div>
+
                                 {% else %}
                                     <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment IT SM sudah terkunci.</p>
                                     {% if gm_assign_data.current_sm %}
@@ -441,7 +463,7 @@ legend {
                                         Target Quarter
                                     </label>
                                     <select name="q_id" class="compact-input" style="width: 100%; max-width: 300px;" {% if assignment_data.is_locked %}disabled{% endif %}>
-                                        <option value="">-- Pilih Quarter --</option>
+                                        <option value="" disabled selected>-- Pilih Quarter --</option>
                                         
                                         {% for q in assignment_data.quarter %}
                                             
@@ -587,6 +609,10 @@ legend {
         // Target GM Radio Buttons
         document.querySelectorAll('.sm-radio').forEach(radio => {
             isForward ? radio.setAttribute('required', 'required') : radio.removeAttribute('required');
+        });
+
+        document.querySelectorAll('.gm-dynamic-input').forEach(select => {
+            isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
         });
 
         // Target SM Dynamic Selects

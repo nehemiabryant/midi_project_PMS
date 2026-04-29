@@ -97,6 +97,7 @@ def editSR_menu(sr_no):
 
     sr_data = eligibility_result['data'][0]
     current_smk_id = sr_data.get('smk_id', 101)
+    categories = sr_transaction.get_all_categories_trx()
 
     docs_res = attachment_transaction.get_required_docs_for_phase_trx(current_smk_id)
     ui_doc_blueprints = docs_res.get('data', [])
@@ -146,7 +147,8 @@ def editSR_menu(sr_no):
         return redirect(url_for('owh_sr.editSR_menu', sr_no=sr_no))
 
     return render_template('/page/sr_form.html', mode='edit', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
-                           , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict, options=options)
+                           , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict, options=options, 
+                           categories=categories)
 
 @sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
 @login_required
@@ -379,6 +381,7 @@ def adjustment_menu(sr_no):
     sr_data = None
     options = []
     categories = []
+    project_statuses = []
     actual_dates = []
     quarter = []
     pmo_form_data = {}
@@ -404,6 +407,7 @@ def adjustment_menu(sr_no):
         sr_data = eligibility_result['data'][0]
 
         categories = sr_transaction.get_all_categories_trx()
+        project_statuses = sr_transaction.get_all_project_status_trx()
         options = workflow_transaction.get_adjustment_dropdown_options()
 
         actual_dates_res = srlogs_transaction.get_actual_date_trx(sr_no) # Adjust module name if needed
@@ -454,6 +458,7 @@ def adjustment_menu(sr_no):
         sr_data=sr_data, 
         options=options,
         categories=categories,
+        project_statuses=project_statuses,
         actual_dates=actual_dates,
         quarter=quarter,
         user_is_sm=user_is_sm,
