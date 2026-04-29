@@ -629,9 +629,9 @@ def get_all_years(shared_conn=None) -> dict:
 
 def get_all_departments(shared_conn=None) -> dict:
     sql = """
-        SELECT id_dept, departemen AS department_name
+        SELECT id_dept, departemen AS department_name, nik
         FROM public.master_departemen
-        ORDER BY id_dept ASC'
+        ORDER BY id_dept ASC
     """
     
     if shared_conn:
@@ -652,6 +652,31 @@ def get_all_departments(shared_conn=None) -> dict:
     except Exception as e:
         Log.error(f'DB Exception | get_all_departments | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': 'Failed to fetch department filters'}
+    finally:
+        if conn: conn.close()
+    
+def get_all_sm_from_departments(shared_conn=None) -> dict:
+    sql = """
+        SELECT md.id_dept, md.departemen AS department_name, md.nik, COALESCE(k.nama, '') AS nama
+        FROM public.master_departemen md 
+        LEFT JOIN public.karyawan_all k ON md.nik = k.nik
+        ORDER BY md.id_dept ASC
+    """
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+
+    conn = None
+    result = {'status':False, 'data': [], 'msg': 'Invalid parametes.'}
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            return conn.selectDataHeader(sql, {})
+        else:
+            Log.error(f'DB Error | Msg: {result.get("msg")}')
+            return {"status": False, 'data': [], 'msg': result.get('msg')}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_sm_from_departments | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': 'Failed to fetch SM from departments'}
     finally:
         if conn: conn.close()
 
@@ -727,7 +752,7 @@ def get_filtered_sr_no(db_params: dict, shared_conn=None) -> dict:
         FROM public.sr_request r
         LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
         LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
-        WHERE 
+        WHERE
             RIGHT(r.sr_no, 4) = COALESCE(%(filter_year)s, TO_CHAR(NOW(), 'YYYY'))
             AND (%(filter_q_id)s IS NULL OR r.q_id = %(filter_q_id)s)
             AND (%(filter_ctg_id)s IS NULL OR r.ctg_id = %(filter_ctg_id)s)

@@ -468,6 +468,18 @@ def get_all_departments_trx() -> list:
     except Exception as e:
         Log.error(f"Exception | Get All Departments Trx | Msg: {str(e)}")
         return []
+    
+def get_all_sm_trx() -> list:
+    try:
+        db_result = sr_model.get_all_sm_from_departments()
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            return [sm for sm in convert_to_dicts(rows, headers)]
+        return []
+    except Exception as e:
+        Log.error(f"Exception | Get All SM Trx | Msg: {str(e)}")
+        return []
 
 def get_all_project_status_trx() -> list:
     """
