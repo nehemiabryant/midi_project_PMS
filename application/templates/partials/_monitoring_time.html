@@ -1,5 +1,27 @@
 <div class="card bg-dark text-white shadow-sm mb-4">
     <div class="card-header text-center border-bottom-0 pt-3">
+        Status Overview
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-4">
+                <h6 class="text-muted mb-1">Completed</h6>
+                <h3 class="fw-bold text-success">{{ chart_data.completed }}</h3>
+            </div>
+            <div class="col-4">
+                <h6 class="text-muted mb-1">On Progress</h6>
+                <h3 class="fw-bold text-warning">{{ chart_data.on_progress }}</h3>
+            </div>
+            <div class="col-4">
+                <h6 class="text-muted mb-1">Not Started</h6>
+                <h3 class="fw-bold text-danger">{{ chart_data.not_started }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-dark text-white shadow-sm mb-4">
+    <div class="card-header text-center border-bottom-0 pt-3">
         Status Time
     </div>
     <div class="card-body">

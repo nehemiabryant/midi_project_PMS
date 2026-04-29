@@ -52,20 +52,6 @@ def monitoring_by_sr_cards():
 
     return render_template('/partials/_monitoring_cards.html', monitoring_counts=monitoring_counts.get('data', {}))
 
-from flask import request, render_template
-
-@mnt_bp.route('/by_SR/status_time', methods=['POST'])
-@login_required
-@ajax_required
-def monitoring_by_sr_time():
-    req_data = request.get_json()
-    sr_list = req_data.get('sr_nos', [])
-
-    trx_result = sr_transaction.get_monitoring_status_time_trx(sr_list)
-    
-    return render_template('/partials/_monitoring_time.html', 
-                           chart_data=trx_result.get('data'))
-
 @mnt_bp.route('/by_SR/status_overview', methods=['POST'])
 @login_required
 @ajax_required
@@ -74,9 +60,11 @@ def monitoring_by_sr_overview():
     sr_list = req_data.get('sr_nos', [])
 
     trx_result = sr_transaction.get_monitoring_status_overview_trx(sr_list)
+    trx_result_time = sr_transaction.get_monitoring_status_time_trx(sr_list)
     
     return render_template('/partials/_monitoring_overview.html', 
-                           chart_data=trx_result.get('data'))
+                           chart_data=trx_result.get('data'), 
+                           chart_data_time=trx_result_time.get('data'))
 
 @mnt_bp.route('/by_SR/overdue_projects', methods=['POST'])
 @login_required
