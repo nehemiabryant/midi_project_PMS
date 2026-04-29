@@ -39,6 +39,7 @@ def create_app(config_filename=None):
     csrf.init_app(app)
     csrf.exempt(role_mgmt_bp)  # API JSON tidak memerlukan CSRF form token
     csrf.exempt(task_bp)       # Task API endpoint (JSON)
+    csrf.exempt(mnt_bp)        # Monitoring API endpoints (JSON)
 
     # Error Handlers
     @app.errorhandler(400)
