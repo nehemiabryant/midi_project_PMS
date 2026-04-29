@@ -3,6 +3,21 @@
     margin: 20px 0;
 }
 
+search-box {
+    padding: 9px 12px 9px 36px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    width: 250px;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 /* ===== Button Tambah User ===== */
 #btnAssignRole{
     background: #28a745;

@@ -5,10 +5,14 @@
 {% include 'components/header.html' %}
 {% endwith %}
 
-<div class="action-bar">
-    <button type="button" id="btnAssignRole">
+<div class="action-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <button type="button" id="btnAssignRole" style="padding: 10px 16px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
         <i class="fas fa-user-plus"></i> Tambah User
     </button>
+    
+    <div class="search-box" style="position: relative; display: flex; align-items: center; gap: 8px;">
+        <input type="text" id="searchUser" placeholder="Cari NIK, Nama, atau Role..." onkeyup="filterUserTable()">
+    </div>
 </div>
 
 <table id="userTable">
@@ -302,5 +306,32 @@ document.getElementById('btnBatalEdit').addEventListener('click', () => {
 document.getElementById('btnBatalHapus').addEventListener('click', () => {
     document.getElementById('modalHapus').style.display = 'none';
 });
+
+// ===== FUNGSI PENCARIAN NIK, NAMA, DAN ROLE =====
+function filterUserTable() {
+    // 1. Ambil teks yang diketik user dan ubah ke huruf kecil
+    const input = document.getElementById('searchUser').value.toLowerCase();
+    
+    // 2. Ambil semua baris data di dalam tbody (abaikan raw-user-row karena display-nya none)
+    const tbody = document.getElementById('userTableBody');
+    const rows = tbody.querySelectorAll('tr:not(.raw-user-row)');
+
+    rows.forEach(row => {
+        // Abaikan baris "Belum ada akun" jika tabel kosong
+        if (row.cells.length === 1) return;
+
+        // 3. Ambil isi teks dari kolom NIK (index 1), Nama (index 2), dan Role (index 3)
+        const nik = row.cells[1]?.textContent.toLowerCase() || '';
+        const nama = row.cells[2]?.textContent.toLowerCase() || '';
+        const role = row.cells[3]?.textContent.toLowerCase() || '';
+
+        // 4. Jika teks pencarian ada di salah satu kolom tersebut, tampilkan barisnya
+        if (nik.includes(input) || nama.includes(input) || role.includes(input)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none'; // Sembunyikan jika tidak cocok
+        }
+    });
+}
 </script>
 {% endblock %}
