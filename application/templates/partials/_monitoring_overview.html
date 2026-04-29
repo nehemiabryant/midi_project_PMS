@@ -1,21 +1,166 @@
-<div class="card bg-dark text-white shadow-sm mb-4">
-    <div class="card-header text-center border-bottom-0 pt-3">
-        Status Overview
-    </div>
-    <div class="card-body">
-        <div class="row text-center">
-            <div class="col-4">
-                <h6 class="text-muted mb-1">Completed</h6>
-                <h3 class="fw-bold text-success">{{ chart_data.completed }}</h3>
+<style>
+/* ========================================= */
+/* CSS UNTUK VERTICAL BAR CHART              */
+/* ========================================= */
+
+.v-chart-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03) !important;
+    font-family: 'Poppins', 'Inter', sans-serif;
+    padding: 16px;
+    margin: 0 !important;
+}
+
+.v-chart-header {
+    font-weight: 700;
+    font-size: 16px;
+    color: #1e293b;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+/* Area Grafik Utama */
+.v-chart-container {
+    display: flex;
+    align-items: flex-end; /* Memastikan batang mulai dari bawah */
+    justify-content: space-around;
+    height: 220px; /* Tinggi grafik */
+    padding-top: 20px;
+    border-bottom: 2px solid #e2e8f0; /* Garis X-Axis di bawah */
+    margin-bottom: 12px;
+    
+    /* Garis-garis grid horizontal di background */
+    background-image: linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+    background-size: 100% 40px; 
+}
+
+/* Pembungkus per batang */
+.v-chart-bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    width: 25%;
+}
+
+/* Angka di atas batang */
+.v-chart-value {
+    font-size: 15px;
+    font-weight: 800;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+/* Kotak Batang Grafiknya */
+.v-chart-bar {
+    width: 100%;
+    max-width: 70px; /* Lebar maksimal batang */
+    border-radius: 6px 6px 0 0; /* Ujung atas agak membulat */
+    transition: height 1s ease-out; /* Animasi saat load */
+}
+
+/* Label Teks di bawah grafik */
+.v-chart-label-group {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.v-chart-label {
+    width: 25%;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+}
+
+/* Warna-warna Bar */
+.bar-green  { background-color: #22c55e; } /* Hijau Terang */
+.bar-blue   { background-color: #3b82f6; } /* Biru */
+.bar-red    { background-color: #ef4444; } /* Merah */
+.bar-orange { background-color: #f59e0b; } /* Oranye/Kuning */
+</style>
+
+
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%; overflow-x: auto;">
+    
+    <div class="card v-chart-card h-100">
+        <div class="v-chart-header">Status Time</div>
+        <div class="card-body p-0">
+            
+            {% set v_complete = chart_data_time.get('complete', 0) %}
+            {% set v_on_time = chart_data_time.get('on_time', 0) %}
+            {% set v_over = chart_data_time.get('over', 0) %}
+
+            {% set max_t1 = v_complete if v_complete > v_on_time else v_on_time %}
+            {% set max_time = max_t1 if max_t1 > v_over else v_over %}
+            {% set max_time = max_time if max_time > 0 else 1 %}
+
+            <div class="v-chart-container">
+                <div class="v-chart-bar-group">
+                    <div class="v-chart-value">{{ v_complete }}</div>
+                    <div class="v-chart-bar bar-green" style="height: {{ (v_complete / max_time * 100) }}%;"></div>
+                </div>
+
+                <div class="v-chart-bar-group">
+                    <div class="v-chart-value">{{ v_on_time }}</div>
+                    <div class="v-chart-bar bar-blue" style="height: {{ (v_on_time / max_time * 100) }}%;"></div>
+                </div>
+
+                <div class="v-chart-bar-group">
+                    <div class="v-chart-value">{{ v_over }}</div>
+                    <div class="v-chart-bar bar-red" style="height: {{ (v_over / max_time * 100) }}%;"></div>
+                </div>
             </div>
-            <div class="col-4">
-                <h6 class="text-muted mb-1">On Progress</h6>
-                <h3 class="fw-bold text-warning">{{ chart_data.on_progress }}</h3>
+
+            <div class="v-chart-label-group">
+                <div class="v-chart-label">Complete</div>
+                <div class="v-chart-label">On Time</div>
+                <div class="v-chart-label">Over</div>
             </div>
-            <div class="col-4">
-                <h6 class="text-muted mb-1">Not Started</h6>
-                <h3 class="fw-bold text-danger">{{ chart_data.not_started }}</h3>
-            </div>
+
         </div>
     </div>
+
+    <div class="card v-chart-card h-100">
+        <div class="v-chart-header">Status Overview</div>
+        <div class="card-body p-0">
+            
+            {% set v_completed = chart_data.get('completed', 0) %}
+            {% set v_on_progress = chart_data.get('on_progress', 0) %}
+            {% set v_not_started = chart_data.get('not_started', 0) %}
+
+            {% set max_o1 = v_completed if v_completed > v_on_progress else v_on_progress %}
+            {% set max_overview = max_o1 if max_o1 > v_not_started else v_not_started %}
+            {% set max_overview = max_overview if max_overview > 0 else 1 %}
+
+            <div class="v-chart-container">
+                <div class="v-chart-bar-group">
+                    <div class="v-chart-value">{{ v_completed }}</div>
+                    <div class="v-chart-bar bar-green" style="height: {{ (v_completed / max_overview * 100) }}%;"></div>
+                </div>
+
+                <div class="v-chart-bar-group">
+                    <div class="v-chart-value">{{ v_on_progress }}</div>
+                    <div class="v-chart-bar bar-orange" style="height: {{ (v_on_progress / max_overview * 100) }}%;"></div>
+                </div>
+
+                <div class="v-chart-bar-group">
+                    <div class="v-chart-value">{{ v_not_started }}</div>
+                    <div class="v-chart-bar bar-red" style="height: {{ (v_not_started / max_overview * 100) }}%;"></div>
+                </div>
+            </div>
+
+            <div class="v-chart-label-group">
+                <div class="v-chart-label">Completed</div>
+                <div class="v-chart-label">On Progress</div>
+                <div class="v-chart-label">Not Started</div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
