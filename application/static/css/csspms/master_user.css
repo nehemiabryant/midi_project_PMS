@@ -3,19 +3,52 @@
     margin: 20px 0;
 }
 
-search-box {
-    padding: 9px 12px 9px 36px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    width: 250px;
-    font-size: 13.5px;
-    outline: none;
-    transition: border-color 0.2s;
+/* Container pembungkus */
+.search-wrapper {
+    position: relative;
+    width: 280px; /* Sesuaikan lebar yang diinginkan */
 }
 
-.search-box input:focus {
-    border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+/* Ikon kaca pembesar di dalam input */
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8; /* Warna abu-abu halus seperti di gambar */
+    font-size: 14px;
+    pointer-events: none; /* Agar klik diteruskan ke input */
+}
+
+/* Kotak Input-nya */
+.search-input {
+    width: 100%;
+    padding: 10px 14px 10px 36px; /* Padding kiri (36px) memberi ruang untuk ikon */
+    border: 1px solid #cbd5e1; /* Warna border abu-abu terang */
+    border-radius: 6px;
+    font-size: 13.5px;
+    color: #334155;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box; /* Agar padding tidak menambah lebar elemen */
+    font-family: inherit;
+}
+
+/* Warna teks placeholder */
+.search-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Efek saat diklik (Focus) */
+.search-input:focus {
+    border-color: #3b82f6; /* Berubah jadi biru */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); /* Efek cahaya biru di luar border */
+}
+
+/* Opsional: Ubah warna ikon saat input difokuskan */
+.search-input:focus + .search-icon,
+.search-wrapper:focus-within .search-icon {
+    color: #3b82f6;
 }
 
 /* ===== Button Tambah User ===== */

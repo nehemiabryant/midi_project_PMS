@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-{% with header_title='Master Akun' %}
+{% with header_title='Master User' %}
 {% include 'components/header.html' %}
 {% endwith %}
 
@@ -10,8 +10,9 @@
         <i class="fas fa-user-plus"></i> Tambah User
     </button>
     
-    <div class="search-box" style="position: relative; display: flex; align-items: center; gap: 8px;">
-        <input type="text" id="searchUser" placeholder="Cari NIK, Nama, atau Role..." onkeyup="filterUserTable()">
+    <div class="search-wrapper">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchUser" class="search-input" placeholder="Cari NIK, Nama, atau Role..." onkeyup="filterUserTable()">
     </div>
 </div>
 
