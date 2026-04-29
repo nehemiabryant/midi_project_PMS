@@ -468,6 +468,18 @@ def get_all_departments_trx() -> list:
     except Exception as e:
         Log.error(f"Exception | Get All Departments Trx | Msg: {str(e)}")
         return []
+    
+def get_all_sm_trx() -> list:
+    try:
+        db_result = sr_model.get_all_sm_from_departments()
+        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            return [sm for sm in convert_to_dicts(rows, headers)]
+        return []
+    except Exception as e:
+        Log.error(f"Exception | Get All SM Trx | Msg: {str(e)}")
+        return []
 
 def get_all_project_status_trx() -> list:
     """
@@ -492,16 +504,20 @@ def get_all_project_status_trx() -> list:
         Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
     
-def get_filtered_sr_no_trx(filter_year: str = None, 
-                            filter_q_id: int = None, 
-                            filter_ctg_id: int = None, 
-                            filter_midikriing: bool = None) -> dict:
+def get_filtered_sr_no_trx(
+    filter_year: str = None, 
+    filter_q_id: int = None, 
+    filter_ctg_id: int = None, 
+    filter_midikriing: bool = None,
+    filter_dept_id: str = None,
+    ) -> dict:
     try:
         db_params = {
             'filter_year': filter_year,
             'filter_q_id': filter_q_id,
             'filter_ctg_id': filter_ctg_id,
             'filter_midikriing': filter_midikriing,
+            'filter_dept_id': filter_dept_id,
         }
 
         db_result = sr_model.get_filtered_sr_no(db_params)

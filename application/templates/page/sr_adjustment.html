@@ -223,7 +223,7 @@
                             <option value="">-- Pilih Scrum Master Baru --</option>
                             {% for sm in pmo_form_data.sm_candidates %}
                                 <option value="{{ sm.nik }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
-                                    {{ sm.nama }} ({{ sm.nik }})
+                                    {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
                                 </option>
                             {% endfor %}
                         </select>

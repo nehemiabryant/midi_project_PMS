@@ -33,11 +33,12 @@ def api_monitoring_get_sr_no():
     filter_q_id = request.args.get('q_id')
     filter_ctg_id = request.args.get('ctg_id')
     filter_midikriing = request.args.get('midikriing')
+    filter_dept_id = request.args.get('dept_id')
 
-    db_result = sr_transaction.get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing)
+    db_result = sr_transaction.get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing, filter_dept_id)
     if not db_result.get('status'):
         return jsonify({'status': False, 'msg': 'Failed to fetch data', 'sr_list': []}), 400
-    
+
     return jsonify({'status': True, 'sr_list': db_result['data']['sr_list']})
 
 @mnt_bp.route('/by_SR/get_cards', methods=['POST'])
