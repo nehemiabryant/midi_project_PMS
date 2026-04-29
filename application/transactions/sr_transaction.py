@@ -504,34 +504,35 @@ def get_all_project_status_trx() -> list:
         Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
     
-def get_filtered_sr_no_trx(
-    filter_year: str = None, 
-    filter_q_id: int = None, 
-    filter_ctg_id: int = None, 
-    filter_midikriing: bool = None,
-    filter_dept_id: str = None,
-    ) -> dict:
+def get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing, filter_dept_id):
+    # Clean up empty strings from the frontend
+    db_params = {
+        'filter_year': filter_year if filter_year else None,
+        'filter_q_id': int(filter_q_id) if filter_q_id else None,
+        'filter_ctg_id': int(filter_ctg_id) if filter_ctg_id else None,
+        'filter_dept_id': int(filter_dept_id) if filter_dept_id else None
+    }
+
+    if filter_midikriing == 'true':
+        db_params['filter_midikriing'] = True
+    elif filter_midikriing == 'false':
+        db_params['filter_midikriing'] = False
+    else:
+        db_params['filter_midikriing'] = None
+    
     try:
-        db_params = {
-            'filter_year': filter_year,
-            'filter_q_id': filter_q_id,
-            'filter_ctg_id': filter_ctg_id,
-            'filter_midikriing': filter_midikriing,
-            'filter_dept_id': filter_dept_id,
-        }
-
         db_result = sr_model.get_filtered_sr_no(db_params)
-        if not db_result.get('status') or not db_result.get('data'):
-            return {'sr_nos': [], 'total_count': 0}
-        
-        headers = db_result['data'][0]
-        rows = db_result['data'][1]
-        sr_nos = [row[headers.index('sr_no')] for row in rows]
-
-        return {'sr_nos': sr_nos, 'total_count': len(sr_nos)}
+        # Format the result nicely for the JSON response
+        if db_result.get('status') and db_result.get('data'):
+            headers = db_result['data'][0]
+            rows = db_result['data'][1]
+            sr_nos = [row[headers.index('sr_no')] for row in rows]
+            return {'status': True, 'data': {'sr_list': sr_nos}}
+            
+        return {'status': True, 'data': {'sr_list': []}}
     except Exception as e:
-        Log.error(f"Exception | Get Filtered SR No Trx | Msg: {str(e)}")
-        return {'sr_nos': [], 'total_count': 0}
+        Log.error(f'Exception | Get Filtered SR No Trx | Msg: {str(e)}')
+        return {'status': False, 'data': {'sr_list': []}}
     
 def get_monitoring_counts_trx(sr_list: list) -> dict:
     try:

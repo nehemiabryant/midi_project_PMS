@@ -654,7 +654,7 @@ def get_all_departments(shared_conn=None) -> dict:
         return {'status': False, 'data': [], 'msg': 'Failed to fetch department filters'}
     finally:
         if conn: conn.close()
-    
+
 def get_all_sm_from_departments(shared_conn=None) -> dict:
     sql = """
         SELECT md.id_dept, md.departemen AS department_name, md.nik, COALESCE(k.nama, '') AS nama
