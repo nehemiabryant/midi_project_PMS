@@ -1,0 +1,51 @@
+<div class="card bg-dark text-white shadow-sm mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>Overdue Projects per 31 March 2026</span> <input type="text" class="form-control form-control-sm w-25 bg-secondary text-white border-0" placeholder="Cari...">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-striped mb-0 text-center align-middle">
+                <thead>
+                    <tr class="text-muted">
+                        <th>NO</th>
+                        <th>PIC</th>
+                        <th>No SR</th>
+                        <th>Aplikasi</th>
+                        <th>Tipe</th>
+                        <th>Target Selesai</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if items %}
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ item.no }}</td> 
+                            <td>{{ item.pic_name }}</td>
+                            <td class="text-primary">{{ item.sr_no }}</td>
+                            <td>{{ item.aplikasi }}</td>
+                            <td>{{ item.tipe }}</td>
+                            <td class="text-danger">{{ item.target_selesai }}</td>
+                            <td>{{ item.status }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-4">Tidak ada project yang overdue.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_count > 50 %}
+        <div class="card-footer border-top-0 bg-transparent text-center">
+            <small class="text-muted me-3">Showing page results...</small>
+            <button onclick="changePage('overdue', 1)" class="btn btn-sm btn-outline-secondary">1</button>
+            <button onclick="changePage('overdue', 2)" class="btn btn-sm btn-outline-secondary">2</button>
+            </div>
+        {% endif %}
+    </div>
+</div>

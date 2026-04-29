@@ -14,7 +14,7 @@ def monitoring_by_sr():
     years = sr_transaction.get_all_years_trx()
     quarters = sr_transaction.get_all_quarters_trx()
     categories = sr_transaction.get_all_categories_trx()
-    departments = sr_transaction.get_all_departments_trx() 
+    departments = sr_transaction.get_all_departments_trx()
     
     return render_template('/page/monitoring_by_sr.html', 
                            user=session.get('user'), 
@@ -38,7 +38,7 @@ def api_monitoring_get_sr_no():
     db_result = sr_transaction.get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing, filter_dept_id)
     if not db_result.get('status'):
         return jsonify({'status': False, 'msg': 'Failed to fetch data', 'sr_list': []}), 400
-
+    
     return jsonify({'status': True, 'sr_list': db_result['data']['sr_list']})
 
 @mnt_bp.route('/by_SR/get_cards', methods=['POST'])
@@ -50,7 +50,7 @@ def monitoring_by_sr_cards():
     sr_list = req_data.get('sr_nos', [])
     monitoring_counts = sr_transaction.get_monitoring_counts_trx(sr_list)
 
-    return render_template('/partials/_monitoring_cards.html', monitoring_counts=monitoring_counts)
+    return render_template('/partials/_monitoring_cards.html', monitoring_counts=monitoring_counts.get('data', {}))
 
 from flask import request, render_template
 

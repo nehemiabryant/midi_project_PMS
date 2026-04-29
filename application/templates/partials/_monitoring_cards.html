@@ -1,0 +1,37 @@
+<div class="row text-center mb-4">
+    <div class="col-md-3">
+        <div class="card bg-dark text-white shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Total Project</h6>
+                <h2 class="fw-bold">{{ monitoring_counts.total_count }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-dark text-white shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Completed</h6>
+                <h2 class="fw-bold text-success">{{ monitoring_counts.count_completed }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-dark text-white shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">On Progress</h6>
+                <h2 class="fw-bold text-warning">{{ monitoring_counts.count_progress }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card bg-dark text-white shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Not Started</h6>
+                <h2 class="fw-bold text-danger">{{ monitoring_counts.count_not_started }}</h2>
+            </div>
+        </div>
+    </div>
+</div>

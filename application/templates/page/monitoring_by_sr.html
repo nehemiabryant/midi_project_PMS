@@ -1,0 +1,94 @@
+{% extends 'base.html' %} 
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2 class="text-white mb-4">Monitoring by SR</h2>
+
+    <div class="card bg-dark text-white mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                
+                <div class="col-md-2">
+                    <label class="form-label text-muted small">Tahun</label>
+                    <select id="year" class="form-select bg-secondary text-white border-0">
+                        <option value="">Semua Tahun</option>
+                        {% for y in years %}
+                            <option value="{{ y.filter_year }}">{{ y.filter_year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label text-muted small">Quarter</label>
+                    <select id="q_id" class="form-select bg-secondary text-white border-0">
+                        <option value="">Semua Quarter</option>
+                        {% for q in quarters %}
+                            <option value="{{ q.q_id }}">{{ q.quarter }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label text-muted small">Tipe</label>
+                    <select id="ctg_id" class="form-select bg-secondary text-white border-0">
+                        <option value="">Semua Tipe</option>
+                        {% for c in categories %}
+                            <option value="{{ c.ctg_id }}">{{ c.category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label text-muted small">Departemen</label>
+                    <select id="dept_id" class="form-select bg-secondary text-white border-0">
+                        <option value="">Semua Departemen</option>
+                        {% for d in departments %}
+                            <option value="{{ d.dept_id }}">{{ d.department_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label text-muted small">Status Midikriing</label>
+                    <select id="midikriing" class="form-select bg-secondary text-white border-0">
+                        <option value="">Semua Status</option>
+                        <option value="true">Ya</option>
+                        <option value="false">Tidak</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button onclick="triggerSearch()" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i> View
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cards-container">
+        </div>
+
+    <div class="row">
+        <div class="col-md-6" id="time-chart-container">
+            </div>
+        <div class="col-md-6" id="overview-chart-container">
+            </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6" id="overdue-table-container">
+            </div>
+        <div class="col-md-6" id="completed-table-container">
+            </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12" id="all-table-container">
+            </div>
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard_orchestrator.js') }}"></script>
+
+{% endblock %}
