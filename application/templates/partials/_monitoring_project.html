@@ -1,64 +1,53 @@
-<div class="card shadow-sm mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background-color: #ffffff; overflow: hidden;">
+<div class="card shadow-sm mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background-color: #ffffff; overflow: hidden; display: flex; flex-direction: column;">
     
-    <div class="card-header bg-white border-bottom-0 pt-4 pb-3" style="padding-left: 24px; padding-right: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            
-            <h5 class="mb-0" style="font-weight: 800; color: #1e293b; font-size: 18px;">All Projects</h5>
-            
-            <div style="display: flex; gap: 12px; align-items: center;">
-                
-                <div class="input-group input-group-sm" style="width: 320px;">
-                    <span class="input-group-text bg-light border-end-0 text-muted" style="border-radius: 6px 0 0 6px; border-color: #cbd5e1;">
-                    </span>
-                    <input type="text" id="searchAllProjects" onkeyup="searchTable()" class="form-control border-start-0" placeholder="Cari No SR, Aplikasi, Modul, PIC..." style="border-radius: 0 6px 6px 0; border-color: #cbd5e1; background-color: #f8fafc; font-size: 13px;">
-                </div>
-
+    <div class="card-header bg-white" style="padding: 16px 20px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span style="font-weight: 800; color: #1e293b; font-size: 15px;">All Projects</span>
+            <div style="position: relative; width: 280px;">
+                <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 11px; pointer-events: none;"></i>
+                <input type="text" id="searchAllProjects" onkeyup="searchTable()" placeholder="Cari No SR, Aplikasi, Modul, PIC..."
+                    style="width: 100%; padding: 6px 10px 6px 28px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-size: 12px; color: #334155; outline: none; transition: border-color 0.2s, box-shadow 0.2s;"
+                    onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+                    onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'">
             </div>
         </div>
     </div>
     
-    <div class="card-body p-0 d-flex flex-column" style="min-height: 500px;">
-        <div class="table-responsive" style="flex-grow: 1;">
-            <table id="allProjectsTable" class="table table-hover mb-0 text-center align-middle" style="font-size: 13px; color: #334155;">
-                <thead style="background-color: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; border-top: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">
+    <div class="card-body p-0" style="overflow-y: auto; overflow-x: auto; max-height: 450px; min-height: 0;">
+        <table id="allProjectsTable" class="table table-hover mb-0 align-middle" style="font-size: 12px; color: #334155; text-align: center; min-width: 700px;">
+                <thead style="background-color: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; border-top: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">
                     <tr>
-                        <th style="padding: 16px 16px; width: 5%; text-align: center;">NO</th>
-                        <th style="padding: 14px 16px; width: 15%;">No SR</th>
-                        <th style="padding: 14px 16px; width: 20%;">Aplikasi</th>
-                        <th style="padding: 14px 16px; width: 20%;">Modul</th>
-                        <th style="padding: 14px 16px; width: 12%;">Target</th>
-                        <th style="padding: 14px 16px; width: 15%;">PIC IT</th>
-                        <th style="padding: 14px 16px; width: 13%;">Tipe</th>
+                        <th style="padding: 10px 12px; width: 5%;">NO</th>
+                        <th style="padding: 10px 12px; width: 15%;">No SR</th>
+                        <th style="padding: 10px 12px; width: 20%;">Aplikasi</th>
+                        <th style="padding: 10px 12px; width: 20%;">Modul</th>
+                        <th style="padding: 10px 12px; width: 12%;">Target</th>
+                        <th style="padding: 10px 12px; width: 15%;">PIC IT</th>
+                        <th style="padding: 10px 12px; width: 13%;">Tipe</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if items %}
                         {% for item in items %}
                         <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 16px 16px; font-weight: 500; text-align: center;">{{ item.no }}</td> 
-                            
-                            <td style="padding: 12px 16px;">
-                                <span style="color: #3b82f6; font-weight: 700;">{{ item.sr_no }}</span>
+                            <td style="padding: 10px 12px; font-weight: 500;">{{ item.no }}</td>
+                            <td style="padding: 10px 12px;">
+                                <a href="/sr/view/{{ item.sr_no }}?back=/monitoring/by_SR" style="color: #3b82f6; font-weight: 700; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ item.sr_no }}</a>
                             </td>
-                            
-                            <td style="padding: 12px 16px; color: #0f172a; font-weight: 500;text-align: center;">{{ item.aplikasi }}</td>
-                            
-                            <td style="padding: 12px 16px; text-align: center;">{{ item.modul }}</td>
-                            
-                            <td style="padding: 12px 16px; text-align: center;">
+                            <td style="padding: 10px 12px; color: #0f172a; font-weight: 500;">{{ item.aplikasi }}</td>
+                            <td style="padding: 10px 12px;">{{ item.modul }}</td>
+                            <td style="padding: 10px 12px;">
                                 {% if item.target_selesai %}
-                                    <span style="background-color: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 12px;">
-                                        {{ item.target_selesai }}
+                                    <span>
+                                        {{ item.target_selesai | format_date_wib}}
                                     </span>
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            
-                            <td style="padding: 12px 16px; font-weight: 600; color: #1e293b;">{{ item.pic_it }}</td>
-                            
-                            <td style="padding: 12px 16px; text-align: center; ">
-                                <span style="background-color: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 11px;">
+                            <td style="padding: 10px 12px; font-weight: 600; color: #1e293b;">{{ item.pic_it }}</td>
+                            <td style="padding: 10px 12px;">
+                                <span style="background-color: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 11px;">
                                     {{ item.tipe }}
                                 </span>
                             </td>
@@ -66,15 +55,19 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="7" class="py-5 text-center text-muted" style="font-size: 14px;">
-                                <i class="fas fa-folder-open mb-2" style="font-size: 24px; color: #cbd5e1;"></i><br>
-                                Tidak ada data project ditemukan.
+                            <td colspan="7" style="padding: 64px 24px; text-align: center; border: none;">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                    <div style="width: 52px; height: 52px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-folder-open" style="font-size: 22px; color: #cbd5e1;"></i>
+                                    </div>
+                                    <span style="font-size: 14px; font-weight: 700; color: #1e293b;">Tidak Ada Data Project</span>
+                                    <span style="font-size: 12px; color: #94a3b8;">Tidak ada data project ditemukan untuk filter ini.</span>
+                                </div>
                             </td>
                         </tr>
                     {% endif %}
                 </tbody>
-            </table>
-        </div>
+        </table>
 
         {% if total_count > 50 %}
         <div class="card-footer border-top-0 bg-white text-center py-3">

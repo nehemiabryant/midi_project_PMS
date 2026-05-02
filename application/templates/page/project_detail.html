@@ -62,12 +62,6 @@
                             <span class="sr-status-dot"></span>
                             <span class="status-text-value">{{ sr.current_status }}</span>
                         </div>
-                        <div class="sr-progress-container">
-                            <div class="sr-progress-track">
-                                <div class="sr-progress-fill" style="width: {{ sr.ticket_progress }}%;"></div>
-                            </div>
-                            <span class="sr-progress-text">{{ sr.ticket_progress }}%</span>
-                        </div>
                     </div>
                 {% else %}
                     <div class="sr-empty-list">Tidak ada tiket aktif di fase ini.</div>
@@ -118,10 +112,12 @@ document.addEventListener("DOMContentLoaded", function() {
         detailContent.style.display = 'block';
         detailContent.innerHTML = '<div style="text-align:center; padding: 40px; color:#6b7280;">Memuat data...</div>';
 
-        fetch(`/api/get_sr_detail/${encodeURIComponent(srNo)}`)
+        fetch(`/api/get_sr_detail/${encodeURIComponent(srNo)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
             .then(response => {
                 if (!response.ok) throw new Error("Network response was not ok");
-                return response.text(); 
+                return response.text();
             })
             .then(htmlContent => {
                 detailContent.innerHTML = htmlContent;

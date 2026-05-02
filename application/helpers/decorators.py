@@ -37,6 +37,17 @@ def bypass_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def monitoring_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        role = session.get('role', {})
+        permissions = role.get('permissions', [])
+        if 'view_reports' not in permissions:
+            flash('Akses ditolak. Anda tidak memiliki permission', 'error')
+            return redirect(url_for('owh_dashboard.dashboard_menu'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def ajax_required(f):
     """
     Decorator to protect API endpoints from direct browser access.

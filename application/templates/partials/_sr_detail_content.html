@@ -5,7 +5,7 @@
         <div class="sr-title-group">
             <div class="sr-badges">
                 <span class="badge-sr-no">{{ sr.sr_no }}</span>
-                {{ sr.quarter }}
+                <span class="badge-quarter">{{ sr.quarter }}</span>
                 <span class="badge-category">{{ sr.ctg_name }}</span>
             </div>
             <h2 class="sr-app-title">{{ sr.app_name }}</h2>
@@ -23,6 +23,7 @@
         </div>
     </div>
 
+    {% if sr.ticket_progress and sr.ticket_progress | int > 0 %}
     <div class="sr-progress-wrapper">
         <div class="sr-progress-info">
             <span class="progress-label">Progress Keseluruhan</span>
@@ -32,6 +33,7 @@
             <div class="sr-progress-fill" style="width: {{ sr.ticket_progress }}%;"></div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <div class="sr-tabs-container">

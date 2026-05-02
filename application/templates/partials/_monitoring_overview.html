@@ -24,16 +24,15 @@
 /* Area Grafik Utama */
 .v-chart-container {
     display: flex;
-    align-items: flex-end; /* Memastikan batang mulai dari bawah */
-    justify-content: space-around;
-    height: 220px; /* Tinggi grafik */
+    align-items: flex-end;
+    justify-content: center;
+    gap: 12px;                /* jarak antar bar — kurangi untuk lebih mepet */
+    height: 300px;            /* tinggi area chart */
     padding-top: 20px;
-    border-bottom: 2px solid #e2e8f0; /* Garis X-Axis di bawah */
+    border-bottom: 2px solid #e2e8f0;
     margin-bottom: 12px;
-    
-    /* Garis-garis grid horizontal di background */
     background-image: linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
-    background-size: 100% 40px; 
+    background-size: 100% 40px;
 }
 
 /* Pembungkus per batang */
@@ -43,7 +42,7 @@
     align-items: center;
     justify-content: flex-end;
     height: 100%;
-    width: 25%;
+    width: 30%;               /* lebar tiap bar group — naikkan untuk bar lebih lebar */
 }
 
 /* Angka di atas batang */
@@ -56,21 +55,21 @@
 
 /* Kotak Batang Grafiknya */
 .v-chart-bar {
-    width: 100%;
-    max-width: 70px; /* Lebar maksimal batang */
-    border-radius: 6px 6px 0 0; /* Ujung atas agak membulat */
-    transition: height 1s ease-out; /* Animasi saat load */
+    width: 100%;              /* bar mengisi penuh width group-nya */
+    border-radius: 6px 6px 0 0;
+    transition: height 1s ease-out;
 }
 
 /* Label Teks di bawah grafik */
 .v-chart-label-group {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 12px;                /* harus sama dengan gap di .v-chart-container */
     width: 100%;
 }
 
 .v-chart-label {
-    width: 25%;
+    width: 30%;               /* harus sama dengan width di .v-chart-bar-group */
     font-size: 12px;
     font-weight: 600;
     color: #64748b;

@@ -5,19 +5,38 @@ from common.midiconnectserver.midilog import Logger
 Log = Logger()
 
 
-def _set_role_session(nik: str):
+def _set_role_session(nik: str) -> tuple:
     """
     Phase 2 login: query sr_user untuk cek apakah NIK terdaftar,
     lalu ambil role dan permissions-nya dari DB.
-    Jika NIK tidak terdaftar di sr_user, permissions akan kosong.
+    - Jika NIK tidak terdaftar di sr_user → permissions kosong, tetap sukses.
+    - Jika DB error → return (False, pesan error).
+    Return: (bool sukses, str|None pesan error)
     """
     from application.transactions.auth_transaction import get_user_role_info_trx
     role_info = get_user_role_info_trx(nik)
+
+    if role_info.get('error'):
+        Log.error(f"LOGIN | Phase 2 FAILED | NIK: {nik} | DB error saat mengambil role/permission")
+        return False, 'Terjadi kesalahan sistem saat verifikasi hak akses. Silakan coba lagi.'
+
     session['role'] = {
         'name': role_info.get('name', []),
         'permissions': role_info.get('permissions', [])
     }
-    Log.info(f"LOGIN | Phase 2 | NIK: {nik} | Role: {', '.join(role_info.get('name', []))} | Permissions: {role_info.get('permissions', [])}")
+    Log.info(f"LOGIN | Phase 2 OK | NIK: {nik} | Role: {', '.join(role_info.get('name', []))} | Permissions: {role_info.get('permissions', [])}")
+    return True, None
+
+
+def _finalize_login(nik: str, log_label: str) -> tuple:
+    """Helper: jalankan Phase 2, rollback session jika gagal."""
+    ok, err = _set_role_session(nik)
+    if not ok:
+        session.clear()
+        return None, err
+    Log.info(f"LOGIN | {log_label} | NIK: {nik}")
+    return 'T', None
+
 
 def validate_user_gateway(nik, password):
     app_name = 'OWH'
@@ -34,9 +53,7 @@ def validate_user_gateway(nik, password):
                 'email': 'dev@midiconnect.com',
                 'branch': 'HO'
             }
-            _set_role_session('1234567890')
-            Log.info("LOGIN | DUMMY USER LOGIN SUCCESS")
-            return 'T', None
+            return _finalize_login('1234567890', 'DUMMY USER LOGIN SUCCESS')
 
         if nik == '00000' and password == 'admin123':
             session['user'] = {
@@ -49,10 +66,8 @@ def validate_user_gateway(nik, password):
                 'email': 'dev@midiconnect.com',
                 'branch': 'HO'
             }
-            _set_role_session('00000')
-            Log.info("LOGIN | DUMMY USER LOGIN SUCCESS")
-            return 'T', None
-            
+            return _finalize_login('00000', 'DUMMY USER LOGIN SUCCESS')
+
         _test_accounts = {
             # NIK: (password, nama, jabatan)
             '02000000':   ('magang123',  'MAGANG IT',                    'IT PMO'),
@@ -78,9 +93,7 @@ def validate_user_gateway(nik, password):
                 'email': f'{nik}@test.com',
                 'branch': 'HO'
             }
-            _set_role_session(nik)
-            Log.info(f"LOGIN | TEST ACCOUNT LOGIN | NIK: {nik}")
-            return 'T', None
+            return _finalize_login(nik, f'TEST ACCOUNT LOGIN | NIK: {nik}')
 
         # Midigateway
         URL = "https://hoapimac.mu.co.id/ceklogin"
@@ -91,7 +104,6 @@ def validate_user_gateway(nik, password):
 
             if data[0].get('sukses') == 'T':
                 user_data = data[0]
-
                 session['user'] = {
                     'nik': user_data['nik'],
                     'nama': user_data['nama'],
@@ -102,8 +114,7 @@ def validate_user_gateway(nik, password):
                     'email': user_data['email'],
                     'branch': user_data['branch']
                 }
-                _set_role_session(user_data['nik'])
-                return 'T', None
+                return _finalize_login(user_data['nik'], f'MIDIGATEWAY LOGIN SUCCESS | NIK: {user_data["nik"]}')
             else:
                 return None, 'NIK dan PIN Tidak Sesuai!'
         else:

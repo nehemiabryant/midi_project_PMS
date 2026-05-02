@@ -12,7 +12,7 @@ logging.getLogger('werkzeug').addFilter(NoRequestLogFilter())
 
 app = create_app()
 app.config['SESSION_TYPE'] = 'filesystem'
-app.permanent_session_lifetime = timedelta(minutes=10)
+app.permanent_session_lifetime = timedelta(hours=1)
 
 if __name__ == '__main__':
     print(f"\033[91mServer running at http://{MainConfig.HOST}:{MainConfig.PORT}\033[0m\n")

@@ -109,7 +109,7 @@
                             </select>
                         </div>
 
-                        <div class="form-group" style="margin-top: 15px;">
+                        <div id="midikriingFormGroup" class="form-group" style="margin-top: 15px; display: {% if sm_dept_id == 2 %}block{% else %}none{% endif %};">
                             <label class="info-label">Status Midikriing</label>
                             <select name="status_midikriing" class="modern-select">
                                 <option value="">-- Pilih Status Midikriing --</option>
@@ -211,18 +211,18 @@
             </div>
 
             <div class="pmo-card">
-                <h3 class="pmo-card-header">Resource & Team Management</h3>
+                <h3 class="pmo-card-header">Assigned Team SR</h3>
                 
                 {% if not user_is_sm %}
                 <div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #e2e8f0;">
-                    <label class="info-label" style="display:block; margin-bottom:10px;">Scrum Master / Project Manager</label>
+                    <label class="info-label" style="display:block; margin-bottom:10px;">IT Senior Manager</label>
                     <form action="{{ url_for('owh_sr.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
-                        <select name="new_sm_nik" class="modern-select" required>
+                        <select name="new_sm_nik" id="smSelectDropdown" class="modern-select" required onchange="onSmChange(this)">
                             <option value="">-- Pilih Scrum Master Baru --</option>
                             {% for sm in pmo_form_data.sm_candidates %}
-                                <option value="{{ sm.nik }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
+                                <option value="{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
                                     {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
                                 </option>
                             {% endfor %}
@@ -478,6 +478,14 @@
 
 
 <script>
+    function onSmChange(select) {
+        const deptId = parseInt(select.options[select.selectedIndex]?.dataset?.deptId);
+        const midikriingGroup = document.getElementById('midikriingFormGroup');
+        if (midikriingGroup) {
+            midikriingGroup.style.display = (deptId === 2) ? 'block' : 'none';
+        }
+    }
+
     const modal = document.getElementById('lovModal');
     const tableBody = document.getElementById('lovTableBody');
     let lovDataFetched = false;
@@ -501,7 +509,9 @@
             tableBody.innerHTML = '<tr><td colspan="4" class="empty-state">Fetching Data...</td></tr>';
             
             // Calls your Flask API route
-            const response = await fetch('/api/adjustment/lov'); 
+            const response = await fetch('/api/adjustment/lov', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             const result = await response.json();
 
             if (result.status && result.data.length > 0) {

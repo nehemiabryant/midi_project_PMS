@@ -942,7 +942,7 @@ def get_monitoring_all_projects(sr_list: list, shared_conn=None) -> dict:
             r.sr_no, 
             r.name AS aplikasi,
             r.module AS modul,      -- Replaced 'status' with 'module'
-            t.finish_date AS target_selesai,
+            t.start_date AS target_selesai,
             c.category AS tipe
             
         FROM public.sr_request r

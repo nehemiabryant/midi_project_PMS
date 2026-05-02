@@ -1,13 +1,12 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
-from ..helpers.decorators import login_required, bypass_required
+from ..helpers.decorators import login_required, bypass_required, ajax_required
 import urllib.parse
 
 Log = Logger()
 
 sr_bp = Blueprint('owh_sr', __name__, url_prefix='/', template_folder='../templates', static_folder='/static')
-
 
 @sr_bp.route('/', methods=['GET'])
 def main_redirect():
@@ -330,6 +329,7 @@ def project_details_menu(phase_name, sr_no):
 
 @sr_bp.route('/api/get_sr_detail/<path:sr_no>', methods=['GET'])
 @login_required
+@ajax_required
 def api_get_sr_detail(sr_no):
     # 1. Ini akan mengubah %2F kembali menjadi garis miring (/)
     clean_sr_no = urllib.parse.unquote(sr_no).strip()
@@ -365,6 +365,7 @@ def api_get_sr_detail(sr_no):
 @sr_bp.route('/api/adjustment/lov', methods=['GET'])
 @login_required
 @bypass_required
+@ajax_required
 def api_adjustment_lov():
     result = sr_transaction.get_all_sr_trx()
     sr_data = result.get('data', [])
@@ -386,6 +387,7 @@ def adjustment_menu(sr_no):
     quarter = []
     pmo_form_data = {}
     user_is_sm = False
+    sm_dept_id = None
 
     if sr_no:
         current_user = session.get('user', {}).get('nik', '')
@@ -439,6 +441,11 @@ def adjustment_menu(sr_no):
             for a in all_assignments
         )
 
+        sm_dept_id = next(
+            (sm.get('id_dept') for sm in sm_candidates if sm.get('nik') == active_sm_nik),
+            None
+        )
+
         pmo_form_data = {
             'picroles': picroles,
             'it_users': it_users,
@@ -462,7 +469,8 @@ def adjustment_menu(sr_no):
         actual_dates=actual_dates,
         quarter=quarter,
         user_is_sm=user_is_sm,
-        pmo_form_data=pmo_form_data
+        pmo_form_data=pmo_form_data,
+        sm_dept_id=sm_dept_id
     )
 
 @sr_bp.route('/adjustment/<path:sr_no>/update-details', methods=['POST'])

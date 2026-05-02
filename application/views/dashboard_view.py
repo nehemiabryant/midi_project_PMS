@@ -181,21 +181,19 @@ def upload_attachment(sr_no):
 
     return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
 
-@dashboard_bp.route('/myWork/detail/<path:sr_no>/view', methods=['GET'])
+@dashboard_bp.route('/sr/view/<path:sr_no>', methods=['GET'])
 @login_required
 def sr_detail_view(sr_no):
-    """
-    Halaman read-only detail SR.
-    Konten SR dimuat via AJAX ke /api/get_sr_detail/<sr_no> (reuse existing API).
-    """
     clean_sr_no = urllib.parse.unquote(sr_no).strip()
+    back_url = request.args.get('back', url_for('owh_dashboard.myWork_menu'))
 
     return render_template(
         '/page/sr_detail_view.html',
         user=session['user'],
         role=session['role'],
-        active_menu='my_work',
+        active_menu=None,
         sr_no=clean_sr_no,
+        back_url=back_url,
     )
 
 @dashboard_bp.route('/uploadDraft', methods=['GET', 'POST'])
