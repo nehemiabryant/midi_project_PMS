@@ -1,15 +1,20 @@
-<div class="card h-100 shadow-sm" style="border-radius: 12px; border: 1px solid #e2e8f0; background-color: #ffffff; overflow: hidden;">
-    <div class="card-header bg-white border-bottom-0 pt-3 pb-2" style="padding: 16px 20px;">
-        <div class="d-flex justify-content-between align-items-center">
-            <span style="font-weight: 700; color: #1e293b; font-size: 15px;">Complete Projects</span>
-            <input type="text" class="form-control form-control-sm" placeholder="Cari..." style="width: 150px; border-radius: 6px; border: 1px solid #cbd5e1; background-color: #f8fafc; font-size: 12px;">
+<div class="card shadow-sm" style="border-radius: 12px; border: 1px solid #e2e8f0; background-color: #ffffff; overflow: hidden; display: flex; flex-direction: column; height: 440px;">
+
+    <div class="card-header bg-white" style="padding: 16px 20px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span style="font-weight: 800; color: #1e293b; font-size: 15px;">Complete Projects</span>
+            <div style="position: relative; width: 180px;">
+                <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 11px; pointer-events: none;"></i>
+                <input type="text" placeholder="Cari..." style="width: 100%; padding: 6px 10px 6px 28px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-size: 12px; color: #334155; outline: none; transition: border-color 0.2s, box-shadow 0.2s;"
+                    onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+                    onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'">
+            </div>
         </div>
     </div>
-    
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 text-center align-middle" style="font-size: 12px; color: #334155;">
-                <thead style="background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
+
+    <div class="card-body p-0" style="flex: 1; overflow-y: auto; overflow-x: auto; min-height: 0;">
+        <table class="table table-hover mb-0 align-middle" style="font-size: 12px; color: #334155; text-align: center; min-width: 600px;">
+                <thead style="background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #e2e8f0;">
                     <tr>
                         <th style="padding: 12px; border-bottom: 1px solid #e2e8f0;">NO</th>
                         <th style="padding: 12px; border-bottom: 1px solid #e2e8f0;">PIC</th>
@@ -26,7 +31,9 @@
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 12px;">{{ item.no }}</td> 
                             <td style="padding: 12px; font-weight: 500;">{{ item.pic_name }}</td>
-                            <td style="padding: 12px; color: #3b82f6; font-weight: 600;">{{ item.sr_no }}</td>
+                            <td style="padding: 12px;">
+                                <a href="/sr/view/{{ item.sr_no }}?back=/monitoring/by_SR" style="color: #3b82f6; font-weight: 700; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ item.sr_no }}</a>
+                            </td>
                             <td style="padding: 12px;">{{ item.aplikasi }}</td>
                             <td style="padding: 12px; font-weight: 600;">
                                 {% if item.status == 'TEPAT WAKTU' %}
@@ -36,17 +43,25 @@
                                 {% endif %}
                             </td>
                             <td style="padding: 12px;">{{ item.target_selesai }}</td>
-                            <td style="padding: 12px;">{{ item.tipe }}</td>
+                            <td style="padding: 12px;">
+                                <span style="background-color: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px;">{{ item.tipe }}</span>
+                            </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="7" class="py-4 text-muted">Belum ada project yang selesai.</td>
+                            <td colspan="7" style="padding: 48px 24px; text-align: center; border: none;">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                    <div style="width: 52px; height: 52px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-folder-open" style="font-size: 22px; color: #3b82f6;"></i>
+                                    </div>
+                                    <span style="font-size: 14px; font-weight: 700; color: #1e293b;">Belum Ada Project Selesai</span>
+                                </div>
+                            </td>
                         </tr>
                     {% endif %}
                 </tbody>
-            </table>
-        </div>
+        </table>
 
         {% if total_count > 50 %}
         <div class="card-footer border-top-0 bg-transparent text-center pb-3">

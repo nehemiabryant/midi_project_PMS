@@ -8,10 +8,10 @@
 
 <div class="page-content">
     <div style="margin-bottom: 16px;">
-        <a href="{{ url_for('owh_dashboard.myWork_menu') }}"
+        <a href="{{ back_url }}"
            style="display:inline-flex; align-items:center; gap:6px; font-size:13px;
                   color:#64748b; text-decoration:none; font-weight:500;">
-            ← Kembali ke My Work
+            ← Kembali
         </a>
     </div>
 
@@ -47,7 +47,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const srNo    = {{ sr_no | tojson }};
     const container = document.getElementById('sr-view-content');
 
-    fetch(`/api/get_sr_detail/${encodeURIComponent(srNo)}`)
+    fetch(`/api/get_sr_detail/${encodeURIComponent(srNo)}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
         .then(res => {
             if (!res.ok) throw new Error('Network error');
             return res.text();

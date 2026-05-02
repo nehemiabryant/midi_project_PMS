@@ -1,11 +1,12 @@
 from flask import Blueprint, jsonify, request
 from ..transactions import karyawan_transaction
-from ..helpers.decorators import login_required
+from ..helpers.decorators import login_required, ajax_required
 
 kry_bp = Blueprint('kry_bp', __name__)
 
 @kry_bp.route('/karyawan/search', methods=['GET'])
 @login_required
+@ajax_required
 def search_karyawan():
     query = request.args.get('q', '').strip()
     limit = request.args.get('limit', 5, type=int)

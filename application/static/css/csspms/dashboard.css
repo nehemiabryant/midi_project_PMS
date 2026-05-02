@@ -163,6 +163,20 @@
     color: #6b7280;
 }
 
+.ticket-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #2563eb;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
 /* --- PAGINATION CONTROLS --- */
 .pagination-controls {
     margin-top: 20px;

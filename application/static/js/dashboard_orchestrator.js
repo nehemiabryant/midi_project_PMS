@@ -1,119 +1,119 @@
-// Global State: Store the master list and pagination rules
 let currentMasterList = [];
 const ITEMS_PER_PAGE = 50;
 
-/**
- * Helper function to handle the POST requests for the partials
- */
 async function fetchPartial(url, payload, containerId) {
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest' // The Secret Handshake!
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify(payload)
         });
-        
+
         const html = await response.text();
-        document.getElementById(containerId).innerHTML = html;
+        const container = document.getElementById(containerId);
+        container.innerHTML = html;
+        container.classList.add('section-loaded');
     } catch (error) {
-        console.error(`Failed to load data for ${containerId}:`, error);
-        document.getElementById(containerId).innerHTML = '<p class="text-danger">Failed to load component.</p>';
+        console.error(`Failed to load ${containerId}:`, error);
+        document.getElementById(containerId).innerHTML =
+            '<p class="text-danger text-center py-4">Gagal memuat data.</p>';
     }
 }
 
-/**
- * Triggered when the user clicks the "View" / "Search" button
- */
 async function triggerSearch() {
-    // 0. DEFINISIKAN ELEMEN YANG DIBUTUHKAN
-    const contentLoading = document.getElementById('contentLoading');
-    const defaultPlaceholder = document.getElementById('defaultPlaceholder');
-    const monitoringResults = document.getElementById('monitoringResults');
+    const defaultPlaceholder  = document.getElementById('defaultPlaceholder');
+    const monitoringResults   = document.getElementById('monitoringResults');
 
-    // 1. TAMPILKAN LOADING DI AREA KONTEN
-    if (contentLoading) {
-        contentLoading.style.display = 'flex';
-    }
-
-    // 2. Grab the filters
-    const params = new URLSearchParams({
-        year: document.getElementById('year').value,
-        q_id: document.getElementById('q_id').value,
-        ctg_id: document.getElementById('ctg_id').value,
-        dept_id: document.getElementById('dept_id').value,
+    const filters = {
+        year:       document.getElementById('year').value,
+        q_id:       document.getElementById('q_id').value,
+        ctg_id:     document.getElementById('ctg_id').value,
+        dept_id:    document.getElementById('dept_id').value,
         midikriing: document.getElementById('midikriing').value
-    });
+    };
+
+    sessionStorage.setItem('monitoring_filters', JSON.stringify(filters));
+
+    const params = new URLSearchParams(filters);
 
     try {
-        // 3. Fetch the Master ID List (The Checker API)
         const checkResponse = await fetch(`/monitoring/get_sr_no?${params.toString()}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
         const checkData = await checkResponse.json();
 
-        // JIKA DATA KOSONG
         if (!checkData.status || !checkData.sr_list || checkData.sr_list.length === 0) {
-            if (contentLoading) contentLoading.style.display = 'none'; // Matikan loading
-            alert("Tidak ada data ditemukan untuk filter ini."); 
+            alert("Tidak ada data ditemukan untuk filter ini.");
             return;
         }
 
-        // 4. TRANSISI: Sembunyikan Placeholder, Munculkan Wadah Hasil
-        // (Loading tetap flex/tampil di atasnya sampai fetch selesai)
-        if (defaultPlaceholder) defaultPlaceholder.style.display = 'none';
-        if (monitoringResults) monitoringResults.style.display = 'block';
-        
-        // 5. Simpan list ke global variable
         currentMasterList = checkData.sr_list;
 
-        // 6. Setup the Payloads
-        const basePayload = { sr_nos: currentMasterList };
+        if (defaultPlaceholder) defaultPlaceholder.style.display = 'none';
+        if (monitoringResults) {
+            monitoringResults.querySelectorAll('.section-loaded').forEach(el => {
+                el.classList.remove('section-loaded');
+            });
+            monitoringResults.style.display = 'block';
+        }
+
+        resetToSkeleton('cards-container',           spinnerCards());
+        resetToSkeleton('overview-chart-container',  spinnerCharts());
+        resetToSkeleton('overdue-table-container',   spinnerTable(440));
+        resetToSkeleton('completed-table-container', spinnerTable(440));
+        resetToSkeleton('all-table-container',       spinnerTable(300, true));
+
+        const basePayload      = { sr_nos: currentMasterList };
         const paginatedPayload = { sr_nos: currentMasterList, limit: ITEMS_PER_PAGE, offset: 0 };
 
-        // 7. Ambil semua data partial secara bersamaan
-        // Kita gunakan await agar loading screen tidak hilang duluan
-        await Promise.all([
-            fetchPartial('/monitoring/by_SR/get_cards', basePayload, 'cards-container'),
-            fetchPartial('/monitoring/by_SR/status_overview', basePayload, 'overview-chart-container'),
-            fetchPartial('/monitoring/by_SR/overdue_projects', paginatedPayload, 'overdue-table-container'),
-            fetchPartial('/monitoring/by_SR/completed_projects', paginatedPayload, 'completed-table-container'),
-            fetchPartial('/monitoring/by_SR/all_projects', paginatedPayload, 'all-table-container')
-        ]);
-
-        // 8. SELESAI: Matikan loading screen
-        if (contentLoading) {
-            contentLoading.style.display = 'none';
-        }
+        fetchPartial('/monitoring/by_SR/get_cards',          basePayload,      'cards-container');
+        fetchPartial('/monitoring/by_SR/status_overview',    basePayload,      'overview-chart-container');
+        fetchPartial('/monitoring/by_SR/overdue_projects',   paginatedPayload, 'overdue-table-container');
+        fetchPartial('/monitoring/by_SR/completed_projects', paginatedPayload, 'completed-table-container');
+        fetchPartial('/monitoring/by_SR/all_projects',       paginatedPayload, 'all-table-container');
 
     } catch (error) {
         console.error("Dashboard failed to initialize:", error);
-        
-        // JIKA ERROR, MATIKAN LOADING AGAR TIDAK MACET
-        if (contentLoading) {
-            contentLoading.style.display = 'none';
-        }
     }
 }
 
-/**
- * Triggered when the user clicks a pagination button on a specific table
- */
+function resetToSkeleton(containerId, skeletonHTML) {
+    const el = document.getElementById(containerId);
+    if (el) {
+        el.classList.remove('section-loaded');
+        el.style.animation = 'none';
+        el.innerHTML = skeletonHTML;
+    }
+}
+
+function spinnerBox(minHeight, extra = '') {
+    return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;min-height:${minHeight}px;display:flex;align-items:center;justify-content:center;${extra}"><div class="section-spinner"></div></div>`;
+}
+
+function spinnerCards() {
+    return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px;margin-bottom:24px;">${spinnerBox(110).repeat(4)}</div>`;
+}
+
+function spinnerCharts() {
+    return `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">${spinnerBox(380)}${spinnerBox(380)}</div>`;
+}
+
+function spinnerTable(minHeight = 220, marginBottom = false) {
+    return spinnerBox(minHeight, marginBottom ? 'margin-bottom:24px;' : '');
+}
+
 function changePage(tableName, pageNumber) {
-    // Calculate the new offset based on the page number
-    const offset = (pageNumber - 1) * ITEMS_PER_PAGE;
-    
-    // Use the saved master list! No need to run the filter query again.
+    const offset  = (pageNumber - 1) * ITEMS_PER_PAGE;
     const payload = { sr_nos: currentMasterList, limit: ITEMS_PER_PAGE, offset: offset };
 
-    // Update ONLY the table that requested the page change
     if (tableName === 'overdue') {
-        fetchPartial('/monitoring/by_SR/overdue_projects', payload, 'overdue-table-container');
+        fetchPartial('/monitoring/by_SR/overdue_projects',   payload, 'overdue-table-container');
     } else if (tableName === 'completed') {
         fetchPartial('/monitoring/by_SR/completed_projects', payload, 'completed-table-container');
     } else if (tableName === 'all') {
-        fetchPartial('/monitoring/by_SR/all_projects', payload, 'all-table-container');
+        fetchPartial('/monitoring/by_SR/all_projects',       payload, 'all-table-container');
     }
 }

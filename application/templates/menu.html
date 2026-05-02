@@ -4,11 +4,11 @@
 {% set user_permissions = session.get('role', {}).get('permissions', []) %}
 {% set transaction_menus = ['create_sr', 'my_work', 'my_sr', 'project_details'] %}
 {% set document_menus = ['upload_draft', 'approved_draft'] %}
-{% set report_menus = ['monitoring'] %}
+{% set report_menus = ['monitoring', 'monitoring_by_sr'] %}
 {% set admin_menus = ['master_user', 'master_role'] %}
 {% set it_transaction_menus = ['master_aplikasi', 'master_role_it', 'master_user_it', 'master_user_dept', 'update_status', 'update_timetable', 'master_user', 'master_role'] %}
 
-<aside class="sidebar collapsed" id="mainSidebar">
+<aside class="sidebar" id="mainSidebar">
 
     <div class="sidebar-brand">
         <div class="brand-logo-text">
@@ -97,7 +97,11 @@
                     aria-hidden="true"></i>
             </button>
             <div class="nav-submenu {{ 'open' if active_menu in report_menus }}">
-                </div>
+                <a href="{{ url_for('owh_monitor.monitoring_by_sr') }}"
+                class="nav-sublink {{ 'active' if active_menu == 'monitoring_by_sr' }}">
+                <i class="fas fa-circle" aria-hidden="true"></i><span class="nav-text">Monitoring by SR</span>                 
+                </a>
+            </div>
         </div>
         {% endif %}
 
@@ -149,7 +153,7 @@
 document.addEventListener("DOMContentLoaded", function() {
     const sidebarToggleBtn = document.getElementById('sidebarToggle');
     const mainSidebar = document.getElementById('mainSidebar');
-    
+
     // Ambil semua tombol dan link di dalam sidebar
     const sidebarLinks = document.querySelectorAll('.sidebar a, .nav-toggle');
 
@@ -163,21 +167,15 @@ document.addEventListener("DOMContentLoaded", function() {
     // 2. Logika saat menu/link diklik
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
-            
+
             // Jika yang diklik adalah tombol dropdown (Menu Utama yg punya sub-menu)
             if (this.classList.contains('nav-toggle')) {
                 // Jika sidebar sedang tertutup, otomatis buka sidebarnya
                 if (mainSidebar.classList.contains('collapsed')) {
                     mainSidebar.classList.remove('collapsed');
                 }
-            } 
-            // Jika yang diklik adalah link halaman biasa (navigasi pindah page)
-            else {
-                // Tutup sidebar seketika untuk memberikan efek responsif
-                mainSidebar.classList.add('collapsed');
             }
-            
         });
     });
 });
-</script>
+</script> 

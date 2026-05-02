@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
-from ..helpers.decorators import ajax_required, login_required, bypass_required
+from ..helpers.decorators import ajax_required, login_required, monitoring_required
 import urllib.parse
 
 Log = Logger()
@@ -10,6 +10,7 @@ mnt_bp = Blueprint('owh_monitor', __name__, url_prefix='/monitoring', template_f
 
 @mnt_bp.route('/by_SR', methods=['GET'])
 @login_required
+@monitoring_required
 def monitoring_by_sr():
     years = sr_transaction.get_all_years_trx()
     quarters = sr_transaction.get_all_quarters_trx()

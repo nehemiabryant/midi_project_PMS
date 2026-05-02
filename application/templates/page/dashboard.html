@@ -39,11 +39,12 @@
                     <h5 class="phase-title">{{ phase_data.phase_name }}</h5>
                 </a>
 
+                {% set is_count_only = phase_data.phase_name in ['Takeout', 'RO'] %}
+
                 <div class="progress-header">
-                    <div style="width: 30%;">Divisi</div>
-                    {% if phase_data.phase_name in ['Takeout'] %}
-                        <div style="width: 50%;">Ticket Count</div>
-                        <div style="width: 20%; text-align: right;">#</div>
+                    <div style="width: {% if is_count_only %}60%{% else %}30%{% endif %};">Divisi</div>
+                    {% if is_count_only %}
+                        <div style="width: 40%; text-align: right;">Jumlah Tiket</div>
                     {% else %}
                         <div style="width: 50%;">Progress</div>
                         <div style="width: 20%; text-align: right;">%</div>
@@ -53,23 +54,21 @@
                 <div class="division-list" id="div-list-{{ loop.index }}">
                     {% for div in phase_data.divisions %}
                         {% set page_num = (loop.index0 // 3) + 1 %}
-                        
+
                         <div class="division-row page-{{ page_num }}" data-page="{{ page_num }}" style="{% if page_num > 1 %}display: none;{% endif %}">
-                            <div class="div-name">{{ div.name }}</div>
-                            
-                            {% if phase_data.phase_name in ['Takeout'] %}
-                                <div class="progress-bar-container" style="background: transparent; box-shadow: none;">
-                                    <span style="font-weight: bold; color: #4b5563;">{{ div.count }} Tickets</span>
+                            <div class="div-name" style="{% if is_count_only %}width: 60%;{% endif %}">{{ div.name }}</div>
+
+                            {% if is_count_only %}
+                                <div style="width: 40%; display: flex; justify-content: flex-end;">
+                                    <span class="ticket-count-badge">{{ div.count }} tiket</span>
                                 </div>
-                                <div class="progress-text">{{ div.count }}</div>
                             {% else %}
                                 <div class="progress-bar-container">
                                     <div class="progress-bar-track">
-                                        {% set bar_color = '#10b981' %} 
-                                        {% if div.progress < 30 %} {% set bar_color = '#ef4444' %} 
-                                        {% elif div.progress < 70 %} {% set bar_color = '#f59e0b' %} 
+                                        {% set bar_color = '#10b981' %}
+                                        {% if div.progress < 30 %} {% set bar_color = '#ef4444' %}
+                                        {% elif div.progress < 70 %} {% set bar_color = '#f59e0b' %}
                                         {% endif %}
-                                        
                                         <div class="progress-bar-fill" style="width: {{ div.progress }}%; background-color: {{ bar_color }};"></div>
                                     </div>
                                 </div>
