@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes sectionFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.section-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+.section-loaded { animation: sectionFadeIn 0.4s ease forwards; }
+</style>
+
+<div class="container-fluid mt-4">
+    <h2 class="page-title">Monitoring by PIC</h2>
+
+    <div class="filter-section">
+        <div class="card bg-dark text-white mb-4 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small">Pilih Tahun</label>
+                        <select id="year" class="form-select bg-secondary text-white border-0">
+                            <option value="">Semua Tahun</option>
+                            {% for y in years %}
+                                <option value="{{ y.filter_year }}">{{ y.filter_year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small">Pilih Departemen</label>
+                        <select id="dept_id" class="form-select bg-secondary text-white border-0">
+                            <option value="">Semua Departemen</option>
+                            {% for d in departments %}
+                                <option value="{{ d.id_dept }}">{{ d.department_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <button onclick="triggerSearch()" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i> View
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainContentWrapper" style="width: 100%;">
+
+        <div id="defaultPlaceholder" style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 380px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            text-align: center;
+            padding: 48px 24px;
+            margin-top: 25px;
+        ">
+            <i class="fas fa-chart-bar" style="font-size: 52px; color: #e2e8f0; margin-bottom: 20px;"></i>
+            <h5 style="color: #64748b; font-weight: 700; margin-bottom: 8px;">Belum Ada Data Monitoring</h5>
+            <p style="color: #94a3b8; font-size: 14px; margin: 0;">Sesuaikan filter di atas dan klik <strong>View</strong> untuk mulai.</p>
+        </div>
+
+        <div id="monitoringResults" style="display: none;">
+            <div id="pic-table-container">
+                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;height:300px;display:flex;align-items:center;justify-content:center;margin-top:24px;">
+                    <div class="section-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const saved = sessionStorage.getItem('monitoring_pic_filters');
+    if (!saved) return;
+
+    const f = JSON.parse(saved);
+    document.getElementById('year').value    = f.year    || '';
+    document.getElementById('dept_id').value = f.dept_id || '';
+
+    triggerSearch();
+});
+
+function triggerSearch() {
+    const year    = document.getElementById('year').value;
+    const dept_id = document.getElementById('dept_id').value;
+
+    sessionStorage.setItem('monitoring_pic_filters', JSON.stringify({ year, dept_id }));
+
+    document.getElementById('defaultPlaceholder').style.display = 'none';
+    document.getElementById('monitoringResults').style.display  = '';
+    document.getElementById('pic-table-container').innerHTML = `
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;height:300px;display:flex;align-items:center;justify-content:center;margin-top:24px;">
+            <div class="section-spinner"></div>
+        </div>
+    `;
+
+    fetch('/monitoring/by_PIC/get_table', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ year, dept_id })
+    })
+    .then(r => r.text())
+    .then(html => {
+        const container = document.getElementById('pic-table-container');
+        container.innerHTML = html;
+        container.classList.add('section-loaded');
+    })
+    .catch(() => {
+        document.getElementById('pic-table-container').innerHTML =
+            '<p class="text-center text-danger p-4">Gagal memuat data. Silakan coba lagi.</p>';
+    });
+}
+
+function searchTable() {
+    const input = document.getElementById('searchPicTable');
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const table  = document.getElementById('picTable');
+    if (!table) return;
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    for (let row of rows) {
+        if (row.getElementsByTagName('td').length === 1) continue;
+        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+    }
+}
+</script>
+
+{% endblock %}

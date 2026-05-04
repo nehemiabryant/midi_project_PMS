@@ -111,3 +111,27 @@ def monitoring_by_sr_project():
     return render_template('/partials/_monitoring_project.html', 
                            items=trx_result.get('data'),
                            total_count=trx_result.get('total_count'))
+
+@mnt_bp.route('/by_PIC', methods=['GET'])                 
+@login_required                                         
+@monitoring_required
+def monitoring_by_pic():                                  
+    years       = sr_transaction.get_all_years_trx()
+    departments = sr_transaction.get_all_departments_trx()
+    return render_template('/page/monitoring_by_pic.html',
+                            user=session.get('user'),
+                            role=session.get('role'),
+                            active_menu='monitoring_by_pic',                          
+                            years=years,                 
+                            departments=departments)
+
+@mnt_bp.route('/by_PIC/get_table', methods=['POST'])      
+@login_required
+@ajax_required                                            
+def monitoring_by_pic_table():                          
+    req_data = request.get_json()
+    year     = req_data.get('year')
+    dept_id  = req_data.get('dept_id')
+                                                        
+    trx_result = sr_transaction.get_monitoring_by_pic_trx(year, dept_id)   
+    return render_template('/partials/_monitoring_pic_table.html', items=trx_result.get('data',[]))                                                      

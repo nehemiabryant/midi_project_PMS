@@ -507,10 +507,10 @@ def get_all_project_status_trx() -> list:
 def get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing, filter_dept_id):
     # Clean up empty strings from the frontend
     db_params = {
-        'filter_year': filter_year if filter_year else None,
-        'filter_q_id': int(filter_q_id) if filter_q_id else None,
-        'filter_ctg_id': int(filter_ctg_id) if filter_ctg_id else None,
-        'filter_dept_id': int(filter_dept_id) if filter_dept_id else None
+        'filter_year':    filter_year    if filter_year    else None,
+        'filter_q_id':    int(filter_q_id)    if filter_q_id    else None,
+        'filter_ctg_id':  int(filter_ctg_id)  if filter_ctg_id  else None,
+        'filter_dept_id': filter_dept_id if filter_dept_id else None
     }
 
     if filter_midikriing == 'true':
@@ -638,3 +638,20 @@ def get_monitoring_all_projects_trx(sr_list: list, limit: int = 50, offset: int 
     except Exception as e:
         Log.error(f'Exception | Get All Projects Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'total_count': 0}
+    
+def get_monitoring_by_pic_trx(year: str, dept_id: str) -> dict:
+    db_params = {
+        'year':    year    if year    else None,
+        'dept_id': dept_id if dept_id else None,
+    }
+    try:
+        db_result = sr_model.get_monitoring_by_pic_model(db_params)
+        if not db_result.get('status'):
+            Log.error(f'get_monitoring_by_pic_trx | DB failed | Msg: {db_result.get("msg")}')
+            return {'status': False, 'data': []}
+
+        all_items = parse_rows(db_result)
+        return {'status': True, 'data': all_items}
+    except Exception as e:
+        Log.error(f'Exception | Get Monitoring By PIC Trx | Msg: {str(e)}')
+        return {'status': False, 'data': []} 
