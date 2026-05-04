@@ -723,13 +723,14 @@ def get_filtered_sr_no(db_params: dict, shared_conn=None) -> dict:
             ON r.sr_no = sa.sr_no
             AND sa.deleted_at IS NULL
             AND sa.is_active = TRUE
-        LEFT JOIN public.master_departemen md ON sa.assigned_user = md.nik
+        LEFT JOIN public.karyawan_all k ON sa.assigned_user = k.nik
+        LEFT JOIN public.master_departemen md ON k."PS_COST_CENTER" = md.id_dept
         WHERE
             RIGHT(r.sr_no, 4) = COALESCE(%(filter_year)s, TO_CHAR(NOW(), 'YYYY'))
             AND (%(filter_q_id)s IS NULL OR r.q_id = %(filter_q_id)s)
             AND (%(filter_ctg_id)s IS NULL OR r.ctg_id = %(filter_ctg_id)s)
             AND (%(filter_midikriing)s IS NULL OR r.status_midikriing = %(filter_midikriing)s)
-            AND (%(filter_dept_id)s IS NULL OR md.id_dept = %(filter_dept_id)s::bigint)
+            AND (%(filter_dept_id)s IS NULL OR k."PS_COST_CENTER" = %(filter_dept_id)s)
         ORDER BY r.sr_no DESC
     """
     
@@ -960,6 +961,56 @@ def get_monitoring_all_projects(sr_list: list, shared_conn=None) -> dict:
         return conn.selectDataHeader(sql, {'sr_list': sr_list}) if conn else {'status': False, 'data': [], 'msg': 'DB conn failed'}
     except Exception as e:
         Log.error(f'DB Exception | get_monitoring_all_projects | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
+def get_monitoring_by_pic_model(params: dict) -> dict:
+    sql = """
+        SELECT
+            su.nik,
+            COALESCE(k.nama, su.nik)                                       AS pic_name,
+            COALESCE(md.departemen, 'Tanpa Departemen')                    AS dept_name,
+            COUNT(DISTINCT sa_yr.sr_no)                                    AS total,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 1 THEN sa_yr.sr_no END) AS q1,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 2 THEN sa_yr.sr_no END) AS q2,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 3 THEN sa_yr.sr_no END) AS q3,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 4 THEN sa_yr.sr_no END) AS q4,
+            COUNT(DISTINCT sl_dev.sr_no)                                   AS dev_done,
+            COUNT(DISTINCT sl_qa.sr_no)                                    AS qa_done,
+            COUNT(DISTINCT sl_ro.sr_no)                                    AS ro_done
+        FROM sr_user su
+        JOIN karyawan_all k ON su.nik = k.nik
+        LEFT JOIN master_departemen md ON k."PS_COST_CENTER" = md.id_dept
+        LEFT JOIN (
+            SELECT sa.assigned_user, sa.sr_no, sr.q_id
+            FROM sr_assignments sa
+            JOIN sr_request sr ON sa.sr_no = sr.sr_no
+            WHERE sa.is_active = TRUE
+              AND sa.deleted_at IS NULL
+              AND RIGHT(sr.sr_no, 4) = COALESCE(%(year)s, TO_CHAR(NOW(), 'YYYY'))
+        ) sa_yr ON su.nik = sa_yr.assigned_user
+        LEFT JOIN (
+            SELECT DISTINCT sr_no FROM sr_logs WHERE smk_id = 106 AND finished_at IS NOT NULL
+        ) sl_dev ON sa_yr.sr_no = sl_dev.sr_no
+        LEFT JOIN (
+            SELECT DISTINCT sr_no FROM sr_logs WHERE smk_id = 109 AND finished_at IS NOT NULL
+        ) sl_qa ON sa_yr.sr_no = sl_qa.sr_no
+        LEFT JOIN (
+            SELECT DISTINCT sr_no FROM sr_logs WHERE smk_id = 116 AND finished_at IS NOT NULL
+        ) sl_ro ON sa_yr.sr_no = sl_ro.sr_no
+        WHERE (%(dept_id)s IS NULL OR k."PS_COST_CENTER" = %(dept_id)s)
+        GROUP BY su.nik, k.nama, md.departemen
+        ORDER BY md.departemen NULLS LAST, k.nama NULLS LAST
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, params)
+    except Exception as e:
+        Log.error(f'DB Exception | get_monitoring_by_pic | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()

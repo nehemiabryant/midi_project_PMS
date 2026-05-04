@@ -1,0 +1,84 @@
+<div class="card shadow-sm mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0; background-color: #ffffff; overflow: hidden;">
+
+    <div class="card-header bg-white" style="padding: 16px 20px; border-bottom: 1px solid #f1f5f9;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span style="font-weight: 800; color: #1e293b; font-size: 15px;">Data PIC</span>
+            <div style="position: relative; width: 280px;">
+                <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 11px; pointer-events: none;"></i>
+                <input type="text" id="searchPicTable" onkeyup="searchTable()" placeholder="Cari nama PIC..."
+                    style="width: 100%; padding: 6px 10px 6px 28px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-size: 12px; color: #334155; outline: none;"
+                    onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+                    onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'">
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body p-0" style="overflow-x: auto;">
+        <table id="picTable" class="table table-hover mb-0 align-middle" style="font-size: 12px; color: #334155; text-align: center; min-width: 900px;">
+            <thead style="background-color: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #e2e8f0;">
+                <tr>
+                    <th rowspan="2" style="padding: 10px 12px; text-align: left; vertical-align: middle; border-bottom: 2px solid #e2e8f0;">Nama PIC</th>
+                    <th colspan="4" style="padding: 10px 12px; border-left: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">Quarter</th>
+                    <th colspan="2" style="padding: 10px 12px; border-left: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">Dev</th>
+                    <th colspan="2" style="padding: 10px 12px; border-left: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">QA</th>
+                    <th colspan="2" style="padding: 10px 12px; border-left: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">Rollout</th>
+                </tr>
+                <tr>
+                    <th style="padding: 8px 12px; border-left: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">Q1</th>
+                    <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Q2</th>
+                    <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Q3</th>
+                    <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Q4</th>
+                    <th style="padding: 8px 12px; border-left: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">Done</th>
+                    <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Ach%</th>
+                    <th style="padding: 8px 12px; border-left: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">Done</th>
+                    <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Ach%</th>
+                    <th style="padding: 8px 12px; border-left: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">Done</th>
+                    <th style="padding: 8px 12px; border-bottom: 2px solid #e2e8f0;">Ach%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                    {% set ns = namespace(current_dept='') %}
+                    {% for item in items %}
+                        {% if item.dept_name != ns.current_dept %}
+                            {% set ns.current_dept = item.dept_name %}
+                            <tr style="background-color: #f1f5f9;">
+                                <td colspan="11" style="padding: 8px 12px; text-align: left; font-weight: 700; color: #334155; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    {{ item.dept_name }}
+                                </td>
+                            </tr>
+                        {% endif %}
+                        {% set dev_ach = ((item.dev_done / item.total * 100) | round(1)) if item.total > 0 else 0 %}
+                        {% set qa_ach  = ((item.qa_done  / item.total * 100) | round(1)) if item.total > 0 else 0 %}
+                        {% set ro_ach  = ((item.ro_done  / item.total * 100) | round(1)) if item.total > 0 else 0 %}
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px; text-align: left; font-weight: 600; color: #0f172a;">{{ item.pic_name }}</td>
+                            <td style="padding: 10px 12px; border-left: 1px solid #f1f5f9;">{{ item.q1 }}</td>
+                            <td style="padding: 10px 12px;">{{ item.q2 }}</td>
+                            <td style="padding: 10px 12px;">{{ item.q3 }}</td>
+                            <td style="padding: 10px 12px;">{{ item.q4 }}</td>
+                            <td style="padding: 10px 12px; border-left: 1px solid #f1f5f9;">{{ item.dev_done }}</td>
+                            <td style="padding: 10px 12px;">{{ dev_ach }}%</td>
+                            <td style="padding: 10px 12px; border-left: 1px solid #f1f5f9;">{{ item.qa_done }}</td>
+                            <td style="padding: 10px 12px;">{{ qa_ach }}%</td>
+                            <td style="padding: 10px 12px; border-left: 1px solid #f1f5f9;">{{ item.ro_done }}</td>
+                            <td style="padding: 10px 12px;">{{ ro_ach }}%</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="11" style="padding: 64px 24px; text-align: center; border: none;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <div style="width: 52px; height: 52px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-folder-open" style="font-size: 22px; color: #cbd5e1;"></i>
+                                </div>
+                                <span style="font-size: 14px; font-weight: 700; color: #1e293b;">Tidak Ada Data PIC</span>
+                                <span style="font-size: 12px; color: #94a3b8;">Tidak ada data ditemukan untuk filter ini.</span>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
