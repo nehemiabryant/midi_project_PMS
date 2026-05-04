@@ -778,8 +778,8 @@ def get_monitoring_status_time(sr_list: list, shared_conn=None) -> dict:
     sql = """
         SELECT
             COALESCE(SUM(CASE WHEN r.smk_id = 116 THEN 1 ELSE 0 END), 0) AS complete,
-            COALESCE(SUM(CASE WHEN r.smk_id >= 101 AND r.smk_id < 116 AND CURRENT_DATE <= COALESCE(t.finish_date, '2099-12-31'::DATE) THEN 1 ELSE 0 END), 0) AS on_time,
-            COALESCE(SUM(CASE WHEN r.smk_id >= 101 AND r.smk_id < 116 AND CURRENT_DATE > t.finish_date THEN 1 ELSE 0 END), 0) AS over
+            COALESCE(SUM(CASE WHEN r.smk_id >= 106 AND r.smk_id < 116 AND CURRENT_DATE <= COALESCE(t.finish_date, '2099-12-31'::DATE) THEN 1 ELSE 0 END), 0) AS on_time,
+            COALESCE(SUM(CASE WHEN r.smk_id >= 106 AND r.smk_id < 116 AND CURRENT_DATE > t.finish_date THEN 1 ELSE 0 END), 0) AS over
         FROM public.sr_request r
         LEFT JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6
         WHERE r.sr_no = ANY(%(sr_list)s)
