@@ -2,28 +2,128 @@
 {% block content %}
 
 <style>
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes sectionFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.section-spinner {
-    width: 36px; height: 36px;
-    border: 3px solid #e2e8f0;
-    border-top-color: #3b82f6;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-.section-loaded { animation: sectionFadeIn 0.4s ease forwards; }
+    /* =========================================
+       ANIMASI
+    ========================================= */
+    @keyframes spin { 
+        to { transform: rotate(360deg); } 
+    }
+    @keyframes sectionFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    
+    .section-spinner {
+        width: 40px; 
+        height: 40px;
+        border: 4px solid #e2e8f0;
+        border-top-color: #3b82f6; 
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    .section-loaded { 
+        animation: sectionFadeIn 0.4s ease forwards; 
+    }
+
+    /* =========================================
+       TYPOGRAPHY & GLOBAL LAYOUT
+    ========================================= */
+    .page-title {
+        font-weight: 800;
+        color: #1e293b;
+        font-size: 24px;
+        margin-bottom: 24px;
+        letter-spacing: -0.5px;
+    }
+
+    /* =========================================
+       EMPTY STATE (PLACEHOLDER)
+    ========================================= */
+    .empty-state-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        background: #ffffff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        text-align: center;
+        padding: 48px 24px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .empty-state-icon {
+        font-size: 56px;
+        color: #e2e8f0;
+        margin-bottom: 24px;
+    }
+
+    .empty-state-title {
+        color: #475569;
+        font-weight: 700;
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+
+    .empty-state-desc {
+        color: #94a3b8;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    /* =========================================
+       TABLE STYLING (Persiapan saat data di-fetch)
+    ========================================= */
+    .table-wrapper {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    #picTable {
+        width: 100%;
+        margin-bottom: 0;
+        font-size: 13px;
+        color: #334155;
+    }
+
+    #picTable thead th {
+        background-color: #f8fafc;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        padding: 16px;
+        border-bottom: 2px solid #e2e8f0;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    #picTable tbody td {
+        padding: 16px 20px; 
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    #picTable tbody tr:hover {
+        background-color: #f8fafc;
+    }
 </style>
 
 <div class="container-fluid mt-4">
     <h2 class="page-title">Monitoring by PIC</h2>
 
+    <!-- FILTER SECTION (DESAIN ASLI DIKEMBALIKAN) -->
     <div class="filter-section">
         <div class="card bg-dark text-white mb-4 shadow-sm">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
+                    
                     <div class="col-md-2">
                         <label class="form-label text-muted small">Pilih Tahun</label>
                         <select id="year" class="form-select bg-secondary text-white border-0">
@@ -49,34 +149,27 @@
                             <i class="fas fa-search me-2"></i> View
                         </button>
                     </div>
+                    
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="mainContentWrapper" style="width: 100%;">
+    <!-- MAIN CONTENT AREA -->
+    <div id="mainContentWrapper" style="width: 100%;margin-top: 24px;">
 
-        <div id="defaultPlaceholder" style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 380px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            text-align: center;
-            padding: 48px 24px;
-            margin-top: 25px;
-        ">
-            <i class="fas fa-chart-bar" style="font-size: 52px; color: #e2e8f0; margin-bottom: 20px;"></i>
-            <h5 style="color: #64748b; font-weight: 700; margin-bottom: 8px;">Belum Ada Data Monitoring</h5>
-            <p style="color: #94a3b8; font-size: 14px; margin: 0;">Sesuaikan filter di atas dan klik <strong>View</strong> untuk mulai.</p>
+        <!-- EMPTY STATE -->
+        <div id="defaultPlaceholder" class="empty-state-card">
+            <i class="fas fa-users empty-state-icon"></i>
+            <h5 class="empty-state-title">Belum Ada Data Monitoring PIC</h5>
+            <p class="empty-state-desc">Sesuaikan filter di atas dan klik <strong style="color: #3b82f6;">View</strong> untuk menampilkan performa PIC.</p>
         </div>
 
+        <!-- HASIL PENCARIAN -->
         <div id="monitoringResults" style="display: none;">
             <div id="pic-table-container">
-                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;height:300px;display:flex;align-items:center;justify-content:center;margin-top:24px;">
+                <!-- Animasi Loading -->
+                <div class="table-wrapper d-flex align-items-center justify-content-center" style="height: 400px;">
                     <div class="section-spinner"></div>
                 </div>
             </div>
@@ -103,11 +196,15 @@ function triggerSearch() {
 
     sessionStorage.setItem('monitoring_pic_filters', JSON.stringify({ year, dept_id }));
 
+    // Transisi tampilan
     document.getElementById('defaultPlaceholder').style.display = 'none';
-    document.getElementById('monitoringResults').style.display  = '';
+    document.getElementById('monitoringResults').style.display  = 'block'; 
+    
+    // Tampilkan Loading
     document.getElementById('pic-table-container').innerHTML = `
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;height:300px;display:flex;align-items:center;justify-content:center;margin-top:24px;">
-            <div class="section-spinner"></div>
+        <div class="table-wrapper d-flex flex-column align-items-center justify-content-center" style="height: 400px;">
+            <div class="section-spinner mb-3"></div>
+            <h6 style="color: #64748b; font-weight: 600;">Mengambil data PIC...</h6>
         </div>
     `;
 
@@ -126,8 +223,13 @@ function triggerSearch() {
         container.classList.add('section-loaded');
     })
     .catch(() => {
-        document.getElementById('pic-table-container').innerHTML =
-            '<p class="text-center text-danger p-4">Gagal memuat data. Silakan coba lagi.</p>';
+        document.getElementById('pic-table-container').innerHTML = `
+            <div class="table-wrapper d-flex flex-column align-items-center justify-content-center" style="height: 400px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: #ef4444; margin-bottom: 16px;"></i>
+                <h6 style="color: #475569; font-weight: 600;">Gagal memuat data.</h6>
+                <p class="text-muted small">Silakan periksa koneksi internet atau coba lagi.</p>
+            </div>
+        `;
     });
 }
 
@@ -135,9 +237,12 @@ function searchTable() {
     const input = document.getElementById('searchPicTable');
     if (!input) return;
     const filter = input.value.toLowerCase();
+    
     const table  = document.getElementById('picTable');
     if (!table) return;
+    
     const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
     for (let row of rows) {
         if (row.getElementsByTagName('td').length === 1) continue;
         row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
