@@ -93,14 +93,21 @@
             <button type="button" class="nav-link nav-toggle {{ 'active' if active_menu in report_menus }}">
                 <span class="nav-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
                 <span class="nav-text">Monitoring</span>
-                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in report_menus }}"
-                    aria-hidden="true"></i>
+                <i class="fas fa-chevron-right chevron {{ 'open' if active_menu in report_menus }}" aria-hidden="true"></i>
             </button>
+    
             <div class="nav-submenu {{ 'open' if active_menu in report_menus }}">
+                
                 <a href="{{ url_for('owh_monitor.monitoring_by_sr') }}"
                 class="nav-sublink {{ 'active' if active_menu == 'monitoring_by_sr' }}">
-                <i class="fas fa-circle" aria-hidden="true"></i><span class="nav-text">Monitoring by SR</span>                 
+                    <i class="fas fa-circle" aria-hidden="true"></i><span class="nav-text">Monitoring by SR</span>                
                 </a>
+                
+                <a href="{{ url_for('owh_monitor.monitoring_by_pic') }}"
+                class="nav-sublink {{ 'active' if active_menu == 'monitoring_by_pic' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i><span class="nav-text">Monitoring by PIC</span>                
+                </a>
+                
             </div>
         </div>
         {% endif %}
