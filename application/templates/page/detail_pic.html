@@ -79,6 +79,7 @@
     </div>
     {% endif %}
 
+    {% if required_docs %}
     <div class="detail-card">
         <h3 class="section-title">Lampiran Dokumen</h3>
         <form method="POST" action="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=sr_detail.sr_no) }}" enctype="multipart/form-data">
@@ -124,6 +125,7 @@
             </div>
         </form>
     </div>
+    {% endif %}
 
     {% for section in pic_sections %}
     <div class="detail-card">
