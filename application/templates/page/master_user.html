@@ -250,7 +250,9 @@ document.getElementById('inputNik').addEventListener('input', () => {
     if (q.length < 2) { document.getElementById('nikSuggestions').style.display = 'none'; return; }
     searchTimeout = setTimeout(async () => {
         try {
-            const res = await fetch(`/karyawan/search?q=${encodeURIComponent(q)}&limit=8`);
+            const res = await fetch(`/karyawan/search?q=${encodeURIComponent(q)}&limit=8`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             const json = await res.json();
             renderSuggestions(json.data || []);
         } catch { document.getElementById('nikSuggestions').style.display = 'none'; }
