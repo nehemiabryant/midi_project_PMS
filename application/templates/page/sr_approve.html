@@ -356,7 +356,7 @@ legend {
                                     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
                                         {% for sm in gm_assign_data.sm_options %}
                                             <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
-                                                <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}">
+                                                <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}">
                                                 {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
                                             </label>
                                         {% endfor %}
@@ -374,7 +374,7 @@ legend {
                                         </select>
                                     </div>
 
-                                    <div style="margin-bottom: 10px;">
+                                    <div id="midikriingApproveGroup" style="margin-bottom: 10px; display: none;">
                                         <label for="status_midikriing" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Status Midikriing</label>
                                         <select name="status_midikriing" id="status_midikriing" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
                                             <option value="" disabled selected>-- Pilih Status Midikriing --</option>
@@ -626,6 +626,23 @@ legend {
         if (actionSelect) {
             actionSelect.addEventListener('change', applyRequiredLogic);
         }
+    });
+
+    // Midikriing Toggle (GM Approval)
+    function toggleMidikriingApprove() {
+        const selected = document.querySelector('.sm-radio:checked');
+        const group = document.getElementById('midikriingApproveGroup');
+        if (!group) return;
+        const show = selected && selected.dataset.deptId === 'C122';
+        group.style.display = show ? 'block' : 'none';
+        if (!show) document.getElementById('status_midikriing').value = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.sm-radio').forEach(r => {
+            r.addEventListener('change', toggleMidikriingApprove);
+        });
+        toggleMidikriingApprove();
     });
 
     // Date Logic

@@ -109,7 +109,8 @@
                             </select>
                         </div>
 
-                        <div id="midikriingFormGroup" class="form-group" style="margin-top: 15px; display: {% if sm_dept_id == 2 %}block{% else %}none{% endif %};">
+                        {% set midi_display = 'block' if sm_dept_id == 'C122' else 'none' %}
+                        <div id="midikriingFormGroup" class="form-group" style="margin-top: 15px; display: {{ midi_display }};">
                             <label class="info-label">Status Midikriing</label>
                             <select name="status_midikriing" class="modern-select">
                                 <option value="">-- Pilih Status Midikriing --</option>
@@ -220,7 +221,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <select name="new_sm_nik" id="smSelectDropdown" class="modern-select" required onchange="onSmChange(this)">
-                            <option value="">-- Pilih Scrum Master Baru --</option>
+                            <option value="" disabled>-- Pilih Scrum Master Baru --</option>
                             {% for sm in pmo_form_data.sm_candidates %}
                                 <option value="{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
                                     {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
@@ -479,10 +480,10 @@
 
 <script>
     function onSmChange(select) {
-        const deptId = parseInt(select.options[select.selectedIndex]?.dataset?.deptId);
+        const deptId = select.options[select.selectedIndex]?.dataset?.deptId;
         const midikriingGroup = document.getElementById('midikriingFormGroup');
         if (midikriingGroup) {
-            midikriingGroup.style.display = (deptId === 2) ? 'block' : 'none';
+            midikriingGroup.style.display = (deptId === 'C122') ? 'block' : 'none';
         }
     }
 

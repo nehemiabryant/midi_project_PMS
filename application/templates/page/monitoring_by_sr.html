@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('dept_id').value    = f.dept_id    || '';
     document.getElementById('midikriing').value = f.midikriing || '';
 
-    if (f.dept_id === '2') {
+    if (f.dept_id === 'C122') {
         document.getElementById('midikriingWrapper').style.display = '';
     }
 
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function toggleMidikriing(select) {
-    const show = select.value === '2';
+    const show = select.value === 'C122';
     const wrapper = document.getElementById('midikriingWrapper');
     wrapper.style.display = show ? '' : 'none';
     if (!show) document.getElementById('midikriing').value = '';
