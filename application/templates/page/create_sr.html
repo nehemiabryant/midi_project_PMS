@@ -270,7 +270,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         try {
-            const response = await fetch(`/karyawan/search?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`/karyawan/search?q=${encodeURIComponent(query)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest'
+            }}); 
             const json = await response.json(); 
             const results = json.data || []; 
 
