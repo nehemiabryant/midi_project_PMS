@@ -76,7 +76,7 @@ def sr_detail_pic(sr_no):
         else:
             flash('Tidak ada file yang dipilih.', 'warning')
 
-        return redirect(url_for('owh_dashboard.myWork_menu'))
+        return redirect(url_for('owh_dashboard.sr_detail_pic', sr_no=sr_no))
 
     dropdown_options = workflow_transaction.get_dropdown_options(current_smk_id, sr_no, nik)
     return render_template(
