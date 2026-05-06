@@ -972,10 +972,10 @@ def get_monitoring_by_pic_model(params: dict) -> dict:
             COALESCE(k.nama, su.nik)                                       AS pic_name,
             COALESCE(md.departemen, 'Tanpa Departemen')                    AS dept_name,
             COUNT(DISTINCT sa_yr.sr_no)                                    AS total,
-            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 1 THEN sa_yr.sr_no END) AS q1,
-            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 2 THEN sa_yr.sr_no END) AS q2,
-            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 3 THEN sa_yr.sr_no END) AS q3,
-            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 4 THEN sa_yr.sr_no END) AS q4,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 1 THEN sa_yr.sr_no END)  AS q1,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 2 THEN sa_yr.sr_no END)  AS q2,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 3 THEN sa_yr.sr_no END)  AS q3,
+            COUNT(DISTINCT CASE WHEN sa_yr.q_id = 4 THEN sa_yr.sr_no END)  AS q4,
             COUNT(DISTINCT sl_dev.sr_no)                                   AS dev_done,
             COUNT(DISTINCT sl_qa.sr_no)                                    AS qa_done,
             COUNT(DISTINCT sl_ro.sr_no)                                    AS ro_done
@@ -986,9 +986,9 @@ def get_monitoring_by_pic_model(params: dict) -> dict:
             SELECT sa.assigned_user, sa.sr_no, sr.q_id
             FROM sr_assignments sa
             JOIN sr_request sr ON sa.sr_no = sr.sr_no
-            WHERE sa.is_active = TRUE
-              AND sa.deleted_at IS NULL
-              AND RIGHT(sr.sr_no, 4) = COALESCE(%(year)s, TO_CHAR(NOW(), 'YYYY'))
+            -- Removed the sa.is_active = TRUE line here
+            WHERE sa.deleted_at IS NULL
+            AND RIGHT(sr.sr_no, 4) = COALESCE(%(year)s, TO_CHAR(NOW(), 'YYYY'))
         ) sa_yr ON su.nik = sa_yr.assigned_user
         LEFT JOIN (
             SELECT DISTINCT sr_no FROM sr_logs WHERE smk_id = 106 AND finished_at IS NOT NULL
@@ -1001,7 +1001,7 @@ def get_monitoring_by_pic_model(params: dict) -> dict:
         ) sl_ro ON sa_yr.sr_no = sl_ro.sr_no
         WHERE (%(dept_id)s IS NULL OR k."PS_COST_CENTER" = %(dept_id)s)
         GROUP BY su.nik, k.nama, md.departemen
-        ORDER BY md.departemen NULLS LAST, k.nama NULLS LAST
+        ORDER BY md.departemen NULLS LAST, k.nama NULLS LAST;
     """
     conn = None
     try:
