@@ -287,33 +287,37 @@ def get_sm_options_model(nik_list: list) -> dict:
 def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, shared_conn=None) -> dict:
     """
     Upsert assignments pada SR.
-    - Dict dengan 'assign_id' → UPDATE langsung by PK (tidak INSERT ulang)
-    - Dict tanpa 'assign_id'  → INSERT baru (tanpa ON CONFLICT agar error constraint langsung terlihat)
+    - Dict dengan 'assign_id' → soft-delete record lama + INSERT record baru (audit-safe, task history terjaga)
+    - Dict tanpa 'assign_id'  → INSERT baru
     assignments = list of {'nik': str, 'it_role_id': int, 'is_active': bool (opsional), 'assign_id': int (opsional)}
     """
-    sql_update = """
-        UPDATE sr_assignments
-        SET assigned_user = %(nik)s,
-            it_role_id    = %(it_role_id)s,
-            assigned_by   = %(assigned_by)s,
-            assigned_at   = NOW()
-        WHERE assign_id = %(assign_id)s
-          AND deleted_at IS NULL
+    # Ambil info record lama berdasarkan assign_id
+    sql_check_by_id = """
+        SELECT assigned_user, is_active
+        FROM sr_assignments
+        WHERE assign_id = %(assign_id)s AND deleted_at IS NULL
     """
 
-    # 1. Query untuk cek siapa user yang saat ini aktif di role tersebut
+    # Soft-delete record lama berdasarkan assign_id spesifik
+    sql_soft_delete_by_id = """
+        UPDATE sr_assignments
+        SET is_active = FALSE, deleted_at = NOW(), assigned_by = %(assigned_by)s
+        WHERE assign_id = %(assign_id)s AND deleted_at IS NULL
+    """
+
+    # Query untuk cek siapa user yang saat ini aktif di role tersebut (untuk INSERT baru)
     sql_check_active = """
-        SELECT assigned_user 
-        FROM sr_assignments 
-        WHERE sr_no = %(sr_no)s 
-          AND it_role_id = %(it_role_id)s 
-          AND is_active = TRUE 
+        SELECT assigned_user
+        FROM sr_assignments
+        WHERE sr_no = %(sr_no)s
+          AND it_role_id = %(it_role_id)s
+          AND is_active = TRUE
           AND deleted_at IS NULL
         LIMIT 1
     """
 
-    # 2. Query untuk menonaktifkan user lama (Audit-Friendly)
-    sql_soft_delete = """
+    # Soft-delete berdasarkan role (untuk INSERT baru pada SINGLE_USER_ROLES)
+    sql_soft_delete_by_role = """
         UPDATE sr_assignments
         SET is_active = false,
             deleted_at = NOW(),
@@ -334,55 +338,76 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
 
         for a in assignments:
             if a.get('assign_id'):
-                sql = sql_update
-                params = {
+                # Cek apakah record lama masih ada dan user-nya berbeda
+                check_res = conn.selectData(sql_check_by_id, {'assign_id': a['assign_id']})
+                if not (check_res.get('status') and check_res.get('data')):
+                    Log.warning(f"Assignment Replace | assign_id {a['assign_id']} tidak ditemukan atau sudah dihapus.")
+                    continue
+
+                current_nik      = check_res['data'][0][0]
+                current_is_active = check_res['data'][0][1]
+
+                if current_nik == a['nik']:
+                    Log.info(f"Assignment Smart Bypass | SR: {sr_no} | assign_id: {a['assign_id']} | NIK {a['nik']} tidak berubah.")
+                    continue
+
+                # Soft-delete record lama agar task history tetap terjaga
+                sd_result = conn.executeDataNoCommit(sql_soft_delete_by_id, {
                     'assign_id': a['assign_id'],
-                    'nik': a['nik'],
-                    'it_role_id': a['it_role_id'],
+                    'assigned_by': assigned_by
+                })
+                if not sd_result.get('status'):
+                    return {'status': False, 'data': [], 'msg': sd_result.get('msg', 'Gagal soft-delete assignment lama')}
+
+                # Insert record baru dengan is_active mewarisi nilai record lama
+                ins_result = conn.executeDataNoCommit(sql_insert, {
+                    'sr_no': sr_no,
+                    'assigned_user': a['nik'],
                     'assigned_by': assigned_by,
-                }
-                result = conn.executeDataNoCommit(sql, params)
-                if not result.get('status'):
-                    return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal update assignment')}
+                    'it_role_id': a['it_role_id'],
+                    'is_active': current_is_active,
+                })
+                if not ins_result.get('status'):
+                    return {'status': False, 'data': [], 'msg': ins_result.get('msg', 'Gagal insert assignment pengganti')}
+
             else:
                 role_id = int(a['it_role_id'])
 
                 # ONLY run the soft-delete check for single-user roles
                 if role_id in SINGLE_USER_ROLES:
                     check_res = conn.selectData(sql_check_active, {'sr_no': sr_no, 'it_role_id': role_id})
-                    
+
                     if check_res.get('status') and check_res.get('data'):
                         current_active_nik = check_res['data'][0][0]
-                        
+
                         if current_active_nik == a['nik']:
                             Log.info(f"Assignment Smart Bypass | SR: {sr_no} | Role: {role_id} | NIK {a['nik']} is already active.")
-                            continue 
-                            
-                        sd_params = {
+                            continue
+
+                        sd_result = conn.executeDataNoCommit(sql_soft_delete_by_role, {
                             'sr_no': sr_no,
                             'it_role_id': role_id,
                             'assigned_by': assigned_by
-                        }
-                        sd_result = conn.executeDataNoCommit(sql_soft_delete, sd_params)
+                        })
                         if not sd_result.get('status'):
                             return {'status': False, 'data': [], 'msg': sd_result.get('msg', 'Gagal soft-delete assignment lama')}
 
-                # Standard Insert runs for everyone (Multi-users skip the soft-delete above)
-                sql = sql_insert
-                params = {
+                # Standard Insert
+                # SINGLE_USER_ROLES selalu TRUE — user lama sudah di-soft-delete lebih dahulu
+                is_active_val = True if role_id in SINGLE_USER_ROLES else a.get('is_active', False)
+                result = conn.executeDataNoCommit(sql_insert, {
                     'sr_no': sr_no,
                     'assigned_user': a['nik'],
                     'assigned_by': assigned_by,
                     'it_role_id': role_id,
-                    'is_active': a.get('is_active', False), # Uses the value assigned in Step 5
-                }
-                result = conn.executeDataNoCommit(sql, params)
+                    'is_active': is_active_val,
+                })
                 if not result.get('status'):
-                    return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal upsert assignment')}
-                    
+                    return {'status': False, 'data': [], 'msg': result.get('msg', 'Gagal insert assignment')}
+
         return {'status': True, 'data': [], 'msg': 'Assignment berhasil disimpan.'}
 
-    if shared_conn:
+    if shared_conn: 
         return _execute_all(shared_conn)
 
     conn = None
@@ -406,32 +431,71 @@ def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, sh
 
 def delete_assignments_by_ids_model(assign_ids: list, shared_conn=None) -> dict:
     """
-    Hapus assignment berdasarkan list assign_id.
-    Digunakan oleh IT PMO untuk menghapus assignment tertentu pada SR.
+    Hapus assignment berdasarkan list assign_id (soft-delete).
+    Jika assignment yang dihapus memiliki is_active=TRUE, user FALSE tertua
+    di role yang sama pada SR yang sama otomatis dipromosikan menjadi TRUE.
+    Dipisah dua statement agar constraint uq_sr_role_active tidak violation.
     """
     if not assign_ids:
         return {'status': True, 'data': [], 'msg': 'Tidak ada assignment yang dihapus.'}
 
-    sql = """ 
+    sql_get_active = """
+        SELECT DISTINCT sr_no, it_role_id
+        FROM sr_assignments
+        WHERE assign_id IN %(assign_ids)s
+          AND is_active = TRUE
+          AND deleted_at IS NULL
+    """
+
+    sql_delete = """
         UPDATE sr_assignments
         SET deleted_at = NOW(), is_active = FALSE
         WHERE assign_id IN %(assign_ids)s
           AND deleted_at IS NULL
     """
+
+    sql_promote = """
+        UPDATE sr_assignments
+        SET is_active = TRUE
+        WHERE assign_id = (
+            SELECT assign_id FROM sr_assignments
+            WHERE sr_no = %(sr_no)s
+              AND it_role_id = %(it_role_id)s
+              AND is_active = FALSE
+              AND deleted_at IS NULL
+            ORDER BY assign_id ASC
+            LIMIT 1
+        )
+    """
     params = {'assign_ids': tuple(assign_ids)}
 
+    def _execute(conn):
+        # Step 1: ambil role mana saja yang akan kehilangan user aktif
+        active_res = conn.selectData(sql_get_active, params)
+        freed = active_res.get('data', []) if active_res.get('status') else []
+
+        # Step 2: soft-delete — setelah ini constraint terpenuhi (tidak ada TRUE lagi untuk role tsb)
+        del_res = conn.executeDataNoCommit(sql_delete, params)
+        if not del_res.get('status'):
+            return {'status': False, 'data': [], 'msg': del_res.get('msg', 'Gagal hapus assignment')}
+
+        # Step 3: promosikan user FALSE tertua per role yang kehilangan user aktif
+        for row in freed:
+            conn.executeDataNoCommit(sql_promote, {'sr_no': row[0], 'it_role_id': row[1]})
+
+        return {'status': True, 'data': [], 'msg': 'Assignment dihapus.'}
+
     if shared_conn:
-        result = shared_conn.executeDataNoCommit(sql, params)
-        return result if not result.get('status') else {'status': True, 'data': [], 'msg': 'Assignment dihapus.'}
+        return _execute(shared_conn)
 
     conn = None
     try:
         conn = DatabasePG("supabase", autocommit=False)
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        result = conn.executeDataNoCommit(sql, params)
+        result = _execute(conn)
         if not result.get('status'):
-            raise Exception(result.get('msg', 'Gagal hapus assignment'))
+            raise Exception(result.get('msg'))
         conn._conn.commit()
         return {'status': True, 'data': [], 'msg': 'Assignment berhasil dihapus.'}
     except Exception as e:

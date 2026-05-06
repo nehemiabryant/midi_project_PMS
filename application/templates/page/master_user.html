@@ -66,16 +66,16 @@
                     <input type="hidden" id="selectedNik" name="nik">
                     <div id="selectedNama" class="selected-name-label" style="display:none;"></div>
 
-                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu atau lebih)</span></label>
+                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu)</span></label>
                     <div class="checkbox-list" id="roleCheckboxList">
                         {% for role in roles %}
                         <label class="checkbox-item">
-                            <input type="checkbox" name="approle_id" value="{{ role.approle_id }}">
+                            <input type="radio" name="approle_id" value="{{ role.approle_id }}">
                             <span>{{ role.approle_name }}</span>
                         </label>
                         {% endfor %}
                     </div>
-                    <p id="roleError" class="error-text" style="display:none;">Pilih minimal satu role.</p>
+                    <p id="roleError" class="error-text" style="display:none;">Pilih satu role.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-modal-cancel" id="btnBatalAssign">Batal</button>
@@ -100,16 +100,16 @@
                     <label style="margin-top: 16px;">Nama</label>
                     <input type="text" id="editNama" disabled class="input-disabled">
                     
-                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu atau lebih)</span></label>
+                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu)</span></label>
                     <div class="checkbox-list" id="editRoleCheckboxList">
                         {% for role in roles %}
                         <label class="checkbox-item">
-                            <input type="checkbox" name="approle_id" value="{{ role.approle_id }}">
+                            <input type="radio" name="approle_id" value="{{ role.approle_id }}">
                             <span>{{ role.approle_name }}</span>
                         </label>
                         {% endfor %}
                     </div>
-                    <p id="editRoleError" class="error-text" style="display:none;">Pilih minimal satu role.</p>
+                    <p id="editRoleError" class="error-text" style="display:none;">Pilih satu role.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-modal-cancel" id="btnBatalEdit">Batal</button>
