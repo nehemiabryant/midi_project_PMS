@@ -10,15 +10,32 @@
 
 <aside class="sidebar" id="mainSidebar">
 
-    <div class="sidebar-brand">
-        <div class="brand-logo-text">
+<style>
+    /* Mengatur agar ikon garis 3 pindah ke tengah saat sidebar ditutup (collapsed) */
+    #mainSidebar.collapsed .sidebar-brand {
+        justify-content: center !important;
+        padding-right: 0 !important;
+    }
+    #mainSidebar.collapsed .brand-logo-text {
+        display: none !important;
+    }
+</style>
+
+    <div class="sidebar-brand" style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-right: 15px;">
+        
+        <div class="brand-logo-text" style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
             <img src="{{ url_for('static', filename='img/logo_alfamidi_square.png') }}" alt="Alfamidi Logo"
-                class="sidebar-brand-logo-img" onerror="this.style.display='none'" />
-            <span class="brand-system">Project Management&nbsp;System</span>
+                class="sidebar-brand-logo-img" onerror="this.style.display='none'" style="flex-shrink: 0;" />
+            
+            <span class="brand-system" style="font-size: 14px; line-height: 1.2; white-space: normal;">
+                Project Management<br>System
+            </span>
         </div>
-        <button type="button" id="sidebarToggle" class="sidebar-toggle-btn">
+
+        <button type="button" id="sidebarToggle" class="sidebar-toggle-btn" style="flex-shrink: 0; background: transparent; border: none; cursor: pointer; color: inherit;">
             <i class="fas fa-bars"></i>
         </button>
+        
     </div>
 
     <div class="sidebar-user">
