@@ -9,105 +9,108 @@
 {% include 'components/header.html' %}
 {% endwith %}
 
-<div class="page-content">
-  <section class="my-work-card">
-    <div class="my-work-toolbar">
-      
-      <div class="my-work-filters-wrapper">
-          <div class="my-work-search">
-            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-            <input
-              type="text"
-              id="searchMyWork"
-              value="{{ search_query }}"
-              placeholder="Search SR number or title..."
-              onkeyup="filterMyWorkTable()"
-            />
-          </div>
+<div class="table-container">
+    
+    <!-- Action Bar (Search & Filter) -->
+    <div class="action-bar" style="flex-wrap: wrap; gap: 16px;">
+        <div class="search-box-container" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            
+            <div style="position: relative;">
+                <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #adb5bd; font-size: 14px;"></i>
+                <input 
+                    type="text" 
+                    id="searchMyWork" 
+                    class="search-box" 
+                    value="{{ search_query }}" 
+                    placeholder="Cari No SR atau Judul..." 
+                    onkeyup="filterMyWorkTable()"
+                />
+            </div>
 
-          {% set unique_statuses = [] %}
-          {% for item in my_work_items %}
-              {% if item.status_label not in unique_statuses %}
-                  {% set _ = unique_statuses.append(item.status_label) %}
-              {% endif %}
-          {% endfor %}
-          
-          <select id="filterStatus" class="my-work-select" onchange="filterMyWorkTable()">
-              <option value="">Semua Status</option>
-              {% for st in unique_statuses|sort %}
-                  <option value="{{ st|lower }}">{{ st }}</option>
-              {% endfor %}
-          </select>
-      </div>
-
-      <div class="my-work-toolbar-info">
-        <span id="visibleRowCount">{{ my_work_items|length }}</span> SR ditampilkan
-      </div>
-    </div>
-
-    <div class="my-work-table-wrap">
-      <table class="my-work-table">
-        <thead>
-          <tr>
-            <th>NO SR</th>
-            <th>STATUS</th>
-            <th>CREATED SR</th>
-            <th>ACTION</th>
-          </tr>
-        </thead>
-        <tbody id="myWorkTableBody">
-          {% if my_work_items %}
+            {% set unique_statuses = [] %}
             {% for item in my_work_items %}
-              <tr class="my-work-row">
-                <td class="my-work-no">
-                  <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}"
-                     style="text-decoration: none; color: inherit; display: block;">
-                    <div class="sr-number">{{ item.sr_no }}</div>
-                    <div class="my-work-title sr-title">{{ item.title }}</div>
-                  </a>
-                </td>
-                <td>
-                  <span class="status-badge status-text {{ item.status_class }}">{{ item.status_label }}</span>
-                </td>
-                <td>{{ item.created_at | format_wib }}</td>
-                <td>
-                  {% if 9 in item.role_ids and item.smk_id == 101 %}
-                      <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Confirmation</a>
-                      
-                  {% elif (1 in item.role_ids and item.smk_id == 104) or 
-                          (2 in item.role_ids and item.smk_id == 103) or 
-                          (3 in item.role_ids and item.smk_id == 105) or 
-                          (3 in item.role_ids and item.smk_id == 107) or 
-                          (8 in item.role_ids and item.smk_id == 102) %}
-                      <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="my-work-detail-btn">Approvals</a>
-                      
-                  {% else %}
-                    {% if item.is_pic %}
-                      <a href="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=item.sr_no) }}" class="my-work-detail-btn">Manage</a>
-                    {% else %}
-                      <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}" class="my-work-detail-btn">Details</a>
-                    {% endif %}
-                  {% endif %}
-              </td>
-              </tr>
+                {% if item.status_label not in unique_statuses %}
+                    {% set _ = unique_statuses.append(item.status_label) %}
+                {% endif %}
             {% endfor %}
-          {% else %}
-            <tr class="my-work-empty-row" id="emptyRowMessage">
-              <td colspan="5">Belum ada SR yang sedang berada di akun Anda.</td>
-            </tr>
-          {% endif %}
-        </tbody>
-      </table>
+            
+            <select id="filterStatus" class="search-box select-filter" onchange="filterMyWorkTable()">
+                <option value="">Semua Status</option>
+                {% for st in unique_statuses|sort %}
+                    <option value="{{ st|lower }}">{{ st }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="toolbar-info" style="font-size: 13.5px; color: #6c757d; font-weight: 500;">
+            Menampilkan <span id="visibleRowCount">{{ my_work_items|length }}</span> SR
+        </div>
     </div>
 
-    <div class="my-work-footer">
-      <span>Showing <span id="footerRowCount">{{ my_work_items|length }}</span> of {{ my_work_total }} SR</span>
-      <div class="my-work-pagination">
-        <button type="button" class="my-work-page-btn" disabled>Previous</button>
-        <button type="button" class="my-work-page-btn" disabled>Next</button>
-      </div>
+    <!-- Tabel -->
+    <div style="overflow-x: auto;">
+        <table class="custom-table" id="myWorkTable">
+            <thead>
+                <tr>
+                    <th style="width: 35%;">NO SR</th>
+                    <th style="width: 20%;">STATUS</th>
+                    <th style="width: 25%;">CREATED SR</th>
+                    <th style="width: 20%; text-align: center;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody id="myWorkTableBody">
+                {% if my_work_items %}
+                    {% for item in my_work_items %}
+                        <tr class="my-work-row">
+                            <td>
+                                <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}" style="text-decoration: none; color: inherit; display: block;">
+                                    <div style="font-weight: 600; color: #1a73e8; font-size: 14px;" class="sr-number">{{ item.sr_no }}</div>
+                                    <div style="font-size: 12.5px; color: #6c757d; margin-top: 4px;" class="sr-title">{{ item.title }}</div>
+                                </a>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ item.status_class }} status-text">{{ item.status_label }}</span>
+                            </td>
+                            <td>{{ item.created_at | format_wib }}</td>
+                            <td style="text-align: center;">
+                                {% if 9 in item.role_ids and item.smk_id == 101 %}
+                                    <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Confirmation</a>
+                                    
+                                {% elif (1 in item.role_ids and item.smk_id == 104) or 
+                                        (2 in item.role_ids and item.smk_id == 103) or 
+                                        (3 in item.role_ids and item.smk_id == 105) or 
+                                        (3 in item.role_ids and item.smk_id == 107) or 
+                                        (8 in item.role_ids and item.smk_id == 102) %}
+                                    <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="btn-rect btn-rect-primary" style="text-decoration: none;">Approvals</a>
+                                    
+                                {% else %}
+                                    {% if item.is_pic %}
+                                        <a href="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=item.sr_no) }}" class="btn-rect btn-rect-warning" style="text-decoration: none;">Manage</a>
+                                    {% else %}
+                                        <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}" class="btn-rect btn-rect-detail" style="text-decoration: none;">Details</a>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr id="emptyRowMessage">
+                        <td colspan="4" style="text-align: center; color: #6c757d; padding: 30px;">Belum ada SR yang sedang berada di antrean akun Anda.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
-  </section>
+
+    <!-- Footer & Pagination -->
+    <div class="table-footer">
+        <span>Showing <span id="footerRowCount">{{ my_work_items|length }}</span> of {{ my_work_total }} SR</span>
+        <div class="pagination-group">
+            <button type="button" class="btn-page" disabled>Previous</button>
+            <button type="button" class="btn-page" disabled>Next</button>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -122,19 +125,15 @@ function filterMyWorkTable() {
     let visibleCount = 0;
 
     rows.forEach(row => {
-        // Ambil teks untuk pencarian (Nomor SR & Judul)
         const srNumber = row.querySelector('.sr-number').textContent.toLowerCase();
         const srTitle = row.querySelector('.sr-title').textContent.toLowerCase();
         
-        // Ambil teks untuk filter status
         const statusElement = row.querySelector('.status-text');
         const statusText = statusElement ? statusElement.textContent.toLowerCase().trim() : '';
 
-        // Cek kondisi
         const matchesSearch = srNumber.includes(searchText) || srTitle.includes(searchText);
         const matchesStatus = statusFilter === "" || statusText === statusFilter;
 
-        // Tampilkan/Sembunyikan baris
         if (matchesSearch && matchesStatus) {
             row.style.display = "";
             visibleCount++;
@@ -143,7 +142,6 @@ function filterMyWorkTable() {
         }
     });
 
-    // Update jumlah baris yang terlihat di UI
     document.getElementById('visibleRowCount').textContent = visibleCount;
     const footerCount = document.getElementById('footerRowCount');
     if (footerCount) footerCount.textContent = visibleCount;
