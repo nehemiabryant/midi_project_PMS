@@ -12,7 +12,7 @@
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    padding: 24px;
+    padding: 20px 24px 24px;
 }
 .action-bar {
     display: flex;
@@ -136,4 +136,16 @@
     color: #212529;
     border-color: #adb5bd;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Varian Delete - Soft Red / Danger */
+.btn-rect-delete {
+    background-color: #fce8e6;
+    color: #d93025;
+}
+
+.btn-rect-delete:hover {
+    background-color: #d93025;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(217, 48, 37, 0.2);
 }

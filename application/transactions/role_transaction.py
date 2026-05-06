@@ -141,10 +141,9 @@ def get_all_assigned_roles_trx() -> dict:
 
 def assign_role_trx(nik: str, approle_id: int) -> dict:
     try:
-        # Cek duplikasi terlebih dahulu
-        check = role_model.check_assigned_role_model(nik, approle_id)
+        check = role_model.check_assigned_role_model(nik)
         if parse_rows(check):
-            return {'status': False, 'data': [], 'msg': 'User sudah memiliki role ini'}
+            return {'status': False, 'data': [], 'msg': f'User {nik} sudah terdaftar. Gunakan tombol Edit untuk mengubah role.'}
 
         result = role_model.assign_role_model(nik, approle_id)
         if not result.get('status'):

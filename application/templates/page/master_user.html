@@ -57,7 +57,7 @@
             </div>
 
             <div class="form-group">
-                <label>Role <span style="font-size:12px; color:#64748b;">(pilih satu atau lebih)</span></label>
+                <label>Role <span style="font-size:12px; color:#64748b;">(pilih satu)</span></label>
                 <div id="roleCheckboxList" style="
                     border: 1px solid #e2e8f0; border-radius: 8px;
                     max-height: 180px; overflow-y: auto;
@@ -69,14 +69,14 @@
                         padding:8px 14px; cursor:pointer;
                         transition:background 0.15s; font-weight:normal; margin:0;
                     " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                        <input type="checkbox" name="approle_id" value="{{ role.approle_id }}"
+                        <input type="radio" name="approle_id" value="{{ role.approle_id }}"
                             style="width:16px; height:16px; accent-color:#3b82f6; cursor:pointer; flex-shrink:0;">
                         <span style="font-size:14px; color:#1e293b;">{{ role.approle_name }}</span>
                     </label>
                     {% endfor %}
                 </div>
                 <p id="roleError" style="display:none; color:#ef4444; font-size:12px; margin-top:4px;">
-                    Pilih minimal satu role.
+                    Pilih satu role.
                 </p>
             </div>
 
@@ -206,8 +206,8 @@ function attachTableListeners() {
             document.getElementById('editNama').value = btn.dataset.nama;
             document.getElementById('editRoleError').style.display = 'none';
             document.getElementById('editRoleCheckboxList')
-                .querySelectorAll('input[type=checkbox]')
-                .forEach(cb => { cb.checked = currentRoleIds.has(cb.value); });
+                .querySelectorAll('input[type=radio]')
+                .forEach(r => { r.checked = currentRoleIds.has(r.value); });
 
             document.getElementById('formEditRole').action = `/masterUser/${nik}/update-roles`;
             document.getElementById('modalEdit').style.display = 'flex';
@@ -232,7 +232,7 @@ document.getElementById('btnAssignRole').addEventListener('click', () => {
     document.getElementById('selectedNama').style.display = 'none';
     document.getElementById('selectedNama').textContent = '';
     document.getElementById('nikSuggestions').style.display = 'none';
-    document.getElementById('roleCheckboxList').querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    document.getElementById('roleCheckboxList').querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
     document.getElementById('roleError').style.display = 'none';
     document.getElementById('modalAssign').style.display = 'flex';
 });
@@ -288,16 +288,16 @@ document.getElementById('formAssign').addEventListener('submit', (e) => {
     if (!document.getElementById('selectedNik').value) {
         e.preventDefault(); alert('Pilih karyawan dari daftar terlebih dahulu.'); return;
     }
-    const checked = document.getElementById('roleCheckboxList').querySelectorAll('input[type=checkbox]:checked');
-    if (checked.length === 0) {
+    const checked = document.getElementById('roleCheckboxList').querySelector('input[type=radio]:checked');
+    if (!checked) {
         e.preventDefault(); document.getElementById('roleError').style.display = 'block'; return;
     }
     document.getElementById('roleError').style.display = 'none';
 });
 
 document.getElementById('formEditRole').addEventListener('submit', (e) => {
-    const checked = document.getElementById('editRoleCheckboxList').querySelectorAll('input[type=checkbox]:checked');
-    if (checked.length === 0) {
+    const checked = document.getElementById('editRoleCheckboxList').querySelector('input[type=radio]:checked');
+    if (!checked) {
         e.preventDefault(); document.getElementById('editRoleError').style.display = 'block';
     }
 });

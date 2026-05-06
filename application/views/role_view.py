@@ -113,22 +113,17 @@ def master_user_menu():
 @super_admin_required
 def master_user_assign():
     nik = request.form.get('nik', '').strip()
-    approle_ids= request.form.getlist('approle_id')
+    approle_id = request.form.get('approle_id')
 
-    if not nik or not approle_ids:
-        flash('NIK dan minimal satu role harus diisi.', 'error')
+    if not nik or not approle_id:
+        flash('NIK dan role harus diisi.', 'error')
         return redirect(url_for('role_mgmt.master_user_menu'))
 
-    success_count = 0
-    for approle_id in approle_ids:
-        result = role_transaction.assign_role_trx(nik, int(approle_id))
-        if result.get('status'):
-            success_count += 1
-        else:
-            flash(result.get('msg', 'Gagal assign salah satu role.'), 'error')
-        
-    if success_count > 0:
-        flash(f'{success_count} role berhasil di-assign.', 'success')
+    result = role_transaction.assign_role_trx(nik, int(approle_id))
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal assign role.'), 'error')
+    else:
+        flash('Role berhasil di-assign.', 'success')
     return redirect(url_for('role_mgmt.master_user_menu'))
 
 
