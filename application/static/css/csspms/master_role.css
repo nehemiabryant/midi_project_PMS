@@ -138,14 +138,66 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Varian Delete - Soft Red / Danger */
-.btn-rect-delete {
-    background-color: #fce8e6;
-    color: #d93025;
-}
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    
+    .modal-box {
+        background: #fff;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 420px;
+        padding: 28px 32px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        animation: popupFade 0.2s ease;
+    }
+    
+    @keyframes popupFade {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
 
-.btn-rect-delete:hover {
-    background-color: #d93025;
-    color: #ffffff;
-    box-shadow: 0 2px 4px rgba(217, 48, 37, 0.2);
-}
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .modal-header h3 { margin: 0; font-size: 18px; color: #212529; }
+    .modal-close {
+        background: none; border: none; font-size: 22px;
+        cursor: pointer; color: #6c757d; padding: 4px 8px; border-radius: 4px;
+    }
+    .modal-close:hover { background: #f1f3f5; color: #212529; }
+    
+    .modal-body label {
+        display: block; font-size: 13px; font-weight: 600;
+        color: #495057; margin-bottom: 6px;
+    }
+    .modal-body input[type="text"] {
+        width: 100%; padding: 10px 12px; border: 1px solid #ced4da;
+        border-radius: 6px; font-size: 14px; outline: none; box-sizing: border-box;
+    }
+    .modal-body input[type="text"]:focus { border-color: #d41f26; }
+    
+    .modal-footer {
+        display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;
+    }
+    .btn-modal-cancel {
+        padding: 9px 20px; border-radius: 6px; font-size: 13.5px; font-weight: 500;
+        cursor: pointer; background: #f8f9fa; color: #495057; border: 1px solid #dee2e6;
+    }
+    .btn-modal-cancel:hover { background: #e9ecef; }
+    
+    .btn-modal-submit {
+        padding: 9px 20px; border-radius: 6px; font-size: 13.5px; font-weight: 500;
+        cursor: pointer; background: #d41f26; color: #fff; border: none;
+    }
+    .btn-modal-submit:hover { background: #b31a20; }
