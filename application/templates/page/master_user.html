@@ -66,16 +66,16 @@
                     <input type="hidden" id="selectedNik" name="nik">
                     <div id="selectedNama" class="selected-name-label" style="display:none;"></div>
 
-                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu atau lebih)</span></label>
+                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu)</span></label>
                     <div class="checkbox-list" id="roleCheckboxList">
                         {% for role in roles %}
                         <label class="checkbox-item">
-                            <input type="checkbox" name="approle_id" value="{{ role.approle_id }}">
+                            <input type="radio" name="approle_id" value="{{ role.approle_id }}">
                             <span>{{ role.approle_name }}</span>
                         </label>
                         {% endfor %}
                     </div>
-                    <p id="roleError" class="error-text" style="display:none;">Pilih minimal satu role.</p>
+                    <p id="roleError" class="error-text" style="display:none;">Pilih satu role.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-modal-cancel" id="btnBatalAssign">Batal</button>
@@ -100,16 +100,16 @@
                     <label style="margin-top: 16px;">Nama</label>
                     <input type="text" id="editNama" disabled class="input-disabled">
                     
-                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu atau lebih)</span></label>
+                    <label style="margin-top: 16px;">Role <span style="font-size:12px; color:#6c757d; font-weight:normal;">(pilih satu)</span></label>
                     <div class="checkbox-list" id="editRoleCheckboxList">
                         {% for role in roles %}
                         <label class="checkbox-item">
-                            <input type="checkbox" name="approle_id" value="{{ role.approle_id }}">
+                            <input type="radio" name="approle_id" value="{{ role.approle_id }}">
                             <span>{{ role.approle_name }}</span>
                         </label>
                         {% endfor %}
                     </div>
-                    <p id="editRoleError" class="error-text" style="display:none;">Pilih minimal satu role.</p>
+                    <p id="editRoleError" class="error-text" style="display:none;">Pilih satu role.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-modal-cancel" id="btnBatalEdit">Batal</button>
@@ -199,8 +199,8 @@ function attachTableListeners() {
             document.getElementById('editNama').value = btn.dataset.nama;
             document.getElementById('editRoleError').style.display = 'none';
             document.getElementById('editRoleCheckboxList')
-                .querySelectorAll('input[type=checkbox]')
-                .forEach(cb => { cb.checked = currentRoleIds.has(cb.value); });
+                .querySelectorAll('input[type=radio]')
+                .forEach(r => { r.checked = currentRoleIds.has(r.value); });
 
             document.getElementById('formEditRole').action = `/masterUser/${nik}/update-roles`;
             document.getElementById('modalEdit').classList.add('active');
@@ -246,7 +246,7 @@ document.getElementById('btnAssignRole').addEventListener('click', () => {
     document.getElementById('selectedNama').style.display = 'none';
     document.getElementById('selectedNama').textContent = '';
     document.getElementById('nikSuggestions').style.display = 'none';
-    document.getElementById('roleCheckboxList').querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    document.getElementById('roleCheckboxList').querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
     document.getElementById('roleError').style.display = 'none';
     document.getElementById('modalAssign').classList.add('active');
     setTimeout(() => document.getElementById('inputNik').focus(), 100);
@@ -304,16 +304,16 @@ document.getElementById('formAssign').addEventListener('submit', (e) => {
     if (!document.getElementById('selectedNik').value) {
         e.preventDefault(); alert('Pilih karyawan dari daftar terlebih dahulu.'); return;
     }
-    const checked = document.getElementById('roleCheckboxList').querySelectorAll('input[type=checkbox]:checked');
-    if (checked.length === 0) {
+    const checked = document.getElementById('roleCheckboxList').querySelector('input[type=radio]:checked');
+    if (!checked) {
         e.preventDefault(); document.getElementById('roleError').style.display = 'block'; return;
     }
     document.getElementById('roleError').style.display = 'none';
 });
 
 document.getElementById('formEditRole').addEventListener('submit', (e) => {
-    const checked = document.getElementById('editRoleCheckboxList').querySelectorAll('input[type=checkbox]:checked');
-    if (checked.length === 0) {
+    const checked = document.getElementById('editRoleCheckboxList').querySelector('input[type=radio]:checked');
+    if (!checked) {
         e.preventDefault(); document.getElementById('editRoleError').style.display = 'block';
     }
 });

@@ -1,5 +1,5 @@
 from common.midiconnectserver.midilog import Logger
-from ..models import my_work_model, assignment_model, task_model
+from ..models import my_work_model, assignment_model, task_model, sr_model
 from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
@@ -125,7 +125,7 @@ def resolve_sr_access_trx(sr_no: str, nik: str) -> dict:
         if not user_roles:
             return {'status': False, 'data': {}, 'msg': 'Anda tidak memiliki akses pada SR ini.'}
 
-        sr_result = my_work_model.get_sr_detail_full_model(sr_no)
+        sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': {}, 'msg': 'SR tidak ditemukan.'}
@@ -242,7 +242,7 @@ def get_manage_detail_trx(sr_no: str, nik: str) -> dict:
         access_data = access['data']
         is_pmo = access_data['it_pmo_role'] is not None
 
-        assignments_result = my_work_model.get_all_sr_assignments_model(sr_no)
+        assignments_result = assignment_model.get_sr_assignments_model(sr_no)
         all_assignments_raw = parse_rows(assignments_result)
         assignments_by_role = {}
         for a in all_assignments_raw:

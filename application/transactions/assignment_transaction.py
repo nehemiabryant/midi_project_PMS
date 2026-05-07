@@ -1,7 +1,7 @@
 from application.transactions import sr_transaction, srlogs_transaction, workflow_transaction
 from common.midiconnectserver.midilog import Logger
 from common.midiconnectserver import DatabasePG
-from ..models import assignment_model, my_work_model
+from ..models import assignment_model, sr_model
 from ..utils.converters import parse_rows, parse_single_row
 
 Log = Logger()
@@ -27,7 +27,7 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT SM pada SR ini atau tidak memiliki akses.'}
 
         # 2. Ambil detail SR
-        sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
+        sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
@@ -85,7 +85,7 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=No
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT SM pada SR ini.'}
 
         # 2. Validasi: SR harus dalam status yang sesuai
-        sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
+        sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
@@ -182,7 +182,7 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT GM pada SR ini atau tidak memiliki akses.'}
 
         # 2. Ambil detail SR
-        sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
+        sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
@@ -213,13 +213,6 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
     except Exception as e:
         Log.error(f'Exception | get_gm_assign_page_data_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
-    
-def get_all_sm_niks_trx() -> list:
-    try:
-        return sr_transaction.get_all_sm_trx()
-    except Exception as e:
-        Log.error(f'Exception | get_all_sm_niks_trx | Msg: {str(e)}')
-        return []
 
 def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
     """
@@ -238,7 +231,7 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=
             return {'status': False, 'data': [], 'msg': 'Anda bukan IT GM pada SR ini.'}
 
         # 2. Validasi: SR harus masih status 104
-        sr_result = assignment_model.get_sr_detail_with_status_model(sr_no)
+        sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
@@ -601,7 +594,7 @@ def pmo_replace_sm_trx(sr_no: str, nik: str, new_sm_nik: str) -> dict:
             return {'status': False, 'data': [], 'msg': 'NIK IT SM tidak valid.'}
         
         # 3. Validasi: SR ada
-        sr_detail = parse_single_row(assignment_model.get_sr_detail_with_status_model(sr_no))
+        sr_detail = parse_single_row(sr_model.get_sr_detail_with_status_model(sr_no))
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
         
@@ -659,7 +652,7 @@ def get_all_assignments_trx(sr_no: str) -> list:
     Return list kosong jika tidak ada data atau terjadi error.
     """
     try:
-        result = my_work_model.get_all_sr_assignments_model(sr_no)
+        result = assignment_model.get_sr_assignments_model(sr_no)
         return parse_rows(result)
     except Exception as e:
         Log.error(f'Exception | get_all_assignments_trx | Msg: {str(e)}')
