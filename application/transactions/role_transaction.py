@@ -156,7 +156,7 @@ def assign_role_trx(nik: str, approle_id: int) -> dict:
 
 def remove_all_roles_by_nik_trx(nik: str) -> dict:
     try:
-        result = role_model.remove_all_roles_by_nik_model(nik)
+        result = role_model.delete_all_roles_by_nik_model(nik)
         if not result.get('status'):
             return result
         return {'status': True, 'data': [], 'msg': 'User berhasil dihapus'}
@@ -174,7 +174,7 @@ def reassign_roles_trx(nik: str, approle_ids: list) -> dict:
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
 
-        del_result = role_model.delete_all_roles_by_nik_model(nik, conn)
+        del_result = role_model.delete_all_roles_by_nik_model(nik, shared_conn=conn)
         if not del_result.get('status'):
             raise Exception(del_result.get('msg', 'Gagal menghapus role lama'))
 

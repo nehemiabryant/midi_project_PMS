@@ -10,22 +10,19 @@ STATUS_SD_ON_PROGRESS = 106
 STATUS_IT_GM_REVIEW = 104
 
 def get_it_users_model() -> dict:
-    """Ambil semua user dari sr_user yang punya role 'IT USER', JOIN karyawan_all untuk nama."""
-    it_user_role_name = 'IT USER'  # approle_name di sr_ms_app_role (approle_id=2)
+    """Ambil semu user terdaftar dari sr_user untuk dropdown assignment PIC."""
     sql = """
-        SELECT su.nik, COALESCE(k.nama, '') AS nama
+        SELECT DISTINCT su.nik, COALESCE(k.nama, '') AS nama
         FROM sr_user su
-        JOIN sr_ms_app_role r ON su.approle_id = r.approle_id
         LEFT JOIN karyawan_all k ON su.nik = k.nik
-        WHERE r.approle_name = %(role_name)s
-        ORDER BY k.nama
+        ORDER BY nama
     """
     conn = None
     try:
         conn = DatabasePG("supabase")
         if not conn.status.get('status'):
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'role_name': it_user_role_name})
+        return conn.selectHeader(sql)
     except Exception as e:
         Log.error(f'DB Exception | get_it_users | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
@@ -114,7 +111,7 @@ def get_sr_assignments_model(sr_no: str, it_role_ids: list = None) -> dict:
     sql = """
         SELECT sa.assign_id, sa.sr_no, sa.assigned_user,
                COALESCE(k.nama, '') AS nama,
-               sa.it_role_id, it.it_role_detail,
+               sa.it_role_id, COALESCE(it.it_role_detail, '') AS it_role_detail,
                sa.assigned_by, sa.assigned_at
         FROM sr_assignments sa
         LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
@@ -237,52 +234,6 @@ def check_role_assignment_model(sr_no: str, nik: str, it_role_id: int) -> bool:
         return False
     finally:
         if conn: conn.close()
-
-
-def get_sr_detail_with_status_model(sr_no: str) -> dict:
-    """Ambil detail SR beserta status untuk halaman assignment."""
-    sql = """
-        SELECT r.sr_no, r.name, r.module, r.purpose, r.division, r.details,
-               r.smk_id, s.smk_ket,
-               r.req_id, COALESCE(k.nama, '') AS req_name
-        FROM sr_request r
-        LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id
-        LEFT JOIN karyawan_all k ON r.req_id = k.nik
-        WHERE r.sr_no = %(sr_no)s
-    """
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'sr_no': sr_no})
-    except Exception as e:
-        Log.error(f'DB Exception | get_sr_detail_with_status | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
-
-
-def get_sm_options_model(nik_list: list) -> dict:
-    """Ambil NIK dan nama dari karyawan_all untuk list NIK IT SM."""
-    sql = """
-        SELECT nik, COALESCE(nama, '') AS nama
-        FROM karyawan_all
-        WHERE nik IN %(niks)s
-        ORDER BY nama
-    """
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'niks': tuple(nik_list)})
-    except Exception as e:
-        Log.error(f'DB Exception | get_sm_options | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
-
 
 def insert_assignments_model(sr_no: str, assignments: list, assigned_by: str, shared_conn=None) -> dict:
     """
@@ -562,32 +513,6 @@ def get_active_pic_on_sr_model(sr_no: str, nik: str, current_smk_id: int = None)
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
-
-
-def get_pic_handover_candidates_model(sr_no: str, it_role_id: int, exclude_nik: str) -> dict:
-    """Ambil user lain di role yang sama yang is_active=FALSE — kandidat penerima handover."""
-    sql = """
-        SELECT sa.assign_id, sa.assigned_user, COALESCE(k.nama, sa.assigned_user) AS nama
-        FROM sr_assignments sa
-        LEFT JOIN karyawan_all k ON sa.assigned_user = k.nik
-        WHERE sa.sr_no = %(sr_no)s
-          AND sa.it_role_id = %(it_role_id)s
-          AND sa.assigned_user != %(exclude_nik)s
-          AND sa.is_active = FALSE
-          AND deleted_at IS NULL
-    """
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
-        return conn.selectDataHeader(sql, {'sr_no': sr_no, 'it_role_id': it_role_id, 'exclude_nik': exclude_nik})
-    except Exception as e:
-        Log.error(f'DB Exception | get_pic_handover_candidates | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
-    finally:
-        if conn: conn.close()
-
 
 def get_all_handover_candidates_model(sr_no: str, active_role_ids: list, exclude_nik: str) -> dict:
     """

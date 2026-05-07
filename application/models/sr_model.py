@@ -468,6 +468,31 @@ def get_srs_by_phase(phase_name: str, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
+def get_sr_detail_with_status_model(sr_no: str) -> dict:
+    """Ambil detail SR beserta status untuk halaman assignment."""
+    sql = """
+        SELECT r.sr_no, r.name, r.module, r.purpose, r.division, r.details,                                                         
+                r.frequency, r.value, r.value_det, r.num_user,      
+                r.smk_id, COALESCE(s.smk_ket, '') AS smk_ket, 
+                r.req_id, COALESCE(k.nama, '') AS req_name,         
+                r.created_at                                        
+        FROM sr_request r  
+        LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id               
+        LEFT JOIN karyawan_all k ON r.req_id = k.nik
+        WHERE r.sr_no = %(sr_no)s 
+    """
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
+        return conn.selectDataHeader(sql, {'sr_no': sr_no})
+    except Exception as e:
+        Log.error(f'DB Exception | get_sr_detail_with_status | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
 def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
     """
     Fetches the comprehensive details of a single SR ticket.

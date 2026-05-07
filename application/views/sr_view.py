@@ -426,7 +426,7 @@ def adjustment_menu(sr_no):
         assignable_role_ids = {r['it_role_id'] for r in picroles}
         all_assignments = assignment_transaction.get_all_assignments_trx(sr_no)
 
-        sm_candidates = assignment_transaction.get_all_sm_niks_trx()
+        sm_candidates = sr_transaction.get_all_sm_trx()
 
         active_sm_nik = ""
         for a in all_assignments:

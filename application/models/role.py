@@ -265,13 +265,10 @@ def assign_role_model(nik: str, approle_id: int) -> dict:
         if conn: conn.close()
 
 
-def delete_all_roles_by_nik_model(nik: str, conn) -> dict:
+def delete_all_roles_by_nik_model(nik: str, shared_conn=None) -> dict:
     sql = "DELETE FROM sr_user WHERE nik = %(nik)s"
-    return conn.executeData(sql, {'nik': nik})
-
-
-def remove_all_roles_by_nik_model(nik: str) -> dict:
-    sql = "DELETE FROM sr_user WHERE nik = %(nik)s"
+    if shared_conn:
+        return shared_conn.executeData(sql, {'nik': nik})
     conn = None
     try:
         conn = DatabasePG("supabase")
@@ -279,7 +276,7 @@ def remove_all_roles_by_nik_model(nik: str) -> dict:
             return {'status': False, 'data': [], 'msg': conn.status.get('msg')}
         return conn.executeData(sql, {'nik': nik})
     except Exception as e:
-        Log.error(f'DB Exception | remove_all_roles_by_nik | Msg: {str(e)}')
+        Log.error(f'DB Exception | delete_all_roles_by_nik | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
