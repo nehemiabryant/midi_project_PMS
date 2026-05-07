@@ -20,27 +20,28 @@
     border-radius: 12px;
     padding: 32px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    max-width: 1150px; /* Diperlebar agar muat 2 kolom */
+    max-width: 1150px;
     margin: 0 auto;
     font-family: 'Poppins', 'Inter', sans-serif;
 }
 
 /* ========================================= */
-/* LAYOUT 2 KOLOM (KIRI & KANAN)             */
+/* LAYOUT 2 KOLOM (INFO & STAKEHOLDER)       */
 /* ========================================= */
 .approval-split-layout {
     display: flex;
     gap: 32px;
     align-items: flex-start;
+    margin-bottom: 32px; /* Memberi jarak ke area Approval Action di bawahnya */
 }
 
 .approval-main-col {
-    flex: 1; /* Mengisi ruang kiri sepenuhnya */
-    min-width: 0; /* Mencegah overflow */
+    flex: 1; 
+    min-width: 0; 
 }
 
 .approval-sidebar-col {
-    width: 320px; /* Lebar tetap untuk sidebar kanan */
+    width: 320px; 
     flex-shrink: 0;
 }
 
@@ -156,10 +157,9 @@
 .empty-doc-compact { font-size: 13px; color: #64748b; font-style: italic; padding: 8px 0; }
 
 /* ========================================= */
-/* PANEL APPROVAL, FIELDSET, & FORM          */
+/* PANEL APPROVAL (LEBAR PENUH DI BAWAH)     */
 /* ========================================= */
 .approval-action-panel {
-    margin-top: 32px;
     padding: 24px;
     background-color: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -169,8 +169,8 @@
 fieldset {
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
     background: #ffffff;
 }
 
@@ -227,8 +227,6 @@ legend {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     padding: 20px;
-    position: sticky;
-    top: 20px; /* Agar menempel saat di-scroll */
 }
 .stakeholder-header-title { font-size: 15px; margin: 0 0 20px 0; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;}
 .stakeholder-box { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;}
@@ -241,7 +239,6 @@ legend {
     .approval-split-layout { flex-direction: column; }
     .approval-sidebar-col { width: 100%; }
     .compact-grid { grid-template-columns: repeat(2, 1fr); }
-    .stakeholder-section { position: relative; top: 0; margin-top: 20px;}
 }
 @media (max-width: 500px) {
     .compact-grid { grid-template-columns: 1fr; }
@@ -261,7 +258,6 @@ legend {
         <div class="approval-split-layout">
             
             <div class="approval-main-col">
-                
                 <div class="compact-grid">
                     <div class="info-block">
                         <span class="compact-label">SR Number</span>
@@ -317,7 +313,6 @@ legend {
 
                 <div class="info-block full-width" style="margin-top: 16px;">
                     <span class="compact-label" style="margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Dokumen Lampiran</span>
-                    
                     <div class="compact-attachment-list">
                         {% if current_files and current_files|length > 0 %}
                             {% for doc in current_files %}
@@ -340,215 +335,17 @@ legend {
                         {% endif %}
                     </div>
                 </div>
-
-                <div class="approval-action-panel">
-                    <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; color: #0f172a;">Approval Action</h3>
-                    
-                    <form id="srApproveForm" method="POST" action="">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        
-                        {% if is_gm and gm_assign_data %}
-                            <fieldset>
-                                <legend>Assign IT Senior Manager & Status</legend>
-                                
-                                {% if not gm_assign_data.is_locked %}
-                                    <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
-                                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                                        {% for sm in gm_assign_data.sm_options %}
-                                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
-                                                <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}">
-                                                {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
-                                            </label>
-                                        {% endfor %}
-                                    </div>
-
-                                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
-
-                                    <div style="margin-bottom: 15px;">
-                                        <label for="prj_id" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Project Status</label>
-                                        <select name="prj_id" id="prj_id" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                            <option value="" disabled selected>-- Pilih Project Status --</option>
-                                            {% for status in gm_assign_data.project_status %}
-                                                <option value="{{ status.prj_id }}" {% if sr_data.prj_id == status.prj_id %}selected{% endif %}>{{ status.status_project }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-
-                                    <div id="midikriingApproveGroup" style="margin-bottom: 10px; display: none;">
-                                        <label for="status_midikriing" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Status Midikriing</label>
-                                        <select name="status_midikriing" id="status_midikriing" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                            <option value="" disabled selected>-- Pilih Status Midikriing --</option>
-                                            <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
-                                            <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
-                                        </select>
-                                    </div>
-
-                                {% else %}
-                                    <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment IT SM sudah terkunci.</p>
-                                    {% if gm_assign_data.current_sm %}
-                                        <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
-                                            {% for sm in gm_assign_data.current_sm %}
-                                                <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                {% endif %}
-                            </fieldset>
-                        {% endif %}
-
-                        {% if is_sm and assignment_data %}
-                            <fieldset>
-                                <legend>Assign PIC Tim</legend>
-                                
-                                {% if not assignment_data.is_locked %}
-                                    <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role.</p>
-                                    
-                                    <table id="assign-table" class="modern-inner-table">
-                                        <thead>
-                                            <tr>
-                                                <th style="width: 45%;">User</th>
-                                                <th style="width: 45%;">Role</th>
-                                                <th style="width: 10%; text-align: center;">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>
-                                                    <select name="assign_user[]" class="sm-dynamic-input">
-                                                        <option value="">-- Pilih User --</option>
-                                                        {% for u in assignment_data.it_users %}
-                                                            <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select name="assign_role[]" class="sm-dynamic-input">
-                                                        <option value="">-- Pilih Role --</option>
-                                                        {% for role in assignment_data.picroles %}
-                                                            <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
-                                                        {% endfor %}
-                                                    </select>
-                                                </td>
-                                                <td style="text-align: center;"></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <button type="button" class="btn-add-row" onclick="addAssignRow()">+ Tambah Baris</button>
-                                
-                                {% else %}
-                                    <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment PIC Tim sudah terkunci.</p>
-                                    {% if assignment_data.current_assignments %}
-                                        <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
-                                            {% for pic in assignment_data.current_assignments %}
-                                                <li><strong>{{ pic.it_role_detail }}</strong>: {{ pic.assigned_user }} - {{ pic.nama }}</li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% else %}
-                                        <p style="font-size: 13px; color: #94a3b8; font-style: italic;">Belum ada PIC yang di-assign.</p>
-                                    {% endif %}
-                                {% endif %}
-                            </fieldset>
-
-                            <fieldset>
-                                <legend>Set Project Schedule</legend>
-                                
-                                {% if not assignment_data.is_locked %}
-                                    <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tentukan target tanggal mulai dan selesai untuk masing-masing fase.</p>
-                                {% else %}
-                                    <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Jadwal project sudah terkunci.</p>
-                                {% endif %}
-
-                                <div style="margin-bottom: 16px;">
-                                    <label style="display: block; font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px;">
-                                        Target Quarter
-                                    </label>
-                                    <select name="q_id" class="compact-input" style="width: 100%; max-width: 300px;" {% if assignment_data.is_locked %}disabled{% endif %}>
-                                        <option value="" disabled selected>-- Pilih Quarter --</option>
-                                        
-                                        {% for q in assignment_data.quarter %}
-                                            
-                                            <option value="{{ q.q_id }}" {% if assignment_data.sr_detail.q_id == q.q_id %}selected{% endif %}>
-                                                {{ q.quarter }}
-                                            </option>
-                                            
-                                        {% endfor %}
-                                    </select>
-                                </div>
-
-                                <table class="modern-inner-table">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 30%;">Phase Name</th>
-                                            <th style="width: 35%;">Target Start Date</th>
-                                            <th style="width: 35%;">Target Finish Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for phase in assignment_data.target_dates %}
-                                        <tr>
-                                            <td style="font-weight: 600; font-size: 13px; color: #334155;">
-                                                {{ phase.phase_name }}
-                                                <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
-                                            </td>
-                                            <td>
-                                                <input type="date" name="start_date[]" class="compact-input"
-                                                    value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}" 
-                                                    {% if assignment_data.is_locked %}disabled{% endif %}>
-                                            </td>
-                                            <td>
-                                                {% if phase.phase_id == 6 %}
-                                                    <input type="hidden" name="finish_date[]" value=""{% if assignment_data.is_locked %}disabled{% endif %}>
-                                                {% else %}
-                                                    <input type="date" name="finish_date[]" class="compact-input"
-                                                        value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}"
-                                                        {% if assignment_data.is_locked %}disabled{% endif %}>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% else %}
-                                        <tr>
-                                            <td colspan="3" style="text-align: center; font-size: 13px; color: #94a3b8;">No phases found in database.</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </fieldset>
-                        {% endif %}
-
-                        <div class="action-bottom-row">
-                            <div style="flex: 1; max-width: 400px;">
-                                <label for="action-select" class="compact-label" style="color: #1e293b; margin-bottom: 8px;">Select Action <span style="color: #ef4444;">*</span></label>
-                                <select name="intended_next_smk_id" id="action-select" class="compact-select" required>
-                                    <option value="" disabled selected>-- Choose next step --</option>
-                                    {% for opt in options %}
-                                        <option value="{{ opt.next_smk_id }}" data-is-forward="{% if opt.next_smk_id > sr_data.smk_id %}true{% else %}false{% endif %}">
-                                            {{ opt.rule_detail }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                            <div class="action-buttons-group">
-                                <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn-compact-cancel">Cancel</a>
-                                <button type="submit" id="submitBtn" class="btn-compact-submit">Confirm & Submit</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
             </div>
 
             <div class="approval-sidebar-col">
                 <div class="stakeholder-section">
                     <h3 class="stakeholder-header-title">Stakeholder Information</h3>
-                    
                     {% if ticket_actors and ticket_actors.origins %}
-                        
                         <div class="stakeholder-box">
                             <h4>Creators</h4>
                             <p><strong>Requester:</strong><br>{{ ticket_actors.origins.requester.nik }} - {{ ticket_actors.origins.requester.name }}</p>
                             <p style="margin-bottom:0;"><strong>Maker:</strong><br>{{ ticket_actors.origins.maker.nik }} - {{ ticket_actors.origins.maker.name }}</p>
                         </div>
-
                         <div class="stakeholder-box">
                             <h4>Active Approvers</h4>
                             {% for role_name, users in ticket_actors.approvers.items() %}
@@ -559,23 +356,202 @@ legend {
                                 {% endfor %}
                                 </ul>
                             {% endfor %}
-                            
                             {% if not ticket_actors.approvers %}
                                 <p style="font-style: italic; color: #94a3b8; margin-bottom:0;">No active approvers found for this stage.</p>
                             {% endif %}
                         </div>
-
                     {% else %}
                         <p style="font-size: 13px; color: #64748b; font-style: italic;">Stakeholder data is currently unavailable.</p>
                     {% endif %}
                 </div>
             </div>
 
+        </div> <div class="approval-action-panel">
+            <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 18px; color: #0f172a;">Approval Action</h3>
+            
+            <form id="srApproveForm" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                {% if is_gm and gm_assign_data %}
+                    <fieldset>
+                        <legend>Assign IT Senior Manager & Status</legend>
+                        {% if not gm_assign_data.is_locked %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
+                            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                                {% for sm in gm_assign_data.sm_options %}
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
+                                        <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}">
+                                        {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
+                                    </label>
+                                {% endfor %}
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+
+                            <div style="margin-bottom: 15px;">
+                                <label for="prj_id" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Project Status</label>
+                                <select name="prj_id" id="prj_id" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                    <option value="" disabled selected>-- Pilih Project Status --</option>
+                                    {% for status in gm_assign_data.project_status %}
+                                        <option value="{{ status.prj_id }}" {% if sr_data.prj_id == status.prj_id %}selected{% endif %}>{{ status.status_project }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div id="midikriingApproveGroup" style="margin-bottom: 10px; display: none;">
+                                <label for="status_midikriing" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Status Midikriing</label>
+                                <select name="status_midikriing" id="status_midikriing" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                    <option value="" disabled selected>-- Pilih Status Midikriing --</option>
+                                    <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
+                                    <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
+                                </select>
+                            </div>
+                        {% else %}
+                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment IT SM sudah terkunci.</p>
+                            {% if gm_assign_data.current_sm %}
+                                <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
+                                    {% for sm in gm_assign_data.current_sm %}
+                                        <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endif %}
+                    </fieldset>
+                {% endif %}
+
+                {% if is_sm and assignment_data %}
+                    <fieldset>
+                        <legend>Assign PIC Tim</legend>
+                        {% if not assignment_data.is_locked %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role.</p>
+                            
+                            <table id="assign-table" class="modern-inner-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 45%;">User</th>
+                                        <th style="width: 45%;">Role</th>
+                                        <th style="width: 10%; text-align: center;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <select name="assign_user[]" class="sm-dynamic-input">
+                                                <option value="">-- Pilih User --</option>
+                                                {% for u in assignment_data.it_users %}
+                                                    <option value="{{ u.nik }}">{{ u.nama }} ({{ u.nik }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="assign_role[]" class="sm-dynamic-input">
+                                                <option value="">-- Pilih Role --</option>
+                                                {% for role in assignment_data.picroles %}
+                                                    <option value="{{ role.it_role_id }}">{{ role.it_role_detail }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td style="text-align: center;"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn-add-row" onclick="addAssignRow()">+ Tambah Baris</button>
+                        {% else %}
+                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment PIC Tim sudah terkunci.</p>
+                            {% if assignment_data.current_assignments %}
+                                <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
+                                    {% for pic in assignment_data.current_assignments %}
+                                        <li><strong>{{ pic.it_role_detail }}</strong>: {{ pic.assigned_user }} - {{ pic.nama }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p style="font-size: 13px; color: #94a3b8; font-style: italic;">Belum ada PIC yang di-assign.</p>
+                            {% endif %}
+                        {% endif %}
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Set Project Schedule</legend>
+                        {% if not assignment_data.is_locked %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tentukan target tanggal mulai dan selesai untuk masing-masing fase.</p>
+                        {% else %}
+                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Jadwal project sudah terkunci.</p>
+                        {% endif %}
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px;">Target Quarter</label>
+                            <select name="q_id" class="compact-input" style="width: 100%; max-width: 300px;" {% if assignment_data.is_locked %}disabled{% endif %}>
+                                <option value="" disabled selected>-- Pilih Quarter --</option>
+                                {% for q in assignment_data.quarter %}
+                                    <option value="{{ q.q_id }}" {% if assignment_data.sr_detail.q_id == q.q_id %}selected{% endif %}>{{ q.quarter }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <table class="modern-inner-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Phase Name</th>
+                                    <th style="width: 35%;">Target Start Date</th>
+                                    <th style="width: 35%;">Target Finish Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for phase in assignment_data.target_dates %}
+                                <tr>
+                                    <td style="font-weight: 600; font-size: 13px; color: #334155;">
+                                        {{ phase.phase_name }}
+                                        <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
+                                    </td>
+                                    <td>
+                                        <input type="date" name="start_date[]" class="compact-input"
+                                            value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}" 
+                                            {% if assignment_data.is_locked %}disabled{% endif %}>
+                                    </td>
+                                    <td>
+                                        {% if phase.phase_id == 6 %}
+                                            <input type="hidden" name="finish_date[]" value=""{% if assignment_data.is_locked %}disabled{% endif %}>
+                                        {% else %}
+                                            <input type="date" name="finish_date[]" class="compact-input"
+                                                value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}"
+                                                {% if assignment_data.is_locked %}disabled{% endif %}>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" style="text-align: center; font-size: 13px; color: #94a3b8;">No phases found in database.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </fieldset>
+                {% endif %}
+
+                <div class="action-bottom-row">
+                    <div style="flex: 1; max-width: 400px;">
+                        <label for="action-select" class="compact-label" style="color: #1e293b; margin-bottom: 8px;">Select Action <span style="color: #ef4444;">*</span></label>
+                        <select name="intended_next_smk_id" id="action-select" class="compact-select" required>
+                            <option value="" disabled selected>-- Choose next step --</option>
+                            {% for opt in options %}
+                                <option value="{{ opt.next_smk_id }}" data-is-forward="{% if opt.next_smk_id > sr_data.smk_id %}true{% else %}false{% endif %}">
+                                    {{ opt.rule_detail }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="action-buttons-group">
+                        <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn-compact-cancel">Cancel</a>
+                        <button type="submit" id="submitBtn" class="btn-compact-submit">Confirm & Submit</button>
+                    </div>
+                </div>
+            </form>
         </div> </div>
 </div>
 
 <script>
-    // Handles adding new rows for the SM assignment table
+    // Script Anda tetap sama (Tidak ada yang saya hapus)
     function addAssignRow() {
         const tbody = document.querySelector('#assign-table tbody');
         if (!tbody) return; 
@@ -583,20 +559,14 @@ legend {
         const firstRow = tbody.querySelector('tr');
         const newRow = firstRow.cloneNode(true);
         
-        // Reset inputs
         newRow.querySelectorAll('select').forEach(s => s.value = '');
-        
-        // Add delete button
         const lastTd = newRow.querySelector('td:last-child');
         lastTd.innerHTML = `<button type="button" class="btn-delete-row" onclick="this.closest('tr').remove()">Hapus</button>`;
         
         tbody.appendChild(newRow);
-        
-        // Re-run validation logic
         applyRequiredLogic();
     }
 
-    // Handles the "required" validation for both GM and SM fields
     function applyRequiredLogic() {
         const actionSelect = document.getElementById('action-select');
         if (!actionSelect) return;
@@ -606,16 +576,12 @@ legend {
 
         const isForward = selectedOption.getAttribute('data-is-forward') === 'true';
 
-        // Target GM Radio Buttons
         document.querySelectorAll('.sm-radio').forEach(radio => {
             isForward ? radio.setAttribute('required', 'required') : radio.removeAttribute('required');
         });
-
         document.querySelectorAll('.gm-dynamic-input').forEach(select => {
             isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
         });
-
-        // Target SM Dynamic Selects
         document.querySelectorAll('.sm-dynamic-input').forEach(select => {
             isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
         });
@@ -628,7 +594,6 @@ legend {
         }
     });
 
-    // Midikriing Toggle (GM Approval)
     function toggleMidikriingApprove() {
         const selected = document.querySelector('.sm-radio:checked');
         const group = document.getElementById('midikriingApproveGroup');
@@ -645,14 +610,12 @@ legend {
         toggleMidikriingApprove();
     });
 
-    // Date Logic
     document.addEventListener('DOMContentLoaded', function() {
         const startInputs = document.querySelectorAll('input[name="start_date[]"]');
         const finishInputs = document.querySelectorAll('input[name="finish_date[]"]');
 
         finishInputs.forEach((finishInput, index) => {
             if (finishInput.type === 'hidden') return; 
-
             const startInput = startInputs[index];
 
             startInput.addEventListener('change', function() {
