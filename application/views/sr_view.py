@@ -477,7 +477,13 @@ def adjustment_menu(sr_no):
 @login_required
 @bypass_required
 def pmo_update_details(sr_no):
-    trx_result = sr_transaction.update_sr_adjustment_trx(request.form, sr_no)
+    all_assignments = assignment_transaction.get_all_assignments_trx(sr_no)
+    sm_candidates = sr_transaction.get_all_sm_trx()
+
+    active_sm_nik = next((a.get('assigned_user') for a in all_assignments if a.get('it_role_id') == 3), "")
+    current_sm_dept_id = next((sm.get('id_dept') for sm in sm_candidates if sm.get('nik') == active_sm_nik), None)
+
+    trx_result = sr_transaction.update_sr_adjustment_trx(request.form, sr_no, current_sm_dept_id)
     
     if trx_result.get('status'):
         flash("SR Details updated successfully!", "success")

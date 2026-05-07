@@ -112,13 +112,12 @@
                             </select>
                         </div>
 
-                        {% set midi_display = 'block' if sm_dept_id == 'C122' else 'none' %}
-                        <div id="midikriingFormGroup" class="form-group" style="margin-top: 15px; display: {{ midi_display }};">
+                        <!-- Rendered for everyone, but visually hidden if not C122 -->
+                        <div id="midikriingFormGroup" class="form-group" style="margin-top: 15px; display: {% if sm_dept_id == 'C122' %}block{% else %}none{% endif %};">
                             <label class="info-label">Status Midikriing</label>
                             <select name="status_midikriing" class="modern-select">
-                                <option value="">-- Pilih Status Midikriing --</option>
-                                <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
                                 <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
+                                <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
                             </select>
                         </div>
 
@@ -222,7 +221,7 @@
                     <form id="ajax-replace-sm" action="{{ url_for('owh_sr.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
-                        <select name="new_sm_nik" id="smSelectDropdown" class="modern-select" required onchange="onSmChange(this)">
+                        <select name="new_sm_nik" id="smSelectDropdown" class="modern-select" required>
                             <option value="" disabled>-- Pilih Scrum Master Baru --</option>
                             {% for sm in pmo_form_data.sm_candidates %}
                                 <option value="{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}" {% if sm.nik == pmo_form_data.active_sm_nik %}selected{% endif %}>
@@ -433,6 +432,23 @@
                         });
 
                         const result = await response.json();
+
+                        // --- ADDED UI TRIGGER FOR NO-RELOAD SM UPDATE ---
+                        if (result.status && formId === 'ajax-replace-sm') {
+                            const smSelect = document.getElementById('smSelectDropdown');
+                            const deptId = smSelect.options[smSelect.selectedIndex]?.dataset?.deptId;
+                            const midikriingGroup = document.getElementById('midikriingFormGroup');
+                            
+                            if (midikriingGroup) {
+                                // Show or hide based on the newly saved SM's department
+                                midikriingGroup.style.display = (deptId === 'C122') ? 'block' : 'none';
+                                
+                                // Reset the visual selection to 'false' if it's being hidden
+                                if (deptId !== 'C122') {
+                                    midikriingGroup.querySelector('select').value = 'false';
+                                }
+                            }
+                        }
                         
                         // Loop through flashed messages sent from Flask backend
                         if (result.flashes && result.flashes.length > 0) {
@@ -576,13 +592,6 @@
     });
 
     // --- LOV & MISC LOGIC ---
-    function onSmChange(select) {
-        const deptId = select.options[select.selectedIndex]?.dataset?.deptId;
-        const midikriingGroup = document.getElementById('midikriingFormGroup');
-        if (midikriingGroup) {
-            midikriingGroup.style.display = (deptId === 'C122') ? 'block' : 'none';
-        }
-    }
 
     const modal = document.getElementById('lovModal');
     const tableBody = document.getElementById('lovTableBody');

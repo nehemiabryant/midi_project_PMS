@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, render_template, request, session
-from ..helpers.decorators import login_required
+from ..helpers.decorators import ajax_required, login_required
 from ..transactions import task_transaction, srlogs_transaction
 from common.midiconnectserver.midilog import Logger
 
@@ -10,6 +10,7 @@ task_bp = Blueprint('owh_task', __name__, url_prefix='/task')
 
 @task_bp.route('/list/<path:sr_no>', methods=['GET'])
 @login_required
+@ajax_required
 def get_tasks(sr_no):
     """List semua task pada SR untuk picrole user yang login."""
     nik = session['user']['nik']
@@ -22,6 +23,7 @@ def get_tasks(sr_no):
 
 @task_bp.route('/create/<path:sr_no>', methods=['POST'])
 @login_required
+@ajax_required
 def create_task(sr_no):
     """Buat task baru pada SR."""
     nik = session['user']['nik']
@@ -36,6 +38,7 @@ def create_task(sr_no):
 
 @task_bp.route('/<int:task_id>', methods=['PUT'])
 @login_required
+@ajax_required
 def update_task(task_id):
     """Update task yang sudah ada."""
     nik = session['user']['nik']
@@ -51,6 +54,7 @@ def update_task(task_id):
 
 @task_bp.route('/<int:task_id>', methods=['DELETE'])
 @login_required
+@ajax_required
 def delete_task(task_id):
     """Hapus task."""
     nik = session['user']['nik']
