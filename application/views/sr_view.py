@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify
+from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify, get_flashed_messages
 from common.midiconnectserver.midilog import Logger
 from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
 from ..helpers.decorators import login_required, bypass_required, ajax_required
@@ -477,45 +477,55 @@ def adjustment_menu(sr_no):
 @login_required
 @bypass_required
 def pmo_update_details(sr_no):
-    """Only updates Category, etc."""
     trx_result = sr_transaction.update_sr_adjustment_trx(request.form, sr_no)
+    
     if trx_result.get('status'):
         flash("SR Details updated successfully!", "success")
     else:
         flash(f"Error: {trx_result.get('msg')}", "error")
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
+        return jsonify({'status': trx_result.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
+
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
 
 @sr_bp.route('/adjustment/<path:sr_no>/update-dates', methods=['POST'])
 @login_required
 @bypass_required
 def pmo_update_dates(sr_no):
-    """Only processes Target Dates."""
     target_res = srlogs_transaction.process_actual_dates_trx(sr_no, request.form)
+    
     if target_res.get('status'):
         flash("Schedule updated successfully!", "success")
     else:
         flash(f"Error: {target_res.get('msg')}", "error")
+        
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
+        return jsonify({'status': target_res.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
+
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
 
 @sr_bp.route('/adjustment/<path:sr_no>/force-phase', methods=['POST'])
 @login_required
 @bypass_required
 def pmo_force_phase(sr_no):
-    """Only forces the ticket to a new phase."""
     current_smk_id = int(request.form.get('current_smk_id'))
     next_smk_id = int(request.form.get('sr_action'))
     current_user = session.get('user', {}).get('nik', '')
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
     if next_smk_id == current_smk_id:
         flash("Phase is already set to that status.", "info")
+        if is_ajax:
+            return jsonify({'status': False, 'flashes': get_flashed_messages(with_categories=True)})
         return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
         
     advance_result = workflow_transaction.advance_sr_phase(
-        sr_no=sr_no,
-        current_smk_id=current_smk_id,
-        next_smk_id=next_smk_id,
-        action_by=current_user,
-        is_adjustment=True
+        sr_no=sr_no, current_smk_id=current_smk_id, next_smk_id=next_smk_id, action_by=current_user, is_adjustment=True
     )
     
     if advance_result.get('status'):
@@ -523,40 +533,53 @@ def pmo_force_phase(sr_no):
     else:
         flash(f"Error: {advance_result.get('msg')}", "error")
         
+    if is_ajax:
+        return jsonify({'status': advance_result.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
+        
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
+
 
 @sr_bp.route('/adjustment/<path:sr_no>/reassign-pic', methods=['POST'])
 @login_required
 @bypass_required
 def pmo_reassign(sr_no):
-    """Update assignment PIC pada SR."""
     nik = session['user']['nik']
     result = assignment_transaction.pmo_update_assign_trx(sr_no, nik, request.form)
 
-    if not result.get('status'):
-        flash(result.get('msg', 'Gagal memperbarui assignment.'), 'error')
-    else:
+    if result.get('status'):
         flash(result.get('msg', 'Assignment berhasil diperbarui.'), 'success')
+    else:
+        flash(result.get('msg', 'Gagal memperbarui assignment.'), 'error')
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
+        return jsonify({'status': result.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
 
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
-@sr_bp.route('/adjustment/<path:sr_no>/replace-sm', methods=['POST'])                                                   
+
+@sr_bp.route('/adjustment/<path:sr_no>/replace-sm', methods=['POST'])                                                  
 @login_required            
 @bypass_required                                        
 def pmo_replace_sm(sr_no):                                          
-    """Ganti IT SM pada SR."""
     nik = session['user']['nik']
     new_sm_nik = request.form.get('new_sm_nik', '').strip()
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if not new_sm_nik:
         flash('Pilih IT SM terlebih dahulu.', 'error')
+        if is_ajax:
+            return jsonify({'status': False, 'flashes': get_flashed_messages(with_categories=True)})
         return redirect(url_for('owh_dashboard.sr_detail_view', sr_no=sr_no))
     
     result = assignment_transaction.pmo_replace_sm_trx(sr_no, nik, new_sm_nik)
-    if not result.get('status'):
-        flash(result.get('msg', 'Gagal mengganti IT SM.'), 'error')
-    else:
+    
+    if result.get('status'):
         flash(result.get('msg', 'IT SM berhasil diganti.'), 'success')
+    else:
+        flash(result.get('msg', 'Gagal mengganti IT SM.'), 'error')
+        
+    if is_ajax:
+        return jsonify({'status': result.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
     
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
-    

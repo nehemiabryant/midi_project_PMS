@@ -3,6 +3,9 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/sr_adjustment.css') }}">
 
+<!-- Toast Notification Container -->
+<div id="toast-container" class="toast-container"></div>
+
 <div class="pmo-wrapper">
     <div class="pmo-container">
 
@@ -81,7 +84,7 @@
                 
                 <div class="pmo-card">
                     <h3 class="pmo-card-header">Detail SR</h3>
-                    <form action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
+                    <form id="ajax-update-details" action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <div class="form-group">
@@ -131,14 +134,13 @@
                             </select>
                         </div>
                         
-
                         <button type="submit" class="btn-primary" style="margin-top: 15px;">Update Detail</button>
                     </form>
                 </div>
 
                 <div class="pmo-card">
                     <h3 class="pmo-card-header" style="color: #ea580c; border-bottom-color: #ffedd5;">Force Phase Jump</h3>
-                    <form action="{{ url_for('owh_sr.pmo_force_phase', sr_no=sr_data.sr_no) }}" method="POST">
+                    <form id="ajax-force-phase" action="{{ url_for('owh_sr.pmo_force_phase', sr_no=sr_data.sr_no) }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="current_smk_id" value="{{ sr_data.smk_id }}">
                         
@@ -161,7 +163,7 @@
 
             <div class="pmo-card">
                 <h3 class="pmo-card-header">Project Actual Schedule</h3>
-                <form action="{{ url_for('owh_sr.pmo_update_dates', sr_no=sr_data.sr_no) }}" method="POST">
+                <form id="ajax-update-dates" action="{{ url_for('owh_sr.pmo_update_dates', sr_no=sr_data.sr_no) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     
                     <div style="overflow-x: auto;">
@@ -205,7 +207,7 @@
                         </table>
                     </div>
                     
-                    <div style="text-align: right;">
+                    <div style="text-align: right; margin-top: 15px;">
                         <button type="submit" class="btn-primary">Save Schedule</button>
                     </div>
                 </form>
@@ -217,7 +219,7 @@
                 {% if not user_is_sm %}
                 <div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #e2e8f0;">
                     <label class="info-label" style="display:block; margin-bottom:10px;">IT Senior Manager</label>
-                    <form action="{{ url_for('owh_sr.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
+                    <form id="ajax-replace-sm" action="{{ url_for('owh_sr.pmo_replace_sm', sr_no=sr_data.sr_no) }}" method="POST" style="display: flex; gap: 12px; align-items: center; max-width: 600px;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <select name="new_sm_nik" id="smSelectDropdown" class="modern-select" required onchange="onSmChange(this)">
@@ -237,7 +239,7 @@
                 <div>
                     <label class="info-label" style="display:block; margin-bottom:10px;">Kelola Tim PIC (IT Role)</label>
                     
-                    <form method="POST" action="{{ url_for('owh_sr.pmo_reassign', sr_no=sr_data.sr_no) }}" id="pmo-reassign-form">
+                    <form id="ajax-reassign" method="POST" action="{{ url_for('owh_sr.pmo_reassign', sr_no=sr_data.sr_no) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <div id="pmo-assign-rows">
@@ -279,123 +281,6 @@
                     </form>
                 </div>
             </div>
-
-            <script>
-                const PMO_ROLES = {{ pmo_form_data.picroles | default([]) | tojson }};
-                const PMO_USERS = {{ pmo_form_data.it_users | default([]) | tojson }};
-
-                function buildRoleOptions(selectedId) {
-                    return PMO_ROLES.map(r =>
-                        `<option value="${r.it_role_id}" ${r.it_role_id == selectedId ? 'selected':''}>${r.it_role_detail}</option>`
-                    ).join('');
-                }
-
-                function buildUserOptions(selectedNik) {
-                    return `<option value="">-- Pilih User --</option>` +
-                        PMO_USERS.map(u =>
-                            `<option value="${u.nik}" ${u.nik == selectedNik ? 'selected':''}>${u.nama} (${u.nik})</option>`
-                        ).join('');
-                }
-
-                function addNewRow() {
-                    const container = document.getElementById('pmo-assign-rows');
-                    const row = document.createElement('div');
-                    row.className = 'assign-row';
-                    row.innerHTML = `
-                        <input type="hidden" name="assign_id[]" value="">
-                        <select name="assign_role[]" class="modern-select" style="width:250px;">${buildRoleOptions(null)}</select>
-                        <select name="assign_user[]" class="modern-select" style="flex:1;">${buildUserOptions(null)}</select>
-                        <button type="button" class="btn-delete" onclick="this.closest('.assign-row').remove()">&times; Batal</button>
-                    `;
-                    container.appendChild(row);
-                }
-
-                function removeExistingRow(btn) {
-                    const row = btn.closest('.assign-row');
-                    const hidden = row.querySelector('.delete-id-input');
-                    if (hidden) { hidden.name = 'delete_ids[]'; hidden.disabled = false; }
-                    
-                    const assignIdInput = row.querySelector('.assign-id-input');
-                    if (assignIdInput) { assignIdInput.disabled = true; }
-                    
-                    row.querySelectorAll('select').forEach(s => s.disabled = true);
-                    
-                    // Visual cue that it's deleted
-                    row.style.opacity = '0.5';
-                    row.style.background = '#f1f5f9';
-                    
-                    btn.textContent = 'Undo Hapus';
-                    btn.style.background = '#e2e8f0'; 
-                    btn.style.color = '#475569';
-                    btn.style.borderColor = '#cbd5e1';
-                    btn.onclick = () => cancelDelete(btn);
-                }
-
-                function cancelDelete(btn) {
-                    const row = btn.closest('.assign-row');
-                    const hidden = row.querySelector('.delete-id-input');
-                    if (hidden) { hidden.name = ''; hidden.disabled = true; }
-                    
-                    const assignIdInput = row.querySelector('.assign-id-input');
-                    if (assignIdInput) { assignIdInput.disabled = false; }
-                    
-                    row.querySelectorAll('select').forEach(s => s.disabled = false);
-                    
-                    // Restore visual
-                    row.style.opacity = '1'; 
-                    row.style.background = '#f8fafc';
-                    
-                    btn.textContent = 'Hapus';
-                    btn.style.background = '#fef2f2'; 
-                    btn.style.color = '#dc2626';
-                    btn.style.borderColor = '#fecaca';
-                    btn.onclick = () => removeExistingRow(btn);
-                }
-
-                document.addEventListener('DOMContentLoaded', () => {
-                    // Select all rows in your table
-                    const tableRows = document.querySelectorAll('tr');
-
-                    tableRows.forEach(row => {
-                        const startInput = row.querySelector('input[name="start_date[]"]');
-                        const finishInput = row.querySelector('input[name="finish_date[]"]');
-
-                        // Only apply logic if both inputs exist and finish_date isn't the hidden N/A one
-                        if (startInput && finishInput && finishInput.type !== 'hidden') {
-                            
-                            const handleDateChange = (e) => {
-                                // 1. Fallback Validation (in case they type manually instead of using the calendar)
-                                if (startInput.value && finishInput.value) {
-                                    if (new Date(startInput.value) > new Date(finishInput.value)) {
-                                        alert("The start date cannot be later than the finish date.");
-                                        e.target.value = ''; // Clear the invalid input
-                                    }
-                                }
-                                
-                                // 2. Dynamically update calendar restrictions
-                                if (startInput.value) {
-                                    finishInput.min = startInput.value; // Finish date calendar can't go before Start
-                                } else {
-                                    finishInput.removeAttribute('min');
-                                }
-                                
-                                if (finishInput.value) {
-                                    startInput.max = finishInput.value; // Start date calendar can't go after Finish
-                                } else {
-                                    startInput.removeAttribute('max');
-                                }
-                            };
-
-                            // Attach the event listeners
-                            startInput.addEventListener('change', handleDateChange);
-                            finishInput.addEventListener('change', handleDateChange);
-                            
-                            // Run once on page load to lock in restrictions for pre-filled database dates
-                            handleDateChange({ target: startInput }); 
-                        }
-                    });
-                });
-            </script>
         {% endif %}
 
     </div>
@@ -435,7 +320,6 @@
     </div>
 </div>
 
-
 <style>
     /* Modal Overlay */
     .lov-modal-overlay {
@@ -444,18 +328,16 @@
         z-index: 9999; display: flex; justify-content: center; align-items: center;
     }
 
-    /* Adapted your .list-card to act as the modal container */
     .lov-modal-card {
         background: #ffffff;
         border-radius: 12px;
         padding: 28px 32px;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         width: 100%;
-        max-width: 1150px; /* Same width as your original list-card */
+        max-width: 1150px;
         font-family: 'Poppins', 'Inter', sans-serif;
     }
 
-    /* Your Original Styles */
     .list-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
     .list-card-title { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0; }
     
@@ -472,13 +354,228 @@
     .td-date { color: #64748b; font-weight: 400; }
     .empty-state { text-align: center; padding: 48px 0; color: #94a3b8; font-size: 13px; }
 
-    /* New Button to close modal */
     .close-btn { background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; padding: 0; line-height: 1; }
     .close-btn:hover { color: #0f172a; }
 </style>
 
-
 <script>
+    // --- TOAST NOTIFICATION LOGIC ---
+    function showToast(message, type = 'success') {
+        // 1. Find the existing wrapper from base.html, or create it if the page loaded with no initial flashes
+        let wrapper = document.getElementById('flash-toast-wrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.id = 'flash-toast-wrapper';
+            document.body.appendChild(wrapper); // Attach to body
+        }
+
+        // 2. Map the type to your specific FontAwesome icons
+        let icon = 'fa-circle-info';
+        let category = type;
+        
+        if (type === 'success') {
+            icon = 'fa-circle-check';
+        } else if (type === 'error' || type === 'danger') {
+            icon = 'fa-circle-xmark';
+            category = 'error'; // Ensure the class matches your CSS
+        } else if (type === 'warning') {
+            icon = 'fa-triangle-exclamation';
+        }
+
+        // 3. Build the exact HTML structure from base.html
+        const toast = document.createElement('div');
+        toast.className = `flash-toast flash-toast-${category}`;
+        toast.innerHTML = `
+            <i class="fas ${icon} flash-toast-icon"></i>
+            <span class="flash-toast-msg">${message}</span>
+            <button class="flash-toast-close" onclick="this.parentElement.remove()" aria-label="Tutup">&times;</button>
+        `;
+
+        wrapper.appendChild(toast);
+
+        // 4. Apply your exact fade-out timing (5 seconds)
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.4s ease';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 400);
+        }, 5000);
+    }
+
+    // --- AJAX FORM SUBMISSION HANDLER ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const formsToAjax = [
+            'ajax-update-details', 
+            'ajax-force-phase', 
+            'ajax-update-dates', 
+            'ajax-replace-sm', 
+            'ajax-reassign'
+        ];
+
+        formsToAjax.forEach(formId => {
+            const formElement = document.getElementById(formId);
+            if(formElement) {
+                formElement.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn ? submitBtn.textContent : 'Submit';
+                    
+                    if (submitBtn) {
+                        submitBtn.textContent = "Processing...";
+                        submitBtn.disabled = true;
+                    }
+
+                    try {
+                        const response = await fetch(this.action, {
+                            method: 'POST',
+                            body: new FormData(this),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const result = await response.json();
+                        
+                        // Loop through flashed messages sent from Flask backend
+                        if (result.flashes && result.flashes.length > 0) {
+                            result.flashes.forEach(([category, msg]) => {
+                                const toastType = (category === 'error' || category === 'danger') ? 'error' : category;
+                                showToast(msg, toastType);
+                            });
+                        } else {
+                            showToast(result.status ? 'Operation successful' : 'Operation failed', result.status ? 'success' : 'error');
+                        }
+
+                    } catch (error) {
+                        console.error("Submission Error:", error);
+                        showToast("Terjadi kesalahan jaringan.", 'error');
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.textContent = originalText;
+                            submitBtn.disabled = false;
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    // --- ASSIGNMENT & DATES LOGIC ---
+    const PMO_ROLES = {% if pmo_form_data and pmo_form_data.picroles %}{{ pmo_form_data.picroles | tojson }}{% else %}[]{% endif %};
+    const PMO_USERS = {% if pmo_form_data and pmo_form_data.it_users %}{{ pmo_form_data.it_users | tojson }}{% else %}[]{% endif %};
+
+    function buildRoleOptions(selectedId) {
+        return PMO_ROLES.map(r =>
+            `<option value="${r.it_role_id}" ${r.it_role_id == selectedId ? 'selected':''}>${r.it_role_detail}</option>`
+        ).join('');
+    }
+
+    function buildUserOptions(selectedNik) {
+        return `<option value="">-- Pilih User --</option>` +
+            PMO_USERS.map(u =>
+                `<option value="${u.nik}" ${u.nik == selectedNik ? 'selected':''}>${u.nama} (${u.nik})</option>`
+            ).join('');
+    }
+
+    function addNewRow() {
+        const container = document.getElementById('pmo-assign-rows');
+        const row = document.createElement('div');
+        row.className = 'assign-row';
+        row.innerHTML = `
+            <input type="hidden" name="assign_id[]" value="">
+            <select name="assign_role[]" class="modern-select" style="width:250px;">${buildRoleOptions(null)}</select>
+            <select name="assign_user[]" class="modern-select" style="flex:1;">${buildUserOptions(null)}</select>
+            <button type="button" class="btn-delete" onclick="this.closest('.assign-row').remove()">&times; Batal</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeExistingRow(btn) {
+        const row = btn.closest('.assign-row');
+
+        const roleSelect = row.querySelector('select[name="assign_role[]"]');
+        if (roleSelect) {
+            const roleId = roleSelect.value;
+            const allRows = document.querySelectorAll('#pmo-assign-rows .assign-row');
+            const activeForRole = Array.from(allRows).filter(r => {
+                const isMarkedDelete = r.querySelector('.delete-id-input')?.name === 'delete_ids[]';
+                const rSelect = r.querySelector('select[name="assign_role[]"]');
+                return !isMarkedDelete && rSelect && rSelect.value == roleId && r !== row;
+            });
+            if (activeForRole.length === 0) {
+                const roleName = roleSelect.options[roleSelect.selectedIndex]?.text || roleId;
+                showToast(`Role "${roleName}" harus memiliki minimal 1 user.`, "error");
+                return;
+            }
+        }
+
+        const hidden = row.querySelector('.delete-id-input');
+        if (hidden) { hidden.name = 'delete_ids[]'; hidden.disabled = false; }
+        
+        const assignIdInput = row.querySelector('.assign-id-input');
+        if (assignIdInput) { assignIdInput.disabled = true; }
+        
+        row.querySelectorAll('select').forEach(s => s.disabled = true);
+        
+        row.style.opacity = '0.5';
+        row.style.background = '#f1f5f9';
+        
+        btn.textContent = 'Undo Hapus';
+        btn.style.background = '#e2e8f0'; 
+        btn.style.color = '#475569';
+        btn.style.borderColor = '#cbd5e1';
+        btn.onclick = () => cancelDelete(btn);
+    }
+
+    function cancelDelete(btn) {
+        const row = btn.closest('.assign-row');
+        const hidden = row.querySelector('.delete-id-input');
+        if (hidden) { hidden.name = ''; hidden.disabled = true; }
+        
+        const assignIdInput = row.querySelector('.assign-id-input');
+        if (assignIdInput) { assignIdInput.disabled = false; }
+        
+        row.querySelectorAll('select').forEach(s => s.disabled = false);
+        
+        row.style.opacity = '1'; 
+        row.style.background = '#f8fafc';
+        
+        btn.textContent = 'Hapus';
+        btn.style.background = '#fef2f2'; 
+        btn.style.color = '#dc2626';
+        btn.style.borderColor = '#fecaca';
+        btn.onclick = () => removeExistingRow(btn);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const tableRows = document.querySelectorAll('tr');
+
+        tableRows.forEach(row => {
+            const startInput = row.querySelector('input[name="start_date[]"]');
+            const finishInput = row.querySelector('input[name="finish_date[]"]');
+
+            if (startInput && finishInput && finishInput.type !== 'hidden') {
+                const handleDateChange = (e) => {
+                    if (startInput.value && finishInput.value) {
+                        if (new Date(startInput.value) > new Date(finishInput.value)) {
+                            showToast("Start date cannot be later than finish date.", "error");
+                            e.target.value = ''; 
+                        }
+                    }
+                    
+                    if (startInput.value) finishInput.min = startInput.value; 
+                    else finishInput.removeAttribute('min');
+                    
+                    if (finishInput.value) startInput.max = finishInput.value; 
+                    else startInput.removeAttribute('max');
+                };
+
+                startInput.addEventListener('change', handleDateChange);
+                finishInput.addEventListener('change', handleDateChange);
+                handleDateChange({ target: startInput }); 
+            }
+        });
+    });
+
+    // --- LOV & MISC LOGIC ---
     function onSmChange(select) {
         const deptId = select.options[select.selectedIndex]?.dataset?.deptId;
         const midikriingGroup = document.getElementById('midikriingFormGroup');
@@ -493,23 +590,15 @@
 
     function openLovModal() {
         modal.style.display = 'flex';
-        // Auto-focus the search bar when modal opens
         setTimeout(() => document.getElementById('lovSearchInput').focus(), 100);
-        
-        if (!lovDataFetched) {
-            fetchAdjustmentLov();
-        }
+        if (!lovDataFetched) { fetchAdjustmentLov(); }
     }
 
-    function closeLovModal() {
-        modal.style.display = 'none';
-    }
+    function closeLovModal() { modal.style.display = 'none'; }
 
     async function fetchAdjustmentLov() {
         try {
             tableBody.innerHTML = '<tr><td colspan="4" class="empty-state">Fetching Data...</td></tr>';
-            
-            // Calls your Flask API route
             const response = await fetch('/api/adjustment/lov', {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
@@ -527,69 +616,23 @@
         }
     }
 
-    function removeExistingRow(btn) {
-        const row = btn.closest('.assign-row');
-
-        // Cek apakah ini satu-satunya user untuk role ini
-        const roleSelect = row.querySelector('select[name="assign_role[]"]');
-        if (roleSelect) {
-            const roleId = roleSelect.value;
-            const allRows = document.querySelectorAll('#pmo-assign-rows .assign-row');
-            const activeForRole = Array.from(allRows).filter(r => {
-                const isMarkedDelete = r.querySelector('.delete-id-input')?.name === 'delete_ids[]';
-                const rSelect = r.querySelector('select[name="assign_role[]"]');
-                return !isMarkedDelete && rSelect && rSelect.value == roleId && r !== row;
-            });
-            if (activeForRole.length === 0) {
-                const roleName = roleSelect.options[roleSelect.selectedIndex]?.text || roleId;
-                alert(`Tidak dapat menghapus. Role "${roleName}" harus memiliki minimal 1 user yang di-assign.`);
-                return;
-            }
-        }
-
-        const hidden = row.querySelector('.delete-id-input');
-        if (hidden) { hidden.name = 'delete_ids[]'; hidden.disabled = false; }
-
-        const assignIdInput = row.querySelector('.assign-id-input');
-        if (assignIdInput) { assignIdInput.disabled = true; }
-
-        row.querySelectorAll('select').forEach(s => s.disabled = true);
-
-        // Visual cue that it's deleted
-        row.style.opacity = '0.5';
-        row.style.background = '#f1f5f9';
-
-        btn.textContent = 'Undo Hapus';
-        btn.style.background = '#e2e8f0';
-        btn.style.color = '#475569';
-        btn.style.borderColor = '#cbd5e1';
-        btn.onclick = () => cancelDelete(btn);
-        
-    }
-
     function renderLovTable(data) {
         tableBody.innerHTML = ''; 
-        
         data.forEach(item => {
             const srNo = item.sr_no || '-';
             const name = item.name || '-';
             const requester = item.requester_name || '-';
-            
-            // Format the date (mimics format_wib in Javascript)
             let dateStr = item.created_at || '-';
+            
             if (dateStr !== '-') {
                  const d = new Date(dateStr);
                  if (!isNaN(d)) {
-                     // Formats to "DD/MM/YYYY, HH:MM" 
                      dateStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
                  }
             }
 
             const tr = document.createElement('tr');
-            
-            // Make the entire row clickable to match your original design
-            tr.onclick = () => selectSrAndRedirect(srNo);
-            
+            tr.onclick = () => window.location.href = `/adjustment/${srNo}`;
             tr.innerHTML = `
                 <td>${srNo}</td>
                 <td>${name}</td>
@@ -598,11 +641,6 @@
             `;
             tableBody.appendChild(tr);
         });
-    }
-
-    function selectSrAndRedirect(srNo) {
-        // Sends them to the specific detail page
-        window.location.href = `/adjustment/${srNo}`;
     }
 
     function filterLovTable() {
