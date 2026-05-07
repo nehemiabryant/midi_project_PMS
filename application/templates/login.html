@@ -67,11 +67,28 @@
       <h1 class="login-title">Project Management System</h1>
       <p class="login-subtitle">Silakan login untuk melanjutkan</p>
 
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-red" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>NIK atau password salah</span>
+              </div>
+              <button type="button" class="close-alert">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
       {% if error %}
-      <div class="login-alert">
-        <i class="fas fa-exclamation-circle"></i>
-        <span>{{ error }}</span>
-      </div>
+        <div class="alert alert-red" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>NIK atau password salah</span>
+          </div>
+          <button type="button" class="close-alert">&times;</button>
+        </div>
       {% endif %}
 
       <form method="POST" action="{{ url_for('owh_auth.login') }}">
@@ -113,7 +130,7 @@
     <script>
       $(document).ready(function () {
         $(".close-alert").click(function () {
-          $(this).closest(".alert").parent().fadeOut();
+          $(this).closest(".alert").fadeOut("fast");
         });
       });
     </script>
