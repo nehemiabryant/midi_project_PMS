@@ -471,13 +471,13 @@ def get_srs_by_phase(phase_name: str, shared_conn=None) -> dict:
 def get_sr_detail_with_status_model(sr_no: str) -> dict:
     """Ambil detail SR beserta status untuk halaman assignment."""
     sql = """
-        SELECT r.sr_no, r.name, r.module, r.purpose, r.division, r.details,                                                         
-                r.frequency, r.value, r.value_det, r.num_user,      
-                r.smk_id, COALESCE(s.smk_ket, '') AS smk_ket, 
-                r.req_id, COALESCE(k.nama, '') AS req_name,         
-                r.created_at                                        
-        FROM sr_request r  
-        LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id               
+        SELECT r.sr_no, r.name, r.module, r.purpose, r.division, r.details,
+                r.frequency, r.value, r.value_det, r.num_user,
+                r.smk_id, COALESCE(s.smk_ket, '') AS smk_ket,
+                r.req_id, COALESCE(k.nama, '') AS req_name,
+                r.created_at, r.q_id
+        FROM sr_request r
+        LEFT JOIN sr_ms_ket s ON r.smk_id = s.smk_id
         LEFT JOIN karyawan_all k ON r.req_id = k.nik
         WHERE r.sr_no = %(sr_no)s 
     """
@@ -922,7 +922,6 @@ def get_monitoring_complete_projects(sr_list: list, shared_conn=None) -> dict:
                 WHEN a.finish_date > COALESCE(t.finish_date, '2099-12-31'::DATE) THEN 'SELESAI TERLAMBAT'
                 ELSE 'TEPAT WAKTU'
             END AS status
-            
         FROM public.sr_request r
         LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
         LEFT JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6
@@ -964,10 +963,9 @@ def get_monitoring_all_projects(sr_list: list, shared_conn=None) -> dict:
                         AND wf.current_smk_id = COALESCE(r.smk_id, 0)
                   )
             ) AS pic_it,
-            
             r.sr_no, 
             r.name AS aplikasi,
-            r.module AS modul,      -- Replaced 'status' with 'module'
+            r.module AS modul,
             t.start_date AS target_selesai,
             c.category AS tipe
             
@@ -1011,7 +1009,6 @@ def get_monitoring_by_pic_model(params: dict) -> dict:
             SELECT sa.assigned_user, sa.sr_no, sr.q_id
             FROM sr_assignments sa
             JOIN sr_request sr ON sa.sr_no = sr.sr_no
-            -- Removed the sa.is_active = TRUE line here
             WHERE sa.deleted_at IS NULL
             AND RIGHT(sr.sr_no, 4) = COALESCE(%(year)s, TO_CHAR(NOW(), 'YYYY'))
         ) sa_yr ON su.nik = sa_yr.assigned_user

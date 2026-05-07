@@ -64,6 +64,7 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
                 'it_users': it_users,
                 'current_assignments': current_assignments,
                 'is_locked': is_locked,
+                'pic_locked': len(current_assignments) > 0,
                 'target_dates': target_dates,
                 'quarter': quarter
             }
@@ -412,12 +413,24 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
     """
     Orchestrates the SM approval process: Assigns PICs and advances the phase atomically.
     """
+    # Validasi form sebelum buka koneksi DB
+    if not form_data.get('q_id'):
+        return {'status': False, 'msg': 'Quarter wajib diisi sebelum melanjutkan.'}
+
+    start_dates = form_data.getlist('start_date[]')
+    if any(not d.strip() for d in start_dates):
+        return {'status': False, 'msg': 'Semua target start date wajib diisi.'}
+
     shared_conn = None
     try:
         shared_conn = DatabasePG("supabase", autocommit=False)
 
-        # 1. Execute the PIC Assignments (hanya jika masih di fase BACKLOG SCRUM)
-        if current_smk_id == assignment_model.STATUS_BACKLOG_SCRUM:
+        # Execute the PIC Assignments hanya jika ada data baru yang dikirim dari form
+        # (jika PIC sudah ter-assign, disabled inputs tidak terkirim sehingga user_list kosong)
+        user_list = form_data.getlist('assign_user[]') if hasattr(form_data, 'getlist') else []
+        has_new_assignments = any(u.strip() for u in user_list)
+
+        if current_smk_id == assignment_model.STATUS_BACKLOG_SCRUM and has_new_assignments:
             assign_result = submit_assignments_trx(sr_no, nik, form_data, shared_conn=shared_conn, expected_smk_id=current_smk_id)
             if not assign_result.get('status'):
                 raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
@@ -432,7 +445,7 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
             if not quarter_result.get('status'):
                 raise Exception(f"Update quarter gagal: {quarter_result.get('msg')}")
 
-        # 2. Execute the Phase Advancement
+        # Execute the Phase Advancement
         advance_result = workflow_transaction.advance_sr_phase(
             sr_no=sr_no, current_smk_id=current_smk_id, next_smk_id=next_smk_id, 
             action_by=nik, shared_conn=shared_conn

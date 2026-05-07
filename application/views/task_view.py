@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify, render_template, request, session
-from ..helpers.decorators import ajax_required, login_required
-from ..transactions import task_transaction, srlogs_transaction
+from flask import Blueprint, jsonify, request, session
+from ..helpers.decorators import login_required, ajax_required
+from ..transactions import task_transaction
 from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
