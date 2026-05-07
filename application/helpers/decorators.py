@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, jsonify, flash, request
+from flask import session, redirect, url_for, jsonify, flash, request, abort
 from common.midiconnectserver.midilog import Logger
 
 Log = Logger()
@@ -19,10 +19,7 @@ def super_admin_required(f):
         role = session.get('role', {})
         permissions = role.get('permissions', [])
         if 'manage_roles' not in permissions:
-            return jsonify({
-                'error': 'forbidden',
-                'details': 'Akses ditolak. Diperlukan permission manage_roles.'
-            }), 403
+            abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -32,8 +29,7 @@ def bypass_required(f):
         role = session.get('role', {})
         permissions = role.get('permissions', [])
         if 'bypass' not in permissions:
-            flash('Akses ditolak. Anda tidak memiliki permission.', 'error')
-            return redirect(url_for('owh_dashboard.dashboard_menu'))
+            abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -43,8 +39,7 @@ def monitoring_required(f):
         role = session.get('role', {})
         permissions = role.get('permissions', [])
         if 'view_reports' not in permissions:
-            flash('Akses ditolak. Anda tidak memiliki permission', 'error')
-            return redirect(url_for('owh_dashboard.dashboard_menu'))
+            abort(403)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -57,10 +52,7 @@ def ajax_required(f):
     def decorated_function(*args, **kwargs):
         if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
             # Return a clean JSON error with a 403 Forbidden HTTP status code
-            return jsonify({
-                'status': False, 
-                'msg': 'Forbidden: Direct access to this API is not allowed.'
-            }), 403
+            abort(403)
             
         return f(*args, **kwargs)
     return decorated_function

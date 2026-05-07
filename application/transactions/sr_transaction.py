@@ -150,7 +150,7 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str, current_smk_id: int) 
         Log.error(f'Exception | Update SR Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     
-def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
+def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str) -> dict:
     try:
         db_params = {
             'sr_no': sr_no,
@@ -159,9 +159,9 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str) -> dict:
             'prj_id': raw_data.get('prj_id')
         }
 
-        if raw_data.get('status_midikriing') == 'true':
-            db_params['status_midikriing'] = True
-        elif raw_data.get('status_midikriing') == 'false':
+        if current_sm_dept_id == 'C122':
+            db_params['status_midikriing'] = True if raw_data.get('status_midikriing') == 'true' else False
+        else:
             db_params['status_midikriing'] = False
 
         # Basic validation

@@ -11,7 +11,6 @@
 
 <div class="table-container">
     
-    <!-- Action Bar (Search & Filter) -->
     <div class="action-bar" style="flex-wrap: wrap; gap: 16px;">
         <div class="search-box-container" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             
@@ -23,7 +22,6 @@
                     class="search-box" 
                     value="{{ search_query }}" 
                     placeholder="Cari No SR atau Judul..." 
-                    onkeyup="filterMyWorkTable()"
                 />
             </div>
 
@@ -34,20 +32,16 @@
                 {% endif %}
             {% endfor %}
             
-            <select id="filterStatus" class="search-box select-filter" onchange="filterMyWorkTable()">
+            <select id="filterStatus" class="search-box select-filter">
                 <option value="">Semua Status</option>
                 {% for st in unique_statuses|sort %}
                     <option value="{{ st|lower }}">{{ st }}</option>
                 {% endfor %}
             </select>
         </div>
-
-        <div class="toolbar-info" style="font-size: 13.5px; color: #6c757d; font-weight: 500;">
-            Menampilkan <span id="visibleRowCount">{{ my_work_items|length }}</span> SR
+        
         </div>
-    </div>
 
-    <!-- Tabel -->
     <div style="overflow-x: auto;">
         <table class="custom-table" id="myWorkTable">
             <thead>
@@ -93,58 +87,133 @@
                             </td>
                         </tr>
                     {% endfor %}
-                {% else %}
-                    <tr id="emptyRowMessage">
-                        <td colspan="4" style="text-align: center; color: #6c757d; padding: 30px;">Belum ada SR yang sedang berada di antrean akun Anda.</td>
-                    </tr>
                 {% endif %}
+                <tr id="emptyRowMessage" style="display: none;">
+                    <td colspan="4" style="text-align: center; color: #6c757d; padding: 30px;">Tidak ada SR yang sesuai.</td>
+                </tr>
             </tbody>
         </table>
     </div>
 
-    <!-- Footer & Pagination -->
     <div class="table-footer">
-        <span>Showing <span id="footerRowCount">{{ my_work_items|length }}</span> of {{ my_work_total }} SR</span>
+        <span>Menampilkan <strong id="startItem">0</strong> - <strong id="endItem">0</strong> dari <strong id="totalFiltered">0</strong> SR</span>
         <div class="pagination-group">
-            <button type="button" class="btn-page" disabled>Previous</button>
-            <button type="button" class="btn-page" disabled>Next</button>
+            <button type="button" id="prevPageBtn" class="btn-page">Previous</button>
+            <span id="pageInfo" style="padding: 6px 12px; font-weight: 600; color: #495057;">Page 1</span>
+            <button type="button" id="nextPageBtn" class="btn-page">Next</button>
         </div>
     </div>
 
 </div>
 
 <script>
-function filterMyWorkTable() {
-    const searchText = document.getElementById('searchMyWork').value.toLowerCase();
-    const statusFilter = document.getElementById('filterStatus').value.toLowerCase();
+document.addEventListener('DOMContentLoaded', function() {
     
-    const tbody = document.getElementById('myWorkTableBody');
-    if (!tbody) return;
+    // Konfigurasi Paginasi
+    const itemsPerPage = 10;
+    let currentPage = 1;
+    let filteredRows = []; // Menyimpan baris yang lolos filter
+    
+    // Elemen DOM
+    const searchInput = document.getElementById('searchMyWork');
+    const statusSelect = document.getElementById('filterStatus');
+    const allRows = Array.from(document.querySelectorAll('tr.my-work-row'));
+    const emptyRowMessage = document.getElementById('emptyRowMessage');
+    
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('pageInfo');
+    
+    const startItemSpan = document.getElementById('startItem');
+    const endItemSpan = document.getElementById('endItem');
+    const totalFilteredSpan = document.getElementById('totalFiltered');
 
-    const rows = tbody.querySelectorAll('tr.my-work-row');
-    let visibleCount = 0;
+    // Fungsi untuk menyaring data
+    function applyFilters() {
+        const searchText = searchInput.value.toLowerCase();
+        const statusFilter = statusSelect.value.toLowerCase();
 
-    rows.forEach(row => {
-        const srNumber = row.querySelector('.sr-number').textContent.toLowerCase();
-        const srTitle = row.querySelector('.sr-title').textContent.toLowerCase();
-        
-        const statusElement = row.querySelector('.status-text');
-        const statusText = statusElement ? statusElement.textContent.toLowerCase().trim() : '';
+        filteredRows = [];
 
-        const matchesSearch = srNumber.includes(searchText) || srTitle.includes(searchText);
-        const matchesStatus = statusFilter === "" || statusText === statusFilter;
+        allRows.forEach(row => {
+            const srNumber = row.querySelector('.sr-number').textContent.toLowerCase();
+            const srTitle = row.querySelector('.sr-title').textContent.toLowerCase();
+            const statusElement = row.querySelector('.status-text');
+            const statusText = statusElement ? statusElement.textContent.toLowerCase().trim() : '';
 
-        if (matchesSearch && matchesStatus) {
-            row.style.display = "";
-            visibleCount++;
-        } else {
+            const matchesSearch = srNumber.includes(searchText) || srTitle.includes(searchText);
+            const matchesStatus = statusFilter === "" || statusText === statusFilter;
+
+            if (matchesSearch && matchesStatus) {
+                filteredRows.push(row);
+            }
+            // Sembunyikan semua baris terlebih dahulu
             row.style.display = "none";
+        });
+
+        // Reset halaman ke 1 setiap kali filter berubah
+        currentPage = 1;
+        renderTable();
+    }
+
+    // Fungsi untuk merender tabel berdasarkan halaman
+    function renderTable() {
+        const totalItems = filteredRows.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+        // Tampilkan/Sembunyikan pesan kosong
+        emptyRowMessage.style.display = totalItems === 0 ? "" : "none";
+
+        // Tentukan indeks awal dan akhir untuk slice
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+
+        // Tampilkan hanya baris yang masuk ke halaman ini
+        filteredRows.slice(startIndex, endIndex).forEach(row => {
+            row.style.display = "";
+        });
+
+        // Update Teks Info di Footer (Kode JS pemanggil id="visibleRowCount" sudah dihapus)
+        totalFilteredSpan.textContent = totalItems;
+        startItemSpan.textContent = totalItems === 0 ? 0 : startIndex + 1;
+        endItemSpan.textContent = Math.min(endIndex, totalItems);
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        // Atur state tombol pagination
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages || totalItems === 0;
+    }
+
+    // Event Listeners untuk Filter
+    searchInput.addEventListener('input', applyFilters);
+    statusSelect.addEventListener('change', applyFilters);
+
+    // Event Listeners untuk Tombol Paginasi
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            filteredRows.slice(startIndex, endIndex).forEach(row => row.style.display = "none");
+            
+            currentPage--;
+            renderTable();
         }
     });
 
-    document.getElementById('visibleRowCount').textContent = visibleCount;
-    const footerCount = document.getElementById('footerRowCount');
-    if (footerCount) footerCount.textContent = visibleCount;
-}
+    nextBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+        if (currentPage < totalPages) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            filteredRows.slice(startIndex, endIndex).forEach(row => row.style.display = "none");
+            
+            currentPage++;
+            renderTable();
+        }
+    });
+
+    // Inisialisasi awal
+    applyFilters();
+});
 </script>
 {% endblock %}
