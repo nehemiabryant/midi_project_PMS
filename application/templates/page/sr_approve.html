@@ -422,9 +422,9 @@ legend {
                 {% if is_sm and assignment_data %}
                     <fieldset>
                         <legend>Assign PIC Tim</legend>
-                        {% if not assignment_data.is_locked %}
+                        {% if not assignment_data.pic_locked %}
                             <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role.</p>
-                            
+
                             <table id="assign-table" class="modern-inner-table">
                                 <thead>
                                     <tr>
@@ -457,30 +457,45 @@ legend {
                             </table>
                             <button type="button" class="btn-add-row" onclick="addAssignRow()">+ Tambah Baris</button>
                         {% else %}
-                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment PIC Tim sudah terkunci.</p>
-                            {% if assignment_data.current_assignments %}
-                                <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
+                            <p style="font-size: 13px; color: #64748b; margin: 0 0 10px 0;">
+                                <span style="display: inline-flex; align-items: center; gap: 6px; background: #fef9c3; border: 1px solid #fde047; border-radius: 5px; padding: 5px 10px; color: #854d0e; font-weight: 600;">
+                                    &#9432; Assignment PIC sudah terkunci dan tidak dapat diubah di halaman ini.
+                                </span>
+                            </p>
+                            <table class="modern-inner-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 45%;">User</th>
+                                        <th style="width: 45%;">Role</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     {% for pic in assignment_data.current_assignments %}
-                                        <li><strong>{{ pic.it_role_detail }}</strong>: {{ pic.assigned_user }} - {{ pic.nama }}</li>
+                                    <tr>
+                                        <td>
+                                            <select class="sm-dynamic-input" disabled>
+                                                <option selected>{{ pic.nama }} ({{ pic.assigned_user }})</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="sm-dynamic-input" disabled>
+                                                <option selected>{{ pic.it_role_detail }}</option>
+                                            </select>
+                                        </td>
+                                    </tr>
                                     {% endfor %}
-                                </ul>
-                            {% else %}
-                                <p style="font-size: 13px; color: #94a3b8; font-style: italic;">Belum ada PIC yang di-assign.</p>
-                            {% endif %}
+                                </tbody>
+                            </table>
                         {% endif %}
                     </fieldset>
 
                     <fieldset>
                         <legend>Set Project Schedule</legend>
-                        {% if not assignment_data.is_locked %}
-                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tentukan target tanggal mulai dan selesai untuk masing-masing fase.</p>
-                        {% else %}
-                            <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Jadwal project sudah terkunci.</p>
-                        {% endif %}
+                        <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tentukan target tanggal mulai dan selesai untuk masing-masing fase.</p>
 
                         <div style="margin-bottom: 16px;">
-                            <label style="display: block; font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px;">Target Quarter</label>
-                            <select name="q_id" class="compact-input" style="width: 100%; max-width: 300px;" {% if assignment_data.is_locked %}disabled{% endif %}>
+                            <label style="display: block; font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px;">Target Quarter <span style="color: #ef4444;">*</span></label>
+                            <select name="q_id" class="compact-input" style="width: 100%; max-width: 300px;">
                                 <option value="" disabled selected>-- Pilih Quarter --</option>
                                 {% for q in assignment_data.quarter %}
                                     <option value="{{ q.q_id }}" {% if assignment_data.sr_detail.q_id == q.q_id %}selected{% endif %}>{{ q.quarter }}</option>
@@ -492,7 +507,7 @@ legend {
                             <thead>
                                 <tr>
                                     <th style="width: 30%;">Phase Name</th>
-                                    <th style="width: 35%;">Target Start Date</th>
+                                    <th style="width: 35%;">Target Start Date <span style="color: #ef4444;">*</span></th>
                                     <th style="width: 35%;">Target Finish Date</th>
                                 </tr>
                             </thead>
@@ -505,16 +520,14 @@ legend {
                                     </td>
                                     <td>
                                         <input type="date" name="start_date[]" class="compact-input"
-                                            value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}" 
-                                            {% if assignment_data.is_locked %}disabled{% endif %}>
+                                            value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}">
                                     </td>
                                     <td>
                                         {% if phase.phase_id == 6 %}
-                                            <input type="hidden" name="finish_date[]" value=""{% if assignment_data.is_locked %}disabled{% endif %}>
+                                            <input type="hidden" name="finish_date[]" value="">
                                         {% else %}
                                             <input type="date" name="finish_date[]" class="compact-input"
-                                                value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}"
-                                                {% if assignment_data.is_locked %}disabled{% endif %}>
+                                                value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}">
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -580,8 +593,11 @@ legend {
             isForward ? radio.setAttribute('required', 'required') : radio.removeAttribute('required');
         });
         document.querySelectorAll('.gm-dynamic-input').forEach(select => {
-            isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
-        });
+            if (isForward && select.offsetParent !== null) {select.setAttribute('required', 'required');
+            } else {                                                       
+                select.removeAttribute('required');
+            }                                                              
+        });  
         document.querySelectorAll('.sm-dynamic-input').forEach(select => {
             isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
         });
@@ -625,6 +641,37 @@ legend {
             finishInput.addEventListener('change', function() {
                 if (this.value) { startInput.max = this.value; }
             });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('srApproveForm');
+        if (!form) return;
+        form.addEventListener('submit', function(e) {
+            const actionSelect = document.getElementById('action-select');
+            if (!actionSelect || actionSelect.value === '') return;
+            const isForward = actionSelect.options[actionSelect.selectedIndex].getAttribute('data-is-forward') === 'true';
+            if (!isForward) return;
+
+            // Validasi quarter
+            const qSelect = form.querySelector('select[name="q_id"]');
+            if (qSelect && !qSelect.value) {
+                e.preventDefault();
+                alert('Quarter wajib diisi sebelum melanjutkan.');
+                qSelect.focus();
+                return;
+            }
+
+            // Validasi semua start_date terisi
+            const startDates = form.querySelectorAll('input[name="start_date[]"]');
+            for (const input of startDates) {
+                if (!input.value) {
+                    e.preventDefault();
+                    alert('Semua target start date wajib diisi sebelum melanjutkan.');
+                    input.focus();
+                    return;
+                }
+            }
         });
     });
 </script>
