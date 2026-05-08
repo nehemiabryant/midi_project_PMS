@@ -79,86 +79,88 @@
                     </div>
                 </div>
             </div>
-
-            <div class="pmo-grid-2">
                 
-                <div class="pmo-card">
-                    <h3 class="pmo-card-header">Detail SR</h3>
-                    <form id="ajax-update-details" action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        
-                        <div class="form-group">
-                            <label class="info-label">Kategori</label>
-                            <select name="ctg_id" class="modern-select">
-                                <option value="">-- Pilih Kategori --</option>
-                                {% set cat_list = categories.data if categories.data is defined else categories %}
-                                {% for cat in cat_list %}
-                                    <option value="{{ cat.ctg_id }}" {% if sr_data.ctg_id == cat.ctg_id %}selected{% endif %}>
-                                        {{ cat.category}}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <label class="info-label">Quarter</label>
-                            <select name="q_id" class="modern-select">
-                                <option value="">-- Pilih Quarter --</option>
-                                {% for q in quarter %}
-                                    <option value="{{ q.q_id }}" {% if sr_data.q_id == q.q_id %}selected{% endif %}>
-                                        {{ q.quarter }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <!-- Rendered for everyone, but visually hidden if not C122 -->
-                        <div id="midikriingFormGroup" class="form-group" style="margin-top: 15px; display: {% if sm_dept_id == 'C122' %}block{% else %}none{% endif %};">
-                            <label class="info-label">Status Midikriing</label>
-                            <select name="status_midikriing" class="modern-select">
-                                <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
-                                <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <label class="info-label">Status Project</label>
-                            <select name="prj_id" class="modern-select">
-                                <option value="">-- Pilih Status Project --</option>
-                                {% for ps in project_statuses %}
-                                <option value="{{ ps.prj_id }}" {% if sr_data.prj_id == ps.prj_id %}selected{% endif %}>
-                                    {{ ps.status_project }}
+                <div class="pmo-card" style="margin-bottom: 24px;">
+                <h3 class="pmo-card-header">Detail SR</h3>
+                <form id="ajax-update-details" class="horizontal-form" action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="form-group">
+                        <label class="info-label">Kategori</label>
+                        <select name="ctg_id" class="modern-select">
+                            <option value="">-- Pilih Kategori --</option>
+                            {% set cat_list = categories.data if categories.data is defined else categories %}
+                            {% for cat in cat_list %}
+                                <option value="{{ cat.ctg_id }}" {% if sr_data.ctg_id == cat.ctg_id %}selected{% endif %}>
+                                    {{ cat.category}}
                                 </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <button type="submit" class="btn-primary" style="margin-top: 15px;">Update Detail</button>
-                    </form>
-                </div>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div class="pmo-card">
-                    <h3 class="pmo-card-header" style="color: #ea580c; border-bottom-color: #ffedd5;">Force Phase Jump</h3>
-                    <form id="ajax-force-phase" action="{{ url_for('owh_sr.pmo_force_phase', sr_no=sr_data.sr_no) }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="current_smk_id" value="{{ sr_data.smk_id }}">
-                        
-                        <div class="form-group">
-                            <label class="info-label">Pindah Paksa Ke Fase</label>
-                            <select name="sr_action" class="modern-select" required>
-                                <option value="">-- Select Target Phase --</option>
-                                {% set opt_list = options.data if options.data is defined else options %}
-                                {% for opt in opt_list %}
-                                    <option value="{{ opt.smk_id }}" {% if opt.smk_id == sr_data.smk_id %}selected{% endif %}>
-                                        {{ opt.smk_id }} - {{ opt.smk_ket }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-warning">Execute Phase Jump</button>
-                    </form>
-                </div>
+                    <div class="form-group">
+                        <label class="info-label">Quarter</label>
+                        <select name="q_id" class="modern-select">
+                            <option value="">-- Pilih Quarter --</option>
+                            {% for q in quarter %}
+                                <option value="{{ q.q_id }}" {% if sr_data.q_id == q.q_id %}selected{% endif %}>
+                                    {{ q.quarter }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="midikriingFormGroup" class="form-group" style="display: {% if sm_dept_id == 'C122' %}flex{% else %}none{% endif %}; flex-direction: column;">
+                        <label class="info-label">Status Midikriing</label>
+                        <select name="status_midikriing" class="modern-select">
+                            <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
+                            <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="info-label">Status Project</label>
+                        <select name="prj_id" class="modern-select">
+                            <option value="">-- Pilih Status Project --</option>
+                            {% for ps in project_statuses %}
+                            <option value="{{ ps.prj_id }}" {% if sr_data.prj_id == ps.prj_id %}selected{% endif %}>
+                                {{ ps.status_project }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="action-bottom-container">
+                        <button type="submit" class="btn-primary">Update Detail</button>
+                    </div>
+                </form>
             </div>
+
+            <div class="pmo-card" style="margin-bottom: 24px;">
+                <h3 class="pmo-card-header" style="color: #ea580c; border-bottom-color: #ffedd5;">Force Phase Jump</h3>
+                <form id="ajax-force-phase" class="horizontal-form" action="{{ url_for('owh_sr.pmo_force_phase', sr_no=sr_data.sr_no) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="current_smk_id" value="{{ sr_data.smk_id }}">
+                    
+                    <div class="form-group" style="flex: 1;">
+                        <label class="info-label">Pindah Paksa Ke Fase</label>
+                        <select name="sr_action" class="modern-select" required>
+                            <option value="">-- Select Target Phase --</option>
+                            {% set opt_list = options.data if options.data is defined else options %}
+                            {% for opt in opt_list %}
+                                <option value="{{ opt.smk_id }}" {% if opt.smk_id == sr_data.smk_id %}selected{% endif %}>
+                                    {{ opt.smk_id }} - {{ opt.smk_ket }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="action-bottom-container">
+                        <button type="submit" class="btn-warning">Execute Phase Jump</button>
+                    </div>
+                </form>
+            </div>
+            
 
             <div class="pmo-card">
                 <h3 class="pmo-card-header">Project Actual Schedule</h3>
