@@ -2,25 +2,41 @@
 
 <div class="sr-detail-header">
     <div class="sr-header-top">
+
+        <!-- KIRI: Info SR -->
         <div class="sr-title-group">
             <div class="sr-badges">
                 <span class="badge-sr-no">{{ sr.sr_no }}</span>
-                <span class="badge-quarter">{{ sr.quarter }}</span>
-                <span class="badge-category">{{ sr.ctg_name }}</span>
+                {% if sr.quarter %}<span class="badge-quarter">{{ sr.quarter }}</span>{% endif %}
+                {% if sr.ctg_name %}<span class="badge-category">{{ sr.ctg_name }}</span>{% endif %}
             </div>
             <h2 class="sr-app-title">{{ sr.app_name }}</h2>
+            {% if sr.department_name %}
+            <div class="sr-division-label">
+                {{ sr.department_name }}
+            </div>
+            {% endif %}
         </div>
+
+        <!-- KANAN: Status & PIC -->
         <div class="sr-status-group">
-            <div class="status-label">Status Saat Ini</div>
-            <div class="status-value">{{ sr.current_status }}</div>
-            {% if active_pics %}
-            <div class="active-pic-section">
+            <div class="sr-status-card">
+                <div class="status-card-label">Status Saat Ini</div>
+                <div class="status-chip">{{ sr.current_status }}</div>
+            </div>
+            {% if active_pics %}    
+            <div class="sr-pic-card">
+                <div class="pic-card-label">PIC Aktif</div>
                 {% for pic in active_pics %}
-                <div class="active-pic-item"><strong>{{ pic.nama }} - {{ pic.nik }}</strong></div>
+                <div class="pic-card-item">
+                    <span class="pic-role-tag">{{ pic.it_role_detail }}</span>
+                    <span class="pic-name">{{ pic.nama }}</span>
+                </div>
                 {% endfor %}
             </div>
             {% endif %}
         </div>
+
     </div>
 
     {% if sr.ticket_progress and sr.ticket_progress | int > 0 %}
@@ -282,17 +298,11 @@
         <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Tim yang Terlibat</h4>
 
         {% if all_assignments %}
-            {# Group by role — kumpulkan per it_role_detail #}
-            {% set ns = namespace(current_role='') %}
             <div class="tim-sr-wrapper">
                 {% for a in all_assignments | sort(attribute='it_role_id') %}
-                    {% if a.it_role_detail != ns.current_role %}
-                        {% if not loop.first %}</div>{% endif %}
-                        {% set ns.current_role = a.it_role_detail %}
-                        <div class="tim-role-group">
-                            <div class="tim-role-label">{{ a.it_role_detail }}</div>
-                    {% endif %}
-                    <div class="tim-member-card">
+                <div class="tim-member-card">
+                    <div class="tim-role-badge">{{ a.it_role_detail }}</div>
+                    <div class="tim-member-body">
                         <div class="tim-member-avatar">
                             {{ a.nama[0] | upper if a.nama else '?' }}
                         </div>
@@ -301,7 +311,7 @@
                             <div class="tim-member-nik">{{ a.assigned_user }}</div>
                         </div>
                     </div>
-                    {% if loop.last %}</div>{% endif %}
+                </div>
                 {% endfor %}
             </div>
         {% else %}
@@ -314,33 +324,36 @@
 
 <style>
 .tim-sr-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-.tim-role-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.tim-role-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #94a3b8;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #f1f5f9;
-    margin-bottom: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
 }
 .tim-member-card {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
     background: #f8fafc;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid #e2e8f0;
+}
+.tim-role-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6366f1;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    align-self: flex-start;
+}
+.tim-member-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 .tim-member-avatar {
     width: 36px;
@@ -361,12 +374,12 @@
     gap: 2px;
 }
 .tim-member-name {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     color: #1e293b;
 }
 .tim-member-nik {
-    font-size: 12px;
+    font-size: 11.5px;
     color: #94a3b8;
 }
 </style>

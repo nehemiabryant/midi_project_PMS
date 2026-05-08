@@ -524,13 +524,15 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
                 ELSE ROUND(task_counts.completed::numeric / task_counts.total * 100)
             END AS ticket_progress,
             r.q_id,
-            q.quarter
+            q.quarter,
+            COALESCE(md.departemen, '-') AS department_name
         FROM public.sr_request r
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
         JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
         JOIN public.karyawan_all ka ON r.req_id = ka.nik
         JOIN public.sr_ms_project pr ON r.prj_id = pr.prj_id
         LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
+        LEFT JOIN public.master_departemen md ON ka."PS_COST_CENTER" = md.id_dept
         LEFT JOIN (
             SELECT sa.sr_no,
                    COUNT(*) AS total,
@@ -946,10 +948,7 @@ def get_monitoring_complete_projects(sr_list: list, shared_conn=None) -> dict:
 def get_monitoring_all_projects(sr_list: list, shared_conn=None) -> dict:
     sql = """
         SELECT
-            -- Generates an auto-incrementing row number, newest SRs first
             ROW_NUMBER() OVER(ORDER BY r.sr_no DESC) AS no,
-            
-            -- Subquery to fetch the current active PIC(s)
             (
                 SELECT STRING_AGG(COALESCE(k.nama, sa.assigned_user), ', ')
                 FROM public.sr_assignments sa

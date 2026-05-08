@@ -256,14 +256,7 @@ function createTask(roleId) {
 
     fetch('/task/create/' + SR_NO, {
         method: 'POST',
-<<<<<<< HEAD
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-=======
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest' // <-- Added for @ajax_required
-        },
->>>>>>> e5c737d16108784dd19a9a2d2055ba4cbfca2a36
         body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: actual || null, it_role_id: parseInt(roleId) })
     })
     .then(r => r.json())
@@ -302,14 +295,7 @@ function saveTask(btn) {
 
     fetch('/task/' + taskId, {
         method: 'PUT',
-<<<<<<< HEAD
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-=======
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest' // <-- Added for @ajax_required
-        },
->>>>>>> e5c737d16108784dd19a9a2d2055ba4cbfca2a36
         body: JSON.stringify({ task_detail: detail, target_date: target || null, actual_date: actual || null })
     })
     .then(r => r.json())
@@ -322,17 +308,7 @@ function saveTask(btn) {
 
 function deleteTask(taskId) {
     if (!confirm('Hapus task ini?')) return;
-<<<<<<< HEAD
     fetch('/task/' + taskId, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-=======
-    
-    fetch('/task/' + taskId, { 
-        method: 'DELETE',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest' // <-- Added for @ajax_required (created headers object)
-        }
-    })
->>>>>>> e5c737d16108784dd19a9a2d2055ba4cbfca2a36
     .then(r => r.json())
     .then(data => {
         if (data.status === 'T') location.reload();
