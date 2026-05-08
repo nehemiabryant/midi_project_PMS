@@ -140,3 +140,25 @@
     .assign-row { flex-direction: column; align-items: stretch; }
     .assign-row > select, .assign-row > button { width: 100% !important; }
 }
+
+/* ========================================= */
+/* HORIZONTAL FORM LAYOUT (MENYAMPING)       */
+/* ========================================= */
+.horizontal-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end; /* Membuat tombol dan input sejajar di garis bawah */
+}
+
+.horizontal-form .form-group {
+    flex: 1; /* Membuat setiap input berbagi ruang sama rata */
+    min-width: 180px; /* Lebar minimum agar tidak terlalu sempit di layar kecil */
+    margin: 0 !important; /* Mereset margin bawaan */
+}
+
+.horizontal-form .action-bottom-container {
+    margin-top: 0;
+    padding-top: 0;
+    flex-shrink: 0; /* Tombol tidak ikut mengecil */
+}
