@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, session, request
+from flask import Blueprint, get_flashed_messages, render_template, redirect, url_for, flash, session, request
 from flask import jsonify
 from common.midiconnectserver.midilog import Logger
-from application.transactions import sr_transaction, my_work_transaction, assignment_transaction, workflow_transaction, attachment_transaction
+from application.transactions import sr_transaction, my_work_transaction, assignment_transaction, workflow_transaction, attachment_transaction, aplikasi_transaction
 import urllib.parse
-from ..helpers.decorators import login_required
+from ..helpers.decorators import ajax_required, login_required
 
 Log = Logger()
 
@@ -195,6 +195,46 @@ def sr_detail_view(sr_no):
         sr_no=clean_sr_no,
         back_url=back_url,
     )
+
+@dashboard_bp.route('/masterAplikasi', methods=['GET'])
+@login_required
+def masterAplikasi_menu():
+    aplikasi_data = aplikasi_transaction.get_all_aplikasi_trx().get('data', [])
+
+    return render_template('/page/master_aplikasi.html', user=session['user'], role=session['role'], active_menu='master_aplikasi', aplikasi_data=aplikasi_data)
+
+@dashboard_bp.route('/masterAplikasi/insert', methods=['POST'])
+@login_required
+def insert_aplikasi():
+    raw_data = request.form.to_dict()
+    result = aplikasi_transaction.insert_aplikasi_trx(raw_data)
+
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal menambahkan aplikasi.'), 'error')
+    else:
+        flash(result.get('msg', 'Aplikasi berhasil ditambahkan.'), 'success')
+
+    return jsonify({
+        'status': result.get('status'), 
+        'flashes': get_flashed_messages(with_categories=True)
+    })
+
+@dashboard_bp.route('/masterAplikasi/update/', methods=['POST'])
+@login_required
+@ajax_required
+def update_aplikasi():
+    raw_data = request.form.to_dict()
+    result = aplikasi_transaction.update_aplikasi_trx(raw_data)
+    
+    if not result.get('status'):
+        flash(result.get('msg', 'Gagal memperbarui aplikasi.'), 'error')
+    else:
+        flash(result.get('msg', 'Aplikasi berhasil diperbarui.'), 'success')
+
+    return jsonify({
+        'status': result.get('status'), 
+        'flashes': get_flashed_messages(with_categories=True)
+    })
 
 @dashboard_bp.route('/uploadDraft', methods=['GET', 'POST'])
 @login_required
