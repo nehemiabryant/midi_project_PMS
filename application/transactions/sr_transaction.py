@@ -34,19 +34,24 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
 
     try:
         db_params = {
-            'ctg_id': raw_data.get('kategori_sr'),
             'smk_id': 101,
             'maker_id': raw_data.get('maker_id'),
             'req_id': raw_data.get('req_id'),
             'division': raw_data.get('division'),
             'name': raw_data.get('nama_aplikasi'),
-            'module': raw_data.get('modul'),
             'purpose': raw_data.get('tujuan'),
             'details': raw_data.get('detail_permohonan'),
             'frequency': raw_data.get('frequency'),
             'value': raw_data.get('values'),
             'value_det': raw_data.get('keterangan_values'),
         }
+
+        module = raw_data.get('modul')
+        if module == 'NEW_APP':
+            new_app_name = raw_data.get('proposed_modul')
+            db_params['module'] = new_app_name
+        else:
+            db_params['module'] = module
 
         num_user_str = raw_data.get('number_of_user')
         if num_user_str and num_user_str.isdigit():
@@ -123,15 +128,20 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str, current_smk_id: int) 
             'sr_no': sr_no,
             'req_id': raw_data.get('req_id'),
             'division': raw_data.get('division'),
-            'ctg_id': raw_data.get('kategori_sr'),
             'name': raw_data.get('nama_aplikasi'),
-            'module': raw_data.get('modul'),
             'purpose': raw_data.get('tujuan'),
             'details': raw_data.get('detail_permohonan'),
             'frequency': raw_data.get('frequency'),
             'value': raw_data.get('values'),
             'value_det': raw_data.get('keterangan_values'),
         }
+
+        module = raw_data.get('modul')
+        if module == 'NEW_APP':
+            new_app_name = raw_data.get('proposed_modul')
+            db_params['module'] = new_app_name
+        else:
+            db_params['module'] = module
 
         num_user_str = raw_data.get('number_of_user')
         if num_user_str and num_user_str.isdigit():

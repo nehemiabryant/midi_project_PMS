@@ -205,6 +205,7 @@ def masterAplikasi_menu():
 
 @dashboard_bp.route('/masterAplikasi/insert', methods=['POST'])
 @login_required
+@ajax_required
 def insert_aplikasi():
     raw_data = request.form.to_dict()
     result = aplikasi_transaction.insert_aplikasi_trx(raw_data)

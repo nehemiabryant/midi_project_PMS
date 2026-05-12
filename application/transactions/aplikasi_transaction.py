@@ -21,7 +21,8 @@ def get_aplikasi_name_and_code_trx() -> dict:
         result = aplikasi_model.get_aplikasi_name_and_code()
         if not result.get('status'):
             return result
-        return {'status': True, 'data': parse_rows(result.get('data'))}
+        parsed_data = parse_rows(result)
+        return {'status': True, 'data': parsed_data}
     except Exception as e:
         Log.error(f'Exception | Get Aplikasi Name and Code Trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}

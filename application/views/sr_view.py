@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify, get_flashed_messages
 from common.midiconnectserver.midilog import Logger
-from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
+from application.transactions import aplikasi_transaction, my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
 from ..helpers.decorators import login_required, bypass_required, ajax_required
 import urllib.parse
 
@@ -35,6 +35,7 @@ def createSR_menu():
     current_files_dict = {}
 
     categories = sr_transaction.get_all_categories_trx()
+    aplikasi = aplikasi_transaction.get_aplikasi_name_and_code_trx().get('data', [])
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
@@ -69,7 +70,7 @@ def createSR_menu():
             return redirect(request.url)
 
     return render_template('/page/sr_form.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
-                           , required_docs=ui_doc_blueprints, current_files=current_files_dict, categories=categories)
+                           , required_docs=ui_doc_blueprints, current_files=current_files_dict, categories=categories, aplikasi=aplikasi)
 
 
 @sr_bp.route('/editSR/<path:sr_no>', methods=['GET', 'POST'])
@@ -97,7 +98,7 @@ def editSR_menu(sr_no):
     sr_data = eligibility_result['data'][0]
     current_smk_id = sr_data.get('smk_id', 101)
     categories = sr_transaction.get_all_categories_trx()
-
+    aplikasi = aplikasi_transaction.get_aplikasi_name_and_code_trx().get('data', [])
     docs_res = attachment_transaction.get_required_docs_for_phase_trx(current_smk_id)
     ui_doc_blueprints = docs_res.get('data', [])
 
@@ -147,7 +148,7 @@ def editSR_menu(sr_no):
 
     return render_template('/page/sr_form.html', mode='edit', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
                            , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict, options=options, 
-                           categories=categories)
+                           categories=categories, aplikasi=aplikasi)
 
 @sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
 @login_required
