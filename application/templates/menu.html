@@ -139,7 +139,7 @@
             </button>
 
             <div class="nav-submenu {{ 'open' if active_menu in it_transaction_menus }}">
-                <a href="#" class="nav-sublink {{ 'active' if active_menu == 'master_aplikasi' }}">
+                <a href="{{ url_for('owh_dashboard.masterAplikasi_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_aplikasi' }}">
                     <i class="fas fa-circle"></i> <span class="nav-text">Master Aplikasi Midi</span>
                 </a>
                 <a href="{{ url_for('role_mgmt.master_user_menu') }}" class="nav-sublink {{ 'active' if active_menu == 'master_user' }}" id="navMasterUser">

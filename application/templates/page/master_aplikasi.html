@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Basic styling for the modal to ensure it works out of the box -->
+<style>
+    .modal {
+        display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+        width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+        background-color: #fff; margin: 10% auto; padding: 20px;
+        border-radius: 8px; width: 50%; max-width: 500px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .close-btn:hover { color: #000; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
+    .action-header { display: flex; justify-content: space-between; align-items: center; }
+</style>
+
+<head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+
+<div class="container">
+    <div class="action-header">
+        <h2>Master Aplikasi</h2>
+        <!-- Button to trigger the Insert Modal -->
+        <button type="button" onclick="openModal('insert')" style="padding: 10px 15px; cursor: pointer;">
+            + Tambah Aplikasi Baru
+        </button>
+    </div>
+    <hr>
+
+    <!-- DATA TABLE -->
+    <div class="data-section">
+        <table border="1" cellpadding="8" cellspacing="0" id="aplikasiTable" style="width: 100%; text-align: left;">
+            <thead>
+                <tr>
+                    <th>Kode</th>
+                    <th>Nama</th>
+                    <th>URL</th>
+                    <th>Developer</th>
+                    <th>Operator</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in aplikasi_data %}
+                <tr id="row-{{ app.apk_kode }}">
+                    <td class="col-kode">{{ app.apk_kode }}</td>
+                    <td class="col-nama">{{ app.apk_nama }}</td>
+                    <td class="col-url">{{ app.apk_url or '-' }}</td>
+                    <td class="col-dev">{{ app.apk_dev or '-' }}</td>
+                    <td class="col-opr">{{ app.apk_opr or '-' }}</td>
+                    <td>
+                        <!-- Edit Button passes its data directly to the Modal -->
+                        <button type="button" class="edit-btn" 
+                            data-kode="{{ app.apk_kode }}" 
+                            data-nama="{{ app.apk_nama }}" 
+                            data-url="{{ app.apk_url or '' }}" 
+                            data-dev="{{ app.apk_dev or '' }}" 
+                            data-opr="{{ app.apk_opr or '' }}"
+                            onclick="openModal('update', this)">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr id="emptyRow">
+                    <td colspan="6" style="text-align: center;">Tidak ada data aplikasi ditemukan.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- THE MODAL (LOV) -->
+<div id="appModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">Form Aplikasi</h3>
+        
+        <form id="appForm">
+            <!-- Hidden field to store apk_kode during updates -->
+            <input type="hidden" id="apk_kode" name="apk_kode">
+
+            <div class="form-group">
+                <label>Kode Aplikasi</label>
+                <input type="text" id="new_apk_kode" name="new_apk_kode" required>
+            </div>
+            <div class="form-group">
+                <label>Nama Aplikasi</label>
+                <input type="text" id="apk_nama" name="apk_nama" required>
+            </div>
+            <div class="form-group">
+                <label>URL Aplikasi</label>
+                <input type="text" id="apk_url" name="apk_url">
+            </div>
+            <div class="form-group">
+                <label>Developer</label>
+                <input type="text" id="apk_dev" name="apk_dev">
+            </div>
+            <div class="form-group">
+                <label>Operator</label>
+                <input type="text" id="apk_opr" name="apk_opr">
+            </div>
+            
+            <button type="submit" style="padding: 10px 20px; cursor: pointer; width: 100%;">Simpan Data</button>
+        </form>
+    </div>
+</div>
+
+<!-- JAVASCRIPT LOGIC -->
+<script>
+    const INSERT_URL = "{{ url_for('owh_dashboard.insert_aplikasi') }}";
+    // UPDATE_URL no longer needs a placeholder, the form payload has everything!
+    const UPDATE_URL = "{{ url_for('owh_dashboard.update_aplikasi') }}"; 
+    
+    const modal = document.getElementById('appModal');
+    const form = document.getElementById('appForm');
+    const modalTitle = document.getElementById('modalTitle');
+    let currentMode = 'insert';
+
+    // HELPER: CREATE DYNAMIC TOASTS
+    function showCustomToast(category, message) {
+        // Check if the wrapper exists. If not, create it and append to body.
+        let wrapper = document.getElementById('flash-toast-wrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.id = 'flash-toast-wrapper';
+            document.body.appendChild(wrapper);
+        }
+
+        // Map the category to your FontAwesome icons
+        let iconClass = 'fa-circle-info';
+        if (category === 'success') iconClass = 'fa-circle-check';
+        else if (category === 'error') iconClass = 'fa-circle-xmark';
+        else if (category === 'warning') iconClass = 'fa-triangle-exclamation';
+
+        // Create the toast container
+        const toast = document.createElement('div');
+        toast.className = `flash-toast flash-toast-${category}`;
+
+        // Build the inner HTML exactly like your base.html
+        toast.innerHTML = `
+            <i class="fas ${iconClass} flash-toast-icon"></i>
+            <span class="flash-toast-msg">${message}</span>
+            <button class="flash-toast-close" onclick="this.parentElement.remove()" aria-label="Tutup">&times;</button>
+        `;
+
+        // Add it to the screen
+        wrapper.appendChild(toast);
+
+        // Replicate your 5-second fade-out logic
+        setTimeout(function() {
+            toast.style.transition = 'opacity 0.4s ease';
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 400);
+        }, 5000);
+    }
+
+    // OPEN MODAL FUNCTION
+    function openModal(mode, buttonElement = null) {
+        currentMode = mode;
+        form.reset(); // Clear previous data
+
+        if (mode === 'insert') {
+            modalTitle.innerText = "Tambah Aplikasi Baru";
+            form.setAttribute('action', INSERT_URL);
+            document.getElementById('apk_kode').value = '';
+        } 
+        else if (mode === 'update' && buttonElement) {
+            modalTitle.innerText = "Update Aplikasi";
+            form.setAttribute('action', UPDATE_URL); // Use the static update URL
+            
+            const kode = buttonElement.getAttribute('data-kode');
+            document.getElementById('apk_kode').value = kode; // Hidden input (Former Code)
+            document.getElementById('new_apk_kode').value = kode; // Text input (New Code)
+            document.getElementById('apk_nama').value = buttonElement.getAttribute('data-nama');
+            document.getElementById('apk_url').value = buttonElement.getAttribute('data-url');
+            document.getElementById('apk_dev').value = buttonElement.getAttribute('data-dev');
+            document.getElementById('apk_opr').value = buttonElement.getAttribute('data-opr');
+        }
+        
+        modal.style.display = 'block';
+    }
+
+    // CLOSE MODAL FUNCTION
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) closeModal();
+    }
+
+    // HANDLE AJAX FORM SUBMISSION
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const targetUrl = form.getAttribute('action');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        try {
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.flashes && data.flashes.length > 0) {
+                data.flashes.forEach(flash => {
+                    const category = flash[0];
+                    const message = flash[1];
+                    showCustomToast(category, message);
+                });
+            }
+
+            if (data.status === true) {
+                closeModal();
+                updateTableDOM(formData);
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert("Terjadi kesalahan koneksi ke server. Cek console log.");
+        }
+    });
+
+    // HELPER: UPDATE THE TABLE DYNAMICALLY
+    function updateTableDOM(formData) {
+        const newKode = formData.get('new_apk_kode'); // Grab the newly typed code
+        const oldKode = document.getElementById('apk_kode').value; // Grab the hidden old code
+        const tbody = document.querySelector('#aplikasiTable tbody');
+
+        if (currentMode === 'insert') {
+            const emptyRow = document.getElementById('emptyRow');
+            if (emptyRow) emptyRow.remove();
+
+            const tr = document.createElement('tr');
+            tr.id = `row-${newKode}`;
+            tr.innerHTML = generateRowHTML(formData);
+            tbody.appendChild(tr);
+            highlightRow(tr);
+        } 
+        else if (currentMode === 'update') {
+            const targetRow = document.getElementById(`row-${oldKode}`);
+            if (targetRow) {
+                targetRow.id = `row-${newKode}`; 
+                targetRow.innerHTML = generateRowHTML(formData);
+                highlightRow(targetRow);
+            }
+        }
+    }
+
+    function generateRowHTML(formData) {
+        const kode = formData.get('new_apk_kode');
+        const nama = formData.get('apk_nama');
+        const url = formData.get('apk_url') || '';
+        const dev = formData.get('apk_dev') || '';
+        const opr = formData.get('apk_opr') || '';
+
+        return `
+            <td class="col-kode">${kode}</td>
+            <td class="col-nama">${nama}</td>
+            <td class="col-url">${url || '-'}</td>
+            <td class="col-dev">${dev || '-'}</td>
+            <td class="col-opr">${opr || '-'}</td>
+            <td>
+                <button type="button" class="edit-btn" 
+                    data-kode="${kode}" 
+                    data-nama="${nama}" 
+                    data-url="${url}" 
+                    data-dev="${dev}" 
+                    data-opr="${opr}"
+                    onclick="openModal('update', this)">
+                    Edit
+                </button>
+            </td>
+        `;
+    }
+
+    function highlightRow(row) {
+        row.style.transition = 'background-color 0.5s';
+        row.style.backgroundColor = '#d4edda';
+        setTimeout(() => row.style.backgroundColor = 'transparent', 1500);
+    }
+</script>
+{% endblock %}
