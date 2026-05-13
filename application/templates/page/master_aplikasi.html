@@ -1,63 +1,177 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Basic styling for the modal to ensure it works out of the box -->
-<style>
-    .modal {
-        display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-        width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-        background-color: #fff; margin: 10% auto; padding: 20px;
-        border-radius: 8px; width: 50%; max-width: 500px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-    .close-btn:hover { color: #000; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
-    .action-header { display: flex; justify-content: space-between; align-items: center; }
-</style>
-
 <head>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
-<div class="container">
-    <div class="action-header">
-        <h2>Master Aplikasi</h2>
-        <!-- Button to trigger the Insert Modal -->
-        <button type="button" onclick="openModal('insert')" style="padding: 10px 15px; cursor: pointer;">
-            + Tambah Aplikasi Baru
-        </button>
-    </div>
-    <hr>
+<style>
+    /* ========================================= */
+    /* CONTAINER & ACTION BAR                    */
+    /* ========================================= */
+    .table-container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        padding: 24px;
+        margin-top: 16px;
+        font-family: 'Poppins', 'Inter', sans-serif;
+    }
+    .action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .btn-add {
+        background-color: #218838; /* Warna hijau seperti di gambar */
+        color: #ffffff;
+        border: none;
+        padding: 9px 18px;
+        border-radius: 6px;
+        font-size: 13.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-add:hover {
+        background-color: #1e7e34;
+    }
+    
+    /* SEARCH BOX */
+    .search-box-container { position: relative; }
+    .search-box-container i {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        color: #adb5bd; font-size: 14px;
+    }
+    .search-box {
+        padding: 9px 12px 9px 36px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        width: 250px;
+        font-size: 13.5px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1); }
 
-    <!-- DATA TABLE -->
-    <div class="data-section">
-        <table border="1" cellpadding="8" cellspacing="0" id="aplikasiTable" style="width: 100%; text-align: left;">
+    /* ========================================= */
+    /* TABLE STYLING                             */
+    /* ========================================= */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .custom-table th, .custom-table td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid #f1f3f5;
+        font-size: 14px;
+        color: #334155;
+    }
+    .custom-table th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .custom-table tr:hover { background-color: #f8fafc; }
+
+    /* ========================================= */
+    /* ACTION BUTTONS (Modern Rectangular)       */
+    /* ========================================= */
+    .btn-rect {
+        padding: 6px 16px; border-radius: 6px; font-size: 13px;
+        font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+        border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn-rect-edit { background-color: #e8f0fe; color: #1a73e8; }
+    .btn-rect-edit:hover { background-color: #1a73e8; color: #ffffff; box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2); }
+
+    /* ========================================= */
+    /* MODAL POP-UP STYLING                      */
+    /* ========================================= */
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.6); z-index: 1000;
+        justify-content: center; align-items: center; backdrop-filter: blur(3px);
+    }
+    .modal-overlay.active { display: flex; }
+    
+    .modal-box {
+        background: #fff; border-radius: 10px; width: 90%; max-width: 480px;
+        padding: 28px 32px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        animation: popupFade 0.2s ease;
+    }
+    @keyframes popupFade {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-header h3 { margin: 0; font-size: 18px; color: #0f172a; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; padding: 0; line-height: 1; }
+    .close-btn:hover { color: #0f172a; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .form-group input { 
+        width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; 
+        font-size: 14px; outline: none; box-sizing: border-box; color: #1e293b; font-family: inherit;
+    }
+    .form-group input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .btn-modal-cancel { padding: 9px 20px; border-radius: 6px; font-size: 13.5px; font-weight: 500; cursor: pointer; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; transition: 0.2s; }
+    .btn-modal-cancel:hover { background: #f1f5f9; color: #0f172a; }
+    .btn-modal-submit { padding: 9px 20px; border-radius: 6px; font-size: 13.5px; font-weight: 500; cursor: pointer; background: #2563eb; color: #fff; border: none; transition: 0.2s; }
+    .btn-modal-submit:hover { background: #1d4ed8; }
+</style>
+
+{% with header_title='Master Aplikasi' %}
+{% include 'components/header.html' ignore missing %}
+{% endwith %}
+
+<div class="table-container">
+    <div class="action-bar">
+        <button type="button" class="btn-add" onclick="openModal('insert')">
+            <i class="fas fa-plus"></i> Tambah Aplikasi
+        </button>
+
+        <div class="search-box-container">
+            <i class="fas fa-search"></i>
+            <input type="text" class="search-box" id="searchAplikasi" placeholder="Cari Aplikasi..." onkeyup="filterTable()">
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="custom-table" id="aplikasiTable">
             <thead>
                 <tr>
-                    <th>Kode</th>
-                    <th>Nama</th>
-                    <th>URL</th>
-                    <th>Developer</th>
-                    <th>Operator</th>
-                    <th>Aksi</th>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 15%;">Kode</th>
+                    <th style="width: 25%;">Nama Aplikasi</th>
+                    <th style="width: 20%;">URL</th>
+                    <th style="width: 15%;">Developer</th>
+                    <th style="width: 10%;">Operator</th>
+                    <th style="width: 10%; text-align: center;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 {% for app in aplikasi_data %}
                 <tr id="row-{{ app.apk_kode }}">
-                    <td class="col-kode">{{ app.apk_kode }}</td>
+                    <td>{{ loop.index }}</td>
+                    <td class="col-kode" style="font-weight: 600;">{{ app.apk_kode }}</td>
                     <td class="col-nama">{{ app.apk_nama }}</td>
-                    <td class="col-url">{{ app.apk_url or '-' }}</td>
+                    <td class="col-url"><a href="{{ app.apk_url }}" target="_blank" style="color: #3b82f6; text-decoration: none;">{{ app.apk_url or '-' }}</a></td>
                     <td class="col-dev">{{ app.apk_dev or '-' }}</td>
                     <td class="col-opr">{{ app.apk_opr or '-' }}</td>
-                    <td>
-                        <!-- Edit Button passes its data directly to the Modal -->
-                        <button type="button" class="edit-btn" 
+                    <td style="text-align: center;">
+                        <button type="button" class="btn-rect btn-rect-edit" 
                             data-kode="{{ app.apk_kode }}" 
                             data-nama="{{ app.apk_nama }}" 
                             data-url="{{ app.apk_url or '' }}" 
@@ -70,7 +184,7 @@
                 </tr>
                 {% else %}
                 <tr id="emptyRow">
-                    <td colspan="6" style="text-align: center;">Tidak ada data aplikasi ditemukan.</td>
+                    <td colspan="7" style="text-align: center; color: #64748b; padding: 30px;">Tidak ada data aplikasi ditemukan.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -78,46 +192,49 @@
     </div>
 </div>
 
-<!-- THE MODAL (LOV) -->
-<div id="appModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h3 id="modalTitle">Form Aplikasi</h3>
+<div id="appModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 id="modalTitle">Form Aplikasi</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
         
         <form id="appForm">
-            <!-- Hidden field to store apk_kode during updates -->
             <input type="hidden" id="apk_kode" name="apk_kode">
 
             <div class="form-group">
                 <label>Kode Aplikasi</label>
-                <input type="text" id="new_apk_kode" name="new_apk_kode" required>
+                <input type="text" id="new_apk_kode" name="new_apk_kode" placeholder="Contoh: APK01" required>
             </div>
             <div class="form-group">
                 <label>Nama Aplikasi</label>
-                <input type="text" id="apk_nama" name="apk_nama" required>
+                <input type="text" id="apk_nama" name="apk_nama" placeholder="Masukkan nama aplikasi" required>
             </div>
             <div class="form-group">
                 <label>URL Aplikasi</label>
-                <input type="text" id="apk_url" name="apk_url">
+                <input type="text" id="apk_url" name="apk_url" placeholder="https://...">
             </div>
-            <div class="form-group">
-                <label>Developer</label>
-                <input type="text" id="apk_dev" name="apk_dev">
-            </div>
-            <div class="form-group">
-                <label>Operator</label>
-                <input type="text" id="apk_opr" name="apk_opr">
+            <div class="form-group" style="display: flex; gap: 16px;">
+                <div style="flex: 1;">
+                    <label>Developer</label>
+                    <input type="text" id="apk_dev" name="apk_dev" placeholder="Nama Developer">
+                </div>
+                <div style="flex: 1;">
+                    <label>Operator</label>
+                    <input type="text" id="apk_opr" name="apk_opr" placeholder="Nama Operator">
+                </div>
             </div>
             
-            <button type="submit" style="padding: 10px 20px; cursor: pointer; width: 100%;">Simpan Data</button>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" onclick="closeModal()">Batal</button>
+                <button type="submit" class="btn-modal-submit" id="submitBtn">Simpan Data</button>
+            </div>
         </form>
     </div>
 </div>
 
-<!-- JAVASCRIPT LOGIC -->
 <script>
     const INSERT_URL = "{{ url_for('owh_dashboard.insert_aplikasi') }}";
-    // UPDATE_URL no longer needs a placeholder, the form payload has everything!
     const UPDATE_URL = "{{ url_for('owh_dashboard.update_aplikasi') }}"; 
     
     const modal = document.getElementById('appModal');
@@ -125,9 +242,20 @@
     const modalTitle = document.getElementById('modalTitle');
     let currentMode = 'insert';
 
+    // FUNGSI PENCARIAN TABEL (SEARCH BAR)
+    function filterTable() {
+        const input = document.getElementById("searchAplikasi").value.toLowerCase();
+        const trs = document.getElementById("aplikasiTable").getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+
+        for (let i = 0; i < trs.length; i++) {
+            if (trs[i].id === 'emptyRow') continue;
+            const textContent = trs[i].textContent || trs[i].innerText;
+            trs[i].style.display = textContent.toLowerCase().includes(input) ? "" : "none";
+        }
+    }
+
     // HELPER: CREATE DYNAMIC TOASTS
     function showCustomToast(category, message) {
-        // Check if the wrapper exists. If not, create it and append to body.
         let wrapper = document.getElementById('flash-toast-wrapper');
         if (!wrapper) {
             wrapper = document.createElement('div');
@@ -135,27 +263,21 @@
             document.body.appendChild(wrapper);
         }
 
-        // Map the category to your FontAwesome icons
         let iconClass = 'fa-circle-info';
         if (category === 'success') iconClass = 'fa-circle-check';
-        else if (category === 'error') iconClass = 'fa-circle-xmark';
+        else if (category === 'error' || category === 'danger') iconClass = 'fa-circle-xmark';
         else if (category === 'warning') iconClass = 'fa-triangle-exclamation';
 
-        // Create the toast container
         const toast = document.createElement('div');
         toast.className = `flash-toast flash-toast-${category}`;
-
-        // Build the inner HTML exactly like your base.html
         toast.innerHTML = `
             <i class="fas ${iconClass} flash-toast-icon"></i>
             <span class="flash-toast-msg">${message}</span>
             <button class="flash-toast-close" onclick="this.parentElement.remove()" aria-label="Tutup">&times;</button>
         `;
 
-        // Add it to the screen
         wrapper.appendChild(toast);
 
-        // Replicate your 5-second fade-out logic
         setTimeout(function() {
             toast.style.transition = 'opacity 0.4s ease';
             toast.style.opacity = '0';
@@ -166,45 +288,61 @@
     // OPEN MODAL FUNCTION
     function openModal(mode, buttonElement = null) {
         currentMode = mode;
-        form.reset(); // Clear previous data
+        form.reset(); 
 
         if (mode === 'insert') {
             modalTitle.innerText = "Tambah Aplikasi Baru";
             form.setAttribute('action', INSERT_URL);
             document.getElementById('apk_kode').value = '';
+            document.getElementById('submitBtn').innerText = "Simpan Data";
+            document.getElementById('new_apk_kode').disabled = false; // Kode bisa diisi baru
         } 
         else if (mode === 'update' && buttonElement) {
             modalTitle.innerText = "Update Aplikasi";
-            form.setAttribute('action', UPDATE_URL); // Use the static update URL
+            form.setAttribute('action', UPDATE_URL); 
+            document.getElementById('submitBtn').innerText = "Update Data";
             
             const kode = buttonElement.getAttribute('data-kode');
-            document.getElementById('apk_kode').value = kode; // Hidden input (Former Code)
-            document.getElementById('new_apk_kode').value = kode; // Text input (New Code)
+            document.getElementById('apk_kode').value = kode; 
+            document.getElementById('new_apk_kode').value = kode; 
             document.getElementById('apk_nama').value = buttonElement.getAttribute('data-nama');
             document.getElementById('apk_url').value = buttonElement.getAttribute('data-url');
             document.getElementById('apk_dev').value = buttonElement.getAttribute('data-dev');
             document.getElementById('apk_opr').value = buttonElement.getAttribute('data-opr');
+            
+            // Opsional: Kunci field kode saat update agar tidak berubah (hapus jika boleh diubah)
+            document.getElementById('new_apk_kode').disabled = true; 
         }
         
-        modal.style.display = 'block';
+        modal.classList.add('active'); // Tampilkan pop-up dengan transisi CSS
+        setTimeout(() => document.getElementById('new_apk_kode').focus(), 100);
     }
 
     // CLOSE MODAL FUNCTION
     function closeModal() {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
     }
 
-    window.onclick = function(event) {
-        if (event.target == modal) closeModal();
-    }
+    // Tutup jika klik area gelap di luar box
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
 
     // HANDLE AJAX FORM SUBMISSION
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Enable kembali input yang di-disable sementara agar valuenya terkirim di FormData
+        document.getElementById('new_apk_kode').disabled = false;
+        
         const formData = new FormData(form);
         const targetUrl = form.getAttribute('action');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        const submitBtn = document.getElementById('submitBtn');
+        const originalBtnText = submitBtn.innerText;
+        submitBtn.innerText = "Processing...";
+        submitBtn.disabled = true;
 
         try {
             const response = await fetch(targetUrl, {
@@ -221,7 +359,24 @@
             if (data.flashes && data.flashes.length > 0) {
                 data.flashes.forEach(flash => {
                     const category = flash[0];
-                    const message = flash[1];
+                    let message = flash[1];
+
+                    // --- TERJEMAHAN ERROR DATABASE KE BAHASA MANUSIA ---
+                    if (message.toLowerCase().includes("violates foreign key constraint") || message.toLowerCase().includes("is not present in table")) {
+                        if (message.includes("apk_opr")) {
+                            message = "Gagal menyimpan: NIK Operator tidak terdaftar di database karyawan.";
+                        } else if (message.includes("apk_dev")) {
+                            message = "Gagal menyimpan: NIK Developer tidak terdaftar di database karyawan.";
+                        } else {
+                            message = "Gagal menyimpan: Data NIK tidak valid atau tidak ditemukan.";
+                        }
+                    } else if (message.toLowerCase().includes("duplicate key value") || message.toLowerCase().includes("unique constraint")) {
+                        message = "Gagal menyimpan: Kode Aplikasi tersebut sudah digunakan.";
+                    } else if (message.toLowerCase().includes("error") && message.includes("table")) {
+                        message = "Gagal menyimpan: Terjadi kesalahan pada database.";
+                    }
+                    // ---------------------------------------------------
+
                     showCustomToast(category, message);
                 });
             }
@@ -233,15 +388,21 @@
 
         } catch (error) {
             console.error('Error:', error);
-            alert("Terjadi kesalahan koneksi ke server. Cek console log.");
+            showCustomToast('error', "Terjadi kesalahan koneksi ke server.");
+        } finally {
+            submitBtn.innerText = originalBtnText;
+            submitBtn.disabled = false;
         }
     });
-
+    
     // HELPER: UPDATE THE TABLE DYNAMICALLY
     function updateTableDOM(formData) {
-        const newKode = formData.get('new_apk_kode'); // Grab the newly typed code
-        const oldKode = document.getElementById('apk_kode').value; // Grab the hidden old code
+        const newKode = formData.get('new_apk_kode'); 
+        const oldKode = document.getElementById('apk_kode').value; 
         const tbody = document.querySelector('#aplikasiTable tbody');
+
+        // Menghitung jumlah baris untuk kolom "No" (jika mode insert)
+        const rowCount = tbody.querySelectorAll('tr:not(#emptyRow)').length + 1;
 
         if (currentMode === 'insert') {
             const emptyRow = document.getElementById('emptyRow');
@@ -249,35 +410,41 @@
 
             const tr = document.createElement('tr');
             tr.id = `row-${newKode}`;
-            tr.innerHTML = generateRowHTML(formData);
+            tr.innerHTML = generateRowHTML(formData, rowCount);
             tbody.appendChild(tr);
             highlightRow(tr);
         } 
         else if (currentMode === 'update') {
             const targetRow = document.getElementById(`row-${oldKode}`);
             if (targetRow) {
+                // Pertahankan Nomor (kolom pertama) saat Update
+                const currentRowNum = targetRow.querySelector('td').innerText;
                 targetRow.id = `row-${newKode}`; 
-                targetRow.innerHTML = generateRowHTML(formData);
+                targetRow.innerHTML = generateRowHTML(formData, currentRowNum);
                 highlightRow(targetRow);
             }
         }
     }
 
-    function generateRowHTML(formData) {
+    function generateRowHTML(formData, rowNumber) {
         const kode = formData.get('new_apk_kode');
         const nama = formData.get('apk_nama');
         const url = formData.get('apk_url') || '';
         const dev = formData.get('apk_dev') || '';
         const opr = formData.get('apk_opr') || '';
+        
+        // Buat hyperlink agar bisa diklik jika ada URL-nya
+        const urlDisplay = url ? `<a href="${url}" target="_blank" style="color: #3b82f6; text-decoration: none;">${url}</a>` : '-';
 
         return `
-            <td class="col-kode">${kode}</td>
+            <td>${rowNumber}</td>
+            <td class="col-kode" style="font-weight: 600;">${kode}</td>
             <td class="col-nama">${nama}</td>
-            <td class="col-url">${url || '-'}</td>
+            <td class="col-url">${urlDisplay}</td>
             <td class="col-dev">${dev || '-'}</td>
             <td class="col-opr">${opr || '-'}</td>
-            <td>
-                <button type="button" class="edit-btn" 
+            <td style="text-align: center;">
+                <button type="button" class="btn-rect btn-rect-edit" 
                     data-kode="${kode}" 
                     data-nama="${nama}" 
                     data-url="${url}" 
@@ -291,8 +458,8 @@
     }
 
     function highlightRow(row) {
-        row.style.transition = 'background-color 0.5s';
-        row.style.backgroundColor = '#d4edda';
+        row.style.transition = 'background-color 0.5s ease';
+        row.style.backgroundColor = '#dcfce7'; // Hijau highlight
         setTimeout(() => row.style.backgroundColor = 'transparent', 1500);
     }
 </script>
