@@ -56,6 +56,11 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         if not quarter:
             quarter = []
 
+        #8. Cek apakah IT SM dari Departemen C122
+        sm_candidates = sr_transaction.get_all_sm_trx()
+        current_sm_dept_id = next((sm.get('id_dept') for sm in sm_candidates if sm.get('nik') == nik), None)
+        is_c122 = (current_sm_dept_id == 'C122')
+
         return {
             'status': True,
             'data': {
@@ -66,7 +71,8 @@ def get_assign_page_data_trx(sr_no: str, nik: str) -> dict:
                 'is_locked': is_locked,
                 'pic_locked': len(current_assignments) > 0,
                 'target_dates': target_dates,
-                'quarter': quarter
+                'quarter': quarter,
+                'is_c122': is_c122
             }
         }
     except Exception as e:
@@ -166,14 +172,7 @@ def submit_assignments_trx(sr_no: str, nik: str, form_data: dict, shared_conn=No
 
 def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
     """
-    Ambil data untuk halaman assign IT SM oleh IT GM.
-    Validasi: user harus IT GM yang ter-assign pada SR ini.
-
-    Return:
-    - sr_detail: detail SR
-    - sm_options: list IT SM yang bisa dipilih (nik + nama)
-    - current_sm: IT SM yang sudah ter-assign (jika ada)
-    - is_locked: True jika status sudah bukan 104
+    Ambil data untuk halaman View IT SM oleh IT GM. (Hanya Read-Only)
     """
     try:
         # 1. Validasi: user harus IT GM pada SR ini
@@ -188,27 +187,18 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
 
-        # 3. Tentukan apakah assignment sudah locked (status bukan 104)
-        is_locked = sr_detail.get('smk_id') != assignment_model.STATUS_IT_GM_REVIEW
-
-        # 4. Ambil opsi IT SM dari NIK yang sudah dikonfigurasi
-        sm_options = sr_transaction.get_all_sm_trx()
-
-        # 5. Cek apakah IT SM sudah ter-assign
+        # 3. Cek apakah IT SM sudah ter-assign
         sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
         assigned_result = assignment_model.get_sr_assignments_model(sr_no, [sm_role_id] if sm_role_id else [])
         current_sm = parse_rows(assigned_result)
-
-        project_status = sr_transaction.get_all_project_status_trx()
 
         return {
             'status': True,
             'data': {
                 'sr_detail': sr_detail,
-                'sm_options': sm_options,
+                'sm_options': [], # Dikosongkan karena GM tidak bisa assign
                 'current_sm': current_sm,
-                'is_locked': is_locked,
-                'project_status': project_status,
+                'is_locked': True, # Selalu dilock untuk GM
             }
         }
     except Exception as e:
@@ -217,27 +207,28 @@ def get_gm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
 
 def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=None) -> dict:
     """
-    IT GM assign IT SM pada SR. (Hanya assignment, tanpa advance status).
-
+    IT PM assign IT SM pada SR. (Hanya assignment, tanpa advance status).
+    
     Validasi:
-    1. User harus IT GM pada SR ini
-    2. SR harus masih status IT GM Review (104)
+    1. User harus IT PM pada SR ini
+    2. SR harus masih status IT PM Review (menggunakan STATUS_IT_PM_REVIEW)
     3. NIK IT SM yang dipilih harus salah satu dari IT_SM_NIKS yang dikonfigurasi
     """
     try:
-        # 1. Validasi: user harus IT GM pada SR ini
-        gm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT GM')
-        gm_row = parse_single_row(gm_result)
-        if not gm_row:
-            return {'status': False, 'data': [], 'msg': 'Anda bukan IT GM pada SR ini.'}
+        # 1. Validasi: user harus IT PM pada SR ini
+        pm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT PMO')
+        pm_row = parse_single_row(pm_result)
+        if not pm_row:
+            return {'status': False, 'data': [], 'msg': 'Anda bukan IT PM pada SR ini atau tidak memiliki akses.'}
 
-        # 2. Validasi: SR harus masih status 104
+        # 2. Validasi: SR harus masih status PM Review
         sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
         sr_detail = parse_single_row(sr_result)
         if not sr_detail:
             return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
-        if sr_detail.get('smk_id') != assignment_model.STATUS_IT_GM_REVIEW:
-            return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status IT GM Review.'}
+            
+        if sr_detail.get('smk_id') != assignment_model.STATUS_IT_PM_REVIEW:
+            return {'status': False, 'data': [], 'msg': 'Assignment sudah dikunci. SR tidak lagi dalam status IT PM Review.'}
 
         # 3. Ambil NIK IT SM yang dipilih dari form
         selected_sm_nik = form_data.get('selected_sm_nik', '').strip()
@@ -254,7 +245,7 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=
         if not sm_role_id:
             return {'status': False, 'data': [], 'msg': 'Gagal mendapatkan role ID IT SM dari database.'}
 
-        # 6. Insert assignment (Menggunakan shared_conn jika ada, jika tidak buka koneksi baru)
+        # 6. Insert assignment
         local_conn = False
         if shared_conn is None:
             shared_conn = DatabasePG("supabase", autocommit=False)
@@ -271,7 +262,6 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=
             if not insert_result.get('status'):
                 raise Exception(insert_result.get('msg', 'Gagal insert assignment IT SM'))
 
-            # Hanya commit jika koneksi ini dibuat secara lokal di fungsi ini
             if local_conn:
                 shared_conn._conn.commit()
 
@@ -293,6 +283,50 @@ def submit_sm_assignment_trx(sr_no: str, nik: str, form_data: dict, shared_conn=
         Log.error(f'Exception | submit_sm_assignment_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
+def get_pm_assign_page_data_trx(sr_no: str, nik: str) -> dict:
+    """
+    Ambil data untuk halaman assign IT SM oleh IT PM.
+    """
+    try:
+        # 1. Validasi: user harus IT PM pada SR ini
+        pm_result = assignment_model.get_user_role_assignment_on_sr_model(sr_no, nik, 'IT PMO')
+        pm_row = parse_single_row(pm_result)
+        if not pm_row:
+            return {'status': False, 'data': [], 'msg': 'Anda bukan IT PM pada SR ini atau tidak memiliki akses.'}
+
+        # 2. Ambil detail SR
+        sr_result = sr_model.get_sr_detail_with_status_model(sr_no)
+        sr_detail = parse_single_row(sr_result)
+        if not sr_detail:
+            return {'status': False, 'data': [], 'msg': 'SR tidak ditemukan.'}
+
+        # 3. Tentukan apakah assignment sudah locked (berdasarkan status PM Review)
+        is_locked = sr_detail.get('smk_id') != assignment_model.STATUS_IT_PM_REVIEW
+
+        # 4. Ambil opsi IT SM
+        sm_options = sr_transaction.get_all_sm_trx()
+
+        # 5. Cek apakah IT SM sudah ter-assign
+        sm_role_id = assignment_model.get_it_role_id_by_name_model('IT SM')
+        assigned_result = assignment_model.get_sr_assignments_model(sr_no, [sm_role_id] if sm_role_id else [])
+        current_sm = parse_rows(assigned_result)
+
+        # 6. Ambil opsi Category SR
+        categories_options = sr_transaction.get_all_categories_trx()
+
+        return {
+            'status': True,
+            'data': {
+                'sr_detail': sr_detail,
+                'sm_options': sm_options,
+                'current_sm': current_sm,
+                'is_locked': is_locked,
+                'categories_options': categories_options
+            }
+        }
+    except Exception as e:
+        Log.error(f'Exception | get_pm_assign_page_data_trx | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
 
 def handover_pic_trx(sr_no: str, nik: str, target_assign_id: int) -> dict:
     """
@@ -329,58 +363,44 @@ def handover_pic_trx(sr_no: str, nik: str, target_assign_id: int) -> dict:
         Log.error(f'Exception | handover_pic_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     
-def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_id: int, next_smk_id: int) -> dict:
+def process_pm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_id: int, next_smk_id: int) -> dict:
     """
-    Orchestrates the GM approval process: Assings an IT SM and advances the phase.
-    Handles the database transaction to ensure atomicity outside of the route layer.
+    Orchestrates the PM approval process: Updates Category, Assigns an IT SM, and advances the phase.
+    Handles the database transaction to ensure atomicity.
     """
     shared_conn = None
     try:
         shared_conn = DatabasePG("supabase", autocommit=False)
 
-        # 1. Execute the Assignment (Pass the shared_conn)
+        # ==========================================
+        # 1. Update SR Category (TAMBAHAN BARU)
+        # ==========================================
+        ctg_id = form_data.get('ctg_id')
+        if ctg_id:
+            category_result = sr_transaction.update_sr_category_trx(
+                sr_no=sr_no, 
+                ctg_id=ctg_id, 
+                shared_conn=shared_conn
+            )
+            if not category_result.get('status'):
+                raise Exception(f"Update kategori gagal: {category_result.get('msg')}")
+
+        # ==========================================
+        # 2. Execute the Assignment 
+        # ==========================================
         assign_result = submit_sm_assignment_trx(
             sr_no=sr_no, 
             nik=nik, 
             form_data=form_data, 
             shared_conn=shared_conn
         )
-
-        # ==========================================
-        # 2. Update Project Status (Jika ada di form)
-        # ==========================================
-        prj_id_raw = form_data.get('prj_id')
-        if prj_id_raw:
-            try:
-                prj_id = int(prj_id_raw)
-            except ValueError:
-                raise Exception("Format Project ID tidak valid.")
-            
-            update_project_status = sr_transaction.update_sr_project_status_trx(
-                sr_no=sr_no, 
-                prj_id=prj_id, 
-                shared_conn=shared_conn
-            )
-            if not update_project_status.get('status'):
-                raise Exception(f"Gagal update status project: {update_project_status.get('msg')}")
-
-        # ==========================================
-        # 3. Update Midikriing Status (Jika ada di form)
-        # ==========================================
-        status_midikriing = form_data.get('status_midikriing')
-        if status_midikriing:
-            update_midikriing_status = sr_transaction.update_sr_midikriing_status_trx(
-                sr_no=sr_no, 
-                status_midikriing=status_midikriing, 
-                shared_conn=shared_conn
-            )
-            if not update_midikriing_status.get('status'):
-                raise Exception(f"Gagal update status midikriing: {update_midikriing_status.get('msg')}")
         
         if not assign_result.get('status'):
             raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
 
-        # 2. Execute the Phase Advancement (Pass the shared_conn)
+        # ==========================================
+        # 3. Execute the Phase Advancement 
+        # ==========================================
         advance_result = workflow_transaction.advance_sr_phase(
             sr_no=sr_no,
             current_smk_id=current_smk_id,
@@ -392,9 +412,9 @@ def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
         if not advance_result.get('status'):
             raise Exception(f"Advance phase gagal: {advance_result.get('msg')}")
 
-        # If both succeed, commit the transaction
+        # If everything succeeds, commit the transaction
         shared_conn._conn.commit()
-        return {'status': True, 'data': [], 'msg': 'IT SM berhasil di-assign dan phase SR diupdate.'}
+        return {'status': True, 'data': [], 'msg': 'Kategori SR diupdate, IT SM berhasil di-assign, dan phase SR dilanjutkan.'}
 
     except Exception as e:
         if shared_conn:
@@ -402,7 +422,7 @@ def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
                 shared_conn._conn.rollback()
             except Exception:
                 pass
-        Log.error(f'Exception | process_gm_approval_trx | Msg: {str(e)}')
+        Log.error(f'Exception | process_pm_approval_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
 
     finally:
@@ -411,7 +431,8 @@ def process_gm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
 
 def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_id: int, next_smk_id: int) -> dict:
     """
-    Orchestrates the SM approval process: Assigns PICs and advances the phase atomically.
+    Orchestrates the SM approval process: Assigns PICs, updates Quarter/Dates/Midikriing, 
+    and advances the phase atomically.
     """
     # Validasi form sebelum buka koneksi DB
     if not form_data.get('q_id'):
@@ -425,7 +446,7 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
     try:
         shared_conn = DatabasePG("supabase", autocommit=False)
 
-        # Execute the PIC Assignments hanya jika ada data baru yang dikirim dari form
+        # 1. Execute the PIC Assignments
         # (jika PIC sudah ter-assign, disabled inputs tidak terkirim sehingga user_list kosong)
         user_list = form_data.getlist('assign_user[]') if hasattr(form_data, 'getlist') else []
         has_new_assignments = any(u.strip() for u in user_list)
@@ -435,17 +456,39 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
             if not assign_result.get('status'):
                 raise Exception(f"Assignment gagal: {assign_result.get('msg')}")
         
+        # 2. Update Target Dates
         date_result = srlogs_transaction.process_target_dates_trx(sr_no, form_data, shared_conn=shared_conn)
         if not date_result.get('status'):
             raise Exception(date_result.get('msg'))
         
+        # 3. Update Quarter
         q_id = form_data.get('q_id')
         if q_id:
             quarter_result = sr_transaction.update_sr_quarter_trx(sr_no=sr_no, q_id=q_id, shared_conn=shared_conn)
             if not quarter_result.get('status'):
                 raise Exception(f"Update quarter gagal: {quarter_result.get('msg')}")
 
-        # Execute the Phase Advancement
+        # ==========================================
+        # 4. Update Midikriing Status (Pindahan dari GM)
+        # ==========================================
+        sm_candidates = sr_transaction.get_all_sm_trx()
+        current_sm_dept_id = next((sm.get('id_dept') for sm in sm_candidates if sm.get('nik') == nik), None)
+
+        if current_sm_dept_id == 'C122':
+            raw_status = form_data.get('status_midikriing')
+            status_val = 'true' if raw_status == 'true' else 'false'
+        else:
+            status_val = 'false'
+
+        update_midikriing_status = sr_transaction.update_sr_midikriing_status_trx(
+            sr_no=sr_no, 
+            status_midikriing=status_val, 
+            shared_conn=shared_conn
+        )
+        if not update_midikriing_status.get('status'):
+            raise Exception(f"Gagal update status midikriing: {update_midikriing_status.get('msg')}")
+
+        # 5. Execute the Phase Advancement
         advance_result = workflow_transaction.advance_sr_phase(
             sr_no=sr_no, current_smk_id=current_smk_id, next_smk_id=next_smk_id, 
             action_by=nik, shared_conn=shared_conn
@@ -453,15 +496,19 @@ def process_sm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
         if not advance_result.get('status'):
             raise Exception(f"Advance phase gagal: {advance_result.get('msg')}")
 
+        # If everything succeeds, commit the transaction
         shared_conn._conn.commit()
-        return {'status': True, 'msg': 'Tim PIC berhasil di-assign, Target Date berhasil di set dan phase SR diupdate.'}
+        return {'status': True, 'msg': 'Tim PIC berhasil di-assign, Target Date & Midikriing berhasil diset, dan phase SR diupdate.'}
 
     except Exception as e:
         if shared_conn:
-            try: shared_conn._conn.rollback()
-            except Exception: pass
+            try: 
+                shared_conn._conn.rollback()
+            except Exception: 
+                pass
         Log.error(f'Exception | process_sm_approval_trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
+        
     finally:
         if shared_conn:
             shared_conn.close()

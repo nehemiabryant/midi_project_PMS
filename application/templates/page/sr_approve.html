@@ -373,44 +373,57 @@ legend {
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 
                 {% if is_gm and gm_assign_data %}
-                    <fieldset>
-                        <legend>Assign IT Senior Manager & Status</legend>
-                        {% if not gm_assign_data.is_locked %}
-                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
-                            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                                {% for sm in gm_assign_data.sm_options %}
-                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
-                                        <input type="radio" class="sm-radio" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}">
-                                        {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
-                                    </label>
+                    <fieldset style="margin-bottom: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px;">
+                        <legend style="font-weight: 600; color: #334155; padding: 0 5px;">Informasi IT Senior Manager</legend>
+                        {% if gm_assign_data.current_sm %}
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0; margin-bottom: 8px;">IT SM yang ditugaskan:</p>
+                            <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155; font-weight: 600;">
+                                {% for sm in gm_assign_data.current_sm %}
+                                    <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
                                 {% endfor %}
-                            </div>
+                            </ul>
+                        {% else %}
+                            <p style="font-size: 13px; color: #64748b; margin: 0;">Belum ada IT SM yang ditugaskan pada SR ini.</p>
+                        {% endif %}
+                    </fieldset>
+                {% endif %}
 
-                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
-
-                            <div style="margin-bottom: 15px;">
-                                <label for="prj_id" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Project Status</label>
-                                <select name="prj_id" id="prj_id" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                    <option value="" disabled selected>-- Pilih Project Status --</option>
-                                    {% for status in gm_assign_data.project_status %}
-                                        <option value="{{ status.prj_id }}" {% if sr_data.prj_id == status.prj_id %}selected{% endif %}>{{ status.status_project }}</option>
+                {% if is_pm and pm_assignment_data %}
+                    <fieldset style="margin-bottom: 20px; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px;">
+                        <legend style="font-weight: 600; color: #334155; padding: 0 5px;">Assign IT Senior Manager & Kategori</legend>
+                        
+                        {% if not pm_assignment_data.is_locked %}
+                            <!-- KATEGORI SR DROPDOWN -->
+                            <div style="margin-bottom: 20px;">
+                                <label for="ctg_id" style="font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px; display: block;">Kategori SR <span style="color: #ef4444;">*</span></label>
+                                <select name="ctg_id" id="ctg_id" class="form-input pm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;" required>
+                                    <option value="" disabled selected>-- Pilih Kategori SR --</option>
+                                    {% for ctg in pm_assignment_data.categories_options %}
+                                        <!-- Note: Sesuaikan 'ctg.id' dan 'ctg.name' dengan nama key dictionary dari database Anda -->
+                                        <option value="{{ ctg.ctg_id }}" {% if pm_assignment_data.sr_detail.ctg_id == ctg.ctg_id %}selected{% endif %}>
+                                            {{ ctg.category }}
+                                        </option>
                                     {% endfor %}
                                 </select>
                             </div>
 
-                            <div id="midikriingApproveGroup" style="margin-bottom: 10px; display: none;">
-                                <label for="status_midikriing" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Status Midikriing</label>
-                                <select name="status_midikriing" id="status_midikriing" class="form-input gm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                    <option value="" disabled selected>-- Pilih Status Midikriing --</option>
-                                    <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
-                                    <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
-                                </select>
+                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+
+                            <!-- IT SM RADIO BUTTONS -->
+                            <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
+                            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+                                {% for sm in pm_assignment_data.sm_options %}
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
+                                        <input type="radio" class="sm-radio pm-dynamic-input" name="selected_sm_nik" value="{{ sm.nik }}" id="sm_{{ sm.nik }}" data-dept-id="{{ sm.id_dept }}">
+                                        {{ sm.department_name }} ({{ sm.nik }} - {{ sm.nama }})
+                                    </label>
+                                {% endfor %}
                             </div>
                         {% else %}
                             <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin-top: 0;">Assignment IT SM sudah terkunci.</p>
-                            {% if gm_assign_data.current_sm %}
+                            {% if pm_assignment_data.current_sm %}
                                 <ul style="margin:0; padding-left: 20px; font-size: 13px; color: #334155;">
-                                    {% for sm in gm_assign_data.current_sm %}
+                                    {% for sm in pm_assignment_data.current_sm %}
                                         <li>{{ sm.assigned_user }} - {{ sm.nama }}</li>
                                     {% endfor %}
                                 </ul>
@@ -425,6 +438,18 @@ legend {
                         {% if not assignment_data.pic_locked %}
                             <p style="font-size: 13px; color: #64748b; margin-top: 0;">Tambahkan user dan pilih role untuk masing-masing. Minimal 1 user per role.</p>
 
+                            <!-- Cek apakah SM yang login berada di departemen C122 -->
+                            {% if assignment_data.is_c122 %}
+                                <div id="midikriingApproveGroup" style="margin-bottom: 20px;">
+                                    <label for="status_midikriing" style="font-size: 13px; color: #334155; font-weight: 600; display: block; margin-bottom: 6px;">Status Midikriing</label>
+                                    <select name="status_midikriing" id="status_midikriing" class="form-input sm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                        <option value="" disabled selected>-- Pilih Status Midikriing --</option>
+                                        <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
+                                        <option value="false" {% if sr_data.status_midikriing == False %}selected{% endif %}>Tidak</option>
+                                    </select>
+                                </div>
+                            {% endif %}
+                            
                             <table id="assign-table" class="modern-inner-table">
                                 <thead>
                                     <tr>
@@ -608,22 +633,6 @@ legend {
         if (actionSelect) {
             actionSelect.addEventListener('change', applyRequiredLogic);
         }
-    });
-
-    function toggleMidikriingApprove() {
-        const selected = document.querySelector('.sm-radio:checked');
-        const group = document.getElementById('midikriingApproveGroup');
-        if (!group) return;
-        const show = selected && selected.dataset.deptId === 'C122';
-        group.style.display = show ? 'block' : 'none';
-        if (!show) document.getElementById('status_midikriing').value = '';
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.sm-radio').forEach(r => {
-            r.addEventListener('change', toggleMidikriingApprove);
-        });
-        toggleMidikriingApprove();
     });
 
     document.addEventListener('DOMContentLoaded', function() {

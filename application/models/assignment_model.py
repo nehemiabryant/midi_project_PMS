@@ -8,6 +8,7 @@ Log = Logger()
 STATUS_BACKLOG_SCRUM = 105
 STATUS_SD_ON_PROGRESS = 106
 STATUS_IT_GM_REVIEW = 104
+STATUS_IT_PM_REVIEW = 103
 
 def get_it_users_model() -> dict:
     """Ambil semu user terdaftar dari sr_user untuk dropdown assignment PIC."""

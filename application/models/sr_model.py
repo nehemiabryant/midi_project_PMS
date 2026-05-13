@@ -170,7 +170,7 @@ def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE public.sr_request 
         SET 
-            ctg_id = %(ctg_id)s, q_id = %(q_id)s, prj_id = %(prj_id)s, status_midikriing = %(status_midikriing)s
+            ctg_id = %(ctg_id)s, q_id = %(q_id)s, status_midikriing = %(status_midikriing)s
         WHERE sr_no = %(sr_no)s
         RETURNING sr_no;
     """
@@ -219,33 +219,6 @@ def update_sr_quarter(db_params: dict, shared_conn=None) -> dict:
         if conn: 
             conn.close()
 
-def update_sr_project_status(db_params: dict, shared_conn=None) -> dict:
-    """Update the project status for a specific SR."""
-    sql = """
-        UPDATE sr_request 
-        SET prj_id = %(prj_id)s
-        WHERE sr_no = %(sr_no)s
-        RETURNING sr_no;
-    """
-
-    if shared_conn:
-        result = shared_conn.selectData(sql, db_params)
-        return result
-    
-    conn = None
-    try:
-        conn = DatabasePG("supabase")
-        if not conn.status.get('status'):
-            return {'status': False, 'msg': conn.status.get('msg')}
-            
-        return conn.selectData(sql, db_params)
-    except Exception as e:
-        Log.error(f'DB Exception | update_sr_project_status | Msg: {str(e)}')
-        return {'status': False, 'msg': str(e)}
-    finally:
-        if conn: 
-            conn.close()
-
 def update_sr_midikriing_status(db_params: dict, shared_conn=None) -> dict:
     """Update the midikriing status for a specific SR."""
     sql = """
@@ -268,6 +241,33 @@ def update_sr_midikriing_status(db_params: dict, shared_conn=None) -> dict:
         return conn.selectData(sql, db_params)
     except Exception as e:
         Log.error(f'DB Exception | update_sr_midikriing_status | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()
+
+def update_sr_category(db_params: dict, shared_conn=None) -> dict:
+    """Update the category for a specific SR."""
+    sql = """
+        UPDATE sr_request 
+        SET ctg_id = %(ctg_id)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.selectData(sql, db_params)
+    except Exception as e:
+        Log.error(f'DB Exception | update_sr_category | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     finally:
         if conn: 
@@ -516,8 +516,6 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
             k.smk_ket AS current_status,
             r.smk_id,
             r.status_midikriing,
-            r.prj_id,
-            pr.status_project,
             CASE
                 WHEN r.smk_id < 106 THEN 0
                 WHEN task_counts.total IS NULL OR task_counts.total = 0 THEN 0
@@ -530,7 +528,6 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
         LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
         JOIN public.karyawan_all ka ON r.req_id = ka.nik
-        JOIN public.sr_ms_project pr ON r.prj_id = pr.prj_id
         LEFT JOIN public.sr_ms_quarter q ON r.q_id = q.q_id
         LEFT JOIN public.master_departemen md ON ka."PS_COST_CENTER" = md.id_dept
         LEFT JOIN (
@@ -704,36 +701,6 @@ def get_all_sm_from_departments(shared_conn=None) -> dict:
     except Exception as e:
         Log.error(f'DB Exception | get_all_sm_from_departments | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': 'Failed to fetch SM from departments'}
-    finally:
-        if conn: conn.close()
-
-def get_all_project_status(shared_conn=None) -> dict:
-    """
-    Fetches all available project statuses from the sr_ms_project table.
-    """
-    sql = """
-        SELECT prj_id, status_project
-        FROM public.sr_ms_project
-        ORDER BY prj_id ASC
-    """
-    
-    if shared_conn:
-        return shared_conn.selectDataHeader(sql, {})
-    
-    conn = None
-    result = {'status': False, 'data': [], 'msg': 'Connection setup failed.'}
-
-    try:
-        conn = DatabasePG("supabase")
-        if conn:
-            result = conn.selectDataHeader(sql, {})
-            return result
-        else:
-            Log.error(f'DB Error | Msg: {result.get("msg")}')
-            return {'status': False, 'data': [], 'msg': 'Failed to connect to database.'}
-    except Exception as e:
-        Log.error(f'DB Exception | get_all_project_status | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': str(e)}
     finally:
         if conn: conn.close()
 
