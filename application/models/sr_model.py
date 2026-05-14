@@ -432,7 +432,8 @@ def get_srs_by_phase(phase_name: str, shared_conn=None) -> dict:
                 WHEN r.smk_id < 106 THEN 0
                 WHEN task_counts.total IS NULL OR task_counts.total = 0 THEN 0
                 ELSE ROUND(task_counts.completed::numeric / task_counts.total * 100)
-            END AS ticket_progress
+            END AS ticket_progress,
+            COALESCE(task_counts.total, 0) AS task_count
         FROM public.sr_request r
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
         LEFT JOIN (
@@ -523,6 +524,7 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
                 WHEN task_counts.total IS NULL OR task_counts.total = 0 THEN 0
                 ELSE ROUND(task_counts.completed::numeric / task_counts.total * 100)
             END AS ticket_progress,
+            COALESCE(task_counts.total, 0) AS task_count,
             r.q_id,
             q.quarter,
             COALESCE(md.departemen, '-') AS department_name

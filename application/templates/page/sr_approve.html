@@ -503,37 +503,48 @@ legend {
                             </select>
                         </div>
 
-                        <table class="modern-inner-table">
+                        <table class="modern-inner-table" id="schedule-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 30%;">Phase Name</th>
-                                    <th style="width: 35%;">Target Start Date <span style="color: #ef4444;">*</span></th>
-                                    <th style="width: 35%;">Target Finish Date</th>
+                                    <th style="width: 25%;">Phase Name</th>
+                                    <th style="width: 28%;">Target Start Date <span style="color: #ef4444;">*</span></th>
+                                    <th style="width: 15%;">Durasi (Hari)</th>
+                                    <th style="width: 32%;">Target Finish Date</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for phase in assignment_data.target_dates %}
-                                <tr>
+                                <tr data-phase-index="{{ loop.index0 }}" data-phase-name="{{ phase.phase_name }}" data-is-milestone="{{ 'true' if phase.phase_id == 6 else 'false' }}">
                                     <td style="font-weight: 600; font-size: 13px; color: #334155;">
                                         {{ phase.phase_name }}
                                         <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">
                                     </td>
                                     <td>
-                                        <input type="date" name="start_date[]" class="compact-input"
+                                        <input type="date" name="start_date[]" class="compact-input schedule-start"
                                             value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}">
                                     </td>
                                     <td>
                                         {% if phase.phase_id == 6 %}
-                                            <input type="hidden" name="finish_date[]" value="">
+                                            <span style="font-size: 12px; color: #94a3b8;">—</span>
                                         {% else %}
-                                            <input type="date" name="finish_date[]" class="compact-input"
+                                            <input type="number" name="duration_days[]" class="compact-input schedule-duration"
+                                                min="1" placeholder="hari" style="width: 80px;"
+                                                value="">
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if phase.phase_id == 6 %}
+                                            <input type="hidden" name="finish_date[]" value="">
+                                            <span style="font-size: 12px; color: #94a3b8;">N/A (Milestone)</span>
+                                        {% else %}
+                                            <input type="date" name="finish_date[]" class="compact-input schedule-finish"
                                                 value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}">
                                         {% endif %}
                                     </td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="3" style="text-align: center; font-size: 13px; color: #94a3b8;">No phases found in database.</td>
+                                    <td colspan="4" style="text-align: center; font-size: 13px; color: #94a3b8;">No phases found in database.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -564,52 +575,90 @@ legend {
 </div>
 
 <script>
-    // Script Anda tetap sama (Tidak ada yang saya hapus)
+    // =========================================================
+    // DATA DARI TEMPLATE (untuk validasi PIC di JS)
+    // =========================================================
+    const REQUIRED_ROLES = {{ assignment_data.picroles | tojson if assignment_data and assignment_data.picroles else '[]' }};
+    const PIC_LOCKED = {{ 'true' if assignment_data and assignment_data.pic_locked else 'false' }};
+
+    // =========================================================
+    // TOAST NOTIFICATION
+    // =========================================================
+    function showToast(message, type = 'success') {
+        let wrapper = document.getElementById('flash-toast-wrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.id = 'flash-toast-wrapper';
+            document.body.appendChild(wrapper);
+        }
+        let icon = 'fa-circle-info';
+        let category = type;
+        if (type === 'success') {
+            icon = 'fa-circle-check';
+        } else if (type === 'error' || type === 'danger') {
+            icon = 'fa-circle-xmark';
+            category = 'error';
+        } else if (type === 'warning') {
+            icon = 'fa-triangle-exclamation';
+        }
+        const toast = document.createElement('div');
+        toast.className = `flash-toast flash-toast-${category}`;
+        toast.innerHTML = `
+            <i class="fas ${icon} flash-toast-icon"></i>
+            <span class="flash-toast-msg">${message}</span>
+            <button class="flash-toast-close" onclick="this.parentElement.remove()" aria-label="Tutup">&times;</button>
+        `;
+        wrapper.appendChild(toast);
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.4s ease';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 400);
+        }, 5000);
+    }
+
+    // =========================================================
+    // ASSIGN PIC — tambah baris
+    // =========================================================
     function addAssignRow() {
         const tbody = document.querySelector('#assign-table tbody');
-        if (!tbody) return; 
-        
+        if (!tbody) return;
         const firstRow = tbody.querySelector('tr');
         const newRow = firstRow.cloneNode(true);
-        
         newRow.querySelectorAll('select').forEach(s => s.value = '');
         const lastTd = newRow.querySelector('td:last-child');
         lastTd.innerHTML = `<button type="button" class="btn-delete-row" onclick="this.closest('tr').remove()">Hapus</button>`;
-        
         tbody.appendChild(newRow);
         applyRequiredLogic();
     }
 
+    // =========================================================
+    // REQUIRED LOGIC (HTML5 required untuk IT GM)
+    // =========================================================
     function applyRequiredLogic() {
         const actionSelect = document.getElementById('action-select');
         if (!actionSelect) return;
-
         const selectedOption = actionSelect.options[actionSelect.selectedIndex];
         if (!selectedOption || selectedOption.value === "") return;
-
         const isForward = selectedOption.getAttribute('data-is-forward') === 'true';
 
         document.querySelectorAll('.sm-radio').forEach(radio => {
             isForward ? radio.setAttribute('required', 'required') : radio.removeAttribute('required');
         });
         document.querySelectorAll('.gm-dynamic-input').forEach(select => {
-            if (isForward && select.offsetParent !== null) {select.setAttribute('required', 'required');
-            } else {                                                       
+            if (isForward && select.offsetParent !== null) {
+                select.setAttribute('required', 'required');
+            } else {
                 select.removeAttribute('required');
-            }                                                              
-        });  
+            }
+        });
         document.querySelectorAll('.sm-dynamic-input').forEach(select => {
             isForward ? select.setAttribute('required', 'required') : select.removeAttribute('required');
         });
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const actionSelect = document.getElementById('action-select');
-        if (actionSelect) {
-            actionSelect.addEventListener('change', applyRequiredLogic);
-        }
-    });
-
+    // =========================================================
+    // MIDIKRIING TOGGLE (IT GM)
+    // =========================================================
     function toggleMidikriingApprove() {
         const selected = document.querySelector('.sm-radio:checked');
         const group = document.getElementById('midikriingApproveGroup');
@@ -619,60 +668,257 @@ legend {
         if (!show) document.getElementById('status_midikriing').value = '';
     }
 
+    // =========================================================
+    // SCHEDULE: Hitung finish date dari durasi
+    // =========================================================
+    function calculateFinishDate(startValue, durationDays) {
+        const d = new Date(startValue);
+        d.setDate(d.getDate() + parseInt(durationDays, 10));
+        return d.toISOString().split('T')[0];
+    }
+
+    function applyDurationLogic(row) {
+        const startInput  = row.querySelector('.schedule-start');
+        const durationInput = row.querySelector('.schedule-duration');
+        const finishInput = row.querySelector('.schedule-finish');
+        if (!startInput || !durationInput || !finishInput) return;
+
+        const start    = startInput.value;
+        const duration = durationInput.value;
+
+        if (start && duration && parseInt(duration, 10) >= 1) {
+            finishInput.value    = calculateFinishDate(start, duration);
+            finishInput.readOnly = true;
+            finishInput.style.background = '#f1f5f9';
+            finishInput.style.color      = '#64748b';
+        } else {
+            if (finishInput.readOnly) {
+                finishInput.value    = '';
+                finishInput.readOnly = false;
+                finishInput.style.background = '';
+                finishInput.style.color      = '';
+            }
+        }
+        applyCrossPhaseChaining();
+    }
+
+    // =========================================================
+    // SCHEDULE: Cross-phase date chaining
+    // =========================================================
+    function applyCrossPhaseChaining() {
+        const rows = document.querySelectorAll('#schedule-table tbody tr[data-phase-index]');
+        let prevFinish = null;
+
+        rows.forEach((row) => {
+            const startInput  = row.querySelector('.schedule-start');
+            const finishInput = row.querySelector('.schedule-finish');
+
+            if (startInput) {
+                if (prevFinish) {
+                    startInput.min = prevFinish;
+                    if (startInput.value && startInput.value < prevFinish) {
+                        startInput.value = '';
+                        const durationInput = row.querySelector('.schedule-duration');
+                        if (durationInput) durationInput.value = '';
+                        if (finishInput && !finishInput.closest('td')?.querySelector('input[type="hidden"]')) {
+                            finishInput.value    = '';
+                            finishInput.readOnly = false;
+                            finishInput.style.background = '';
+                            finishInput.style.color      = '';
+                        }
+                    }
+                } else {
+                    startInput.removeAttribute('min');
+                }
+            }
+
+            if (finishInput && finishInput.type !== 'hidden' && finishInput.value) {
+                prevFinish = finishInput.value;
+            } else {
+                prevFinish = null;
+            }
+        });
+    }
+
+    // =========================================================
+    // VALIDASI TERPUSAT — dipanggil saat submit
+    // =========================================================
+    function validateForm(form) {
+        const actionSelect = document.getElementById('action-select');
+        if (!actionSelect || actionSelect.value === '') return true;
+        const isForward = actionSelect.options[actionSelect.selectedIndex].getAttribute('data-is-forward') === 'true';
+        if (!isForward) return true;
+
+        // --- VALIDASI PIC (hanya jika tidak terkunci) ---
+        if (!PIC_LOCKED) {
+            const assignTable = document.getElementById('assign-table');
+            if (assignTable) {
+                const userSelects = assignTable.querySelectorAll('select[name="assign_user[]"]');
+                const roleSelects = assignTable.querySelectorAll('select[name="assign_role[]"]');
+
+                // Kumpulkan baris yang terisi minimal salah satu
+                let filledRows = 0;
+                let hasPartialRow = false;
+                const coveredRoleIds = new Set();
+
+                userSelects.forEach((userSel, i) => {
+                    const roleSel = roleSelects[i];
+                    const hasUser = userSel.value !== '';
+                    const hasRole = roleSel && roleSel.value !== '';
+
+                    if (hasUser || hasRole) {
+                        filledRows++;
+                        if (!hasUser || !hasRole) {
+                            hasPartialRow = true;
+                        } else {
+                            coveredRoleIds.add(parseInt(roleSel.value, 10));
+                        }
+                    }
+                });
+
+                // Validasi 1: minimal 1 baris terisi
+                if (filledRows === 0) {
+                    showToast('Minimal 1 PIC harus di-assign sebelum melanjutkan.', 'error');
+                    return false;
+                }
+                // Validasi 2: tidak ada baris setengah isi
+                if (hasPartialRow) {
+                    showToast('Setiap baris PIC harus memiliki user dan role yang dipilih.', 'error');
+                    return false;
+                }
+                // Validasi 3: semua role wajib tercoveri
+                for (const role of REQUIRED_ROLES) {
+                    if (!coveredRoleIds.has(role.it_role_id)) {
+                        showToast(`Minimal 1 user harus di-assign untuk role "${role.it_role_detail}".`, 'error');
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // --- VALIDASI QUARTER ---
+        const qSelect = form.querySelector('select[name="q_id"]');
+        if (qSelect && !qSelect.value) {
+            showToast('Quarter wajib diisi sebelum melanjutkan.', 'error');
+            qSelect.focus();
+            return false;
+        }
+
+        // --- VALIDASI SCHEDULE ---
+        const rows = document.querySelectorAll('#schedule-table tbody tr[data-phase-index]');
+        for (const row of rows) {
+            const phaseName   = row.dataset.phaseName || 'Phase';
+            const isMilestone = row.dataset.isMilestone === 'true';
+            const startInput    = row.querySelector('.schedule-start');
+            const durationInput = row.querySelector('.schedule-duration');
+            const finishInput   = row.querySelector('.schedule-finish');
+
+            // Validasi 4: duration diisi tapi start kosong
+            if (durationInput && durationInput.value && startInput && !startInput.value) {
+                showToast(`Isi start date terlebih dahulu sebelum mengisi durasi pada phase "${phaseName}".`, 'error');
+                startInput.focus();
+                return false;
+            }
+
+            // Validasi 5: start_date harus terisi
+            if (startInput && !startInput.value) {
+                showToast(`Target start date wajib diisi pada phase "${phaseName}".`, 'error');
+                startInput.focus();
+                return false;
+            }
+
+            // Validasi 6: finish_date harus terisi (kecuali milestone/Rollout)
+            if (!isMilestone && finishInput && finishInput.type !== 'hidden' && !finishInput.value) {
+                showToast(`Target finish date wajib diisi pada phase "${phaseName}", atau isi durasi hari untuk menghitung otomatis.`, 'error');
+                finishInput.focus();
+                return false;
+            }
+
+            // Validasi 7: start tidak boleh > finish dalam satu phase
+            if (!isMilestone && startInput && finishInput && startInput.value && finishInput.value) {
+                if (startInput.value > finishInput.value) {
+                    showToast(`Start date tidak boleh melebihi finish date pada phase "${phaseName}".`, 'error');
+                    startInput.focus();
+                    return false;
+                }
+            }
+        }
+
+        // Validasi 8: cross-phase — start[N] tidak boleh < finish[N-1]
+        let prevFinishVal  = null;
+        let prevPhaseName  = null;
+        for (const row of rows) {
+            const phaseName  = row.dataset.phaseName || 'Phase';
+            const isMilestone = row.dataset.isMilestone === 'true';
+            const startInput  = row.querySelector('.schedule-start');
+            const finishInput = row.querySelector('.schedule-finish');
+
+            if (prevFinishVal && startInput && startInput.value) {
+                if (startInput.value < prevFinishVal) {
+                    showToast(`Start date "${phaseName}" tidak boleh lebih awal dari finish date "${prevPhaseName}".`, 'error');
+                    startInput.focus();
+                    return false;
+                }
+            }
+
+            if (!isMilestone && finishInput && finishInput.type !== 'hidden' && finishInput.value) {
+                prevFinishVal = finishInput.value;
+                prevPhaseName = phaseName;
+            }
+        }
+
+        return true;
+    }
+
+    // =========================================================
+    // DOM CONTENT LOADED — pasang semua event listener
+    // =========================================================
     document.addEventListener('DOMContentLoaded', function() {
+        // Action select → applyRequiredLogic
+        const actionSelect = document.getElementById('action-select');
+        if (actionSelect) actionSelect.addEventListener('change', applyRequiredLogic);
+
+        // SM radio → toggle midikriing (IT GM)
         document.querySelectorAll('.sm-radio').forEach(r => {
             r.addEventListener('change', toggleMidikriingApprove);
         });
         toggleMidikriingApprove();
-    });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const startInputs = document.querySelectorAll('input[name="start_date[]"]');
-        const finishInputs = document.querySelectorAll('input[name="finish_date[]"]');
+        // Schedule rows → duration & chaining
+        const scheduleRows = document.querySelectorAll('#schedule-table tbody tr[data-phase-index]');
+        scheduleRows.forEach(row => {
+            const startInput    = row.querySelector('.schedule-start');
+            const durationInput = row.querySelector('.schedule-duration');
+            const finishInput   = row.querySelector('.schedule-finish');
 
-        finishInputs.forEach((finishInput, index) => {
-            if (finishInput.type === 'hidden') return; 
-            const startInput = startInputs[index];
+            if (startInput) {
+                startInput.addEventListener('change', () => applyDurationLogic(row));
+            }
+            if (durationInput) {
+                durationInput.addEventListener('input', () => applyDurationLogic(row));
+            }
+            if (finishInput) {
+                finishInput.addEventListener('change', () => applyCrossPhaseChaining());
+            }
 
-            startInput.addEventListener('change', function() {
-                if (this.value) { finishInput.min = this.value; }
-            });
-
-            finishInput.addEventListener('change', function() {
-                if (this.value) { startInput.max = this.value; }
-            });
+            // auto-populate durasi dari start+finish existing (edit mode)
+            if (startInput && startInput.value && durationInput && !durationInput.value && finishInput && finishInput.value) {
+                const diffDays = Math.round((new Date(finishInput.value) - new Date(startInput.value)) / 86400000);
+                if (diffDays >= 1) durationInput.value = diffDays;
+            }
+            applyDurationLogic(row);
         });
-    });
+        applyCrossPhaseChaining();
 
-    document.addEventListener('DOMContentLoaded', function() {
+        // Submit handler → validasi terpusat
         const form = document.getElementById('srApproveForm');
-        if (!form) return;
-        form.addEventListener('submit', function(e) {
-            const actionSelect = document.getElementById('action-select');
-            if (!actionSelect || actionSelect.value === '') return;
-            const isForward = actionSelect.options[actionSelect.selectedIndex].getAttribute('data-is-forward') === 'true';
-            if (!isForward) return;
-
-            // Validasi quarter
-            const qSelect = form.querySelector('select[name="q_id"]');
-            if (qSelect && !qSelect.value) {
-                e.preventDefault();
-                alert('Quarter wajib diisi sebelum melanjutkan.');
-                qSelect.focus();
-                return;
-            }
-
-            // Validasi semua start_date terisi
-            const startDates = form.querySelectorAll('input[name="start_date[]"]');
-            for (const input of startDates) {
-                if (!input.value) {
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (!validateForm(this)) {
                     e.preventDefault();
-                    alert('Semua target start date wajib diisi sebelum melanjutkan.');
-                    input.focus();
-                    return;
                 }
-            }
-        });
+            });
+        }
     });
 </script>
 {% endblock %}

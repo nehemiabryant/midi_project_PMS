@@ -30,7 +30,7 @@
                 {% for pic in active_pics %}
                 <div class="pic-card-item">
                     <span class="pic-role-tag">{{ pic.it_role_detail }}</span>
-                    <span class="pic-name">{{ pic.nama }}</span>
+                    <span class="pic-name">{{ pic.nama }} - {{ pic.nik }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -39,7 +39,7 @@
 
     </div>
 
-    {% if sr.ticket_progress and sr.ticket_progress | int > 0 %}
+    {% if sr.task_count and sr.task_count | int > 0 %}
     <div class="sr-progress-wrapper">
         <div class="sr-progress-info">
             <span class="progress-label">Progress Keseluruhan</span>

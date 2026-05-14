@@ -323,6 +323,7 @@ def get_srs_by_phase_trx(phase_name: str) -> list:
         # Quick cleanup to ensure progress is a clean integer for the HTML width styles
         for sr in sr_list:
             sr['ticket_progress'] = int(sr['ticket_progress']) if sr['ticket_progress'] else 0
+            sr['task_count'] = int(sr.get('task_count') or 0)
             
         return sr_list
         
@@ -353,6 +354,7 @@ def get_sr_detail_trx(sr_no: str) -> dict:
         
         # Clean up the progress integer
         sr_detail['ticket_progress'] = int(sr_detail['ticket_progress']) if sr_detail.get('ticket_progress') else 0
+        sr_detail['task_count'] = int(sr_detail.get('task_count') or 0)
         
         # You can add more data transformations here if needed 
         # (e.g., fetching comments or attachments for this specific sr_no)

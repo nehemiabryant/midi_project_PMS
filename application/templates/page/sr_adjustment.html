@@ -161,6 +161,62 @@
                 </form>
             </div>
             
+            <div class="pmo-card" style="margin-bottom: 24px;">
+                <h3 class="pmo-card-header">Project Target Schedule</h3>
+                <form id="ajax-update-target-dates" action="{{ url_for('owh_sr.pmo_update_target_dates', sr_no=sr_data.sr_no) }}" method="POST">                                                   
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>                                                
+                    <div style="overflow-x: auto;">
+                        <table class="modern-table"id="target-schedule-table">                                       
+                            <thead>
+                                <tr>                                          
+                                    <th style="width: 25%;">Phase Name</th>
+                                    <th style="width: 28%;">Target Start Date</th>                                                         
+                                    <th style="width: 15%;">Durasi (Hari)</th>
+                                    <th style="width: 32%;">Target Finish Date</th>                                                         
+                                </tr>
+                            </thead>                                          
+                            <tbody>
+                                {% for phase in target_dates %}
+                                <tr data-phase-index="{{ loop.index0 }}" data-phase-name="{{ phase.phase_name }}" data-is-milestone="{{ 'true' if phase.phase_id == 6 else 'false' }}">
+                                    <td>                                      
+                                        <span style="font-weight: 600; font-size: 13px; color: #334155;">{{ phase.phase_name }}</span>   
+                                        <input type="hidden" name="phase_id[]" value="{{ phase.phase_id }}">                                    
+                                    </td>
+                                    <td>                                      
+                                        <input type="date" name="start_date[]" class="modern-input target-start"                                
+                                            value="{{ (phase.start_date | string)[:10] if phase.start_date else '' }}">                     
+                                    </td>
+                                    <td>                                      
+                                        {% if phase.phase_id == 6 %}
+                                            <span style="font-size: 12px; color: #94a3b8;">—</span>
+                                        {% else %}                            
+                                            <input type="number" name="duration_days[]" class="modern-input target-duration"       
+                                                min="1" placeholder="hari" style="width: 80px;" value="">                                    
+                                        {% endif %}
+                                    </td>                                     
+                                    <td>
+                                        {% if phase.phase_id == 6 %}
+                                            <input type="hidden" name="finish_date[]" value="">                                    
+                                            <span style="font-size: 12px; color: #94a3b8;">N/A (Milestone)</span>                           
+                                        {% else %}
+                                            <input type="date" name="finish_date[]" class="modern-input target-finish"
+                                                value="{{ (phase.finish_date | string)[:10] if phase.finish_date else '' }}">
+                                        {% endif %}
+                                    </td>
+                                </tr>                                         
+                                {% else %}
+                                <tr>                                          
+                                    <td colspan="4" style="text-align: center; color: #94a3b8;">No phases found.</td>                           
+                                </tr>
+                                {% endfor %}                                  
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="text-align: right; margin-top: 15px;">
+                        <button type="submit" class="btn-primary">Save Target Schedule</button>                                                 
+                    </div>
+                </form>                                                       
+            </div>   
 
             <div class="pmo-card">
                 <h3 class="pmo-card-header">Project Actual Schedule</h3>
@@ -408,6 +464,7 @@
             'ajax-update-details', 
             'ajax-force-phase', 
             'ajax-update-dates', 
+            'ajax-update-target-dates',
             'ajax-replace-sm', 
             'ajax-reassign'
         ];
@@ -591,7 +648,80 @@
                 handleDateChange({ target: startInput }); 
             }
         });
+        const targetRows = document.querySelectorAll('#target-schedule-table tbody tr[data-phase-index]');
+        targetRows.forEach(row => {
+            const s   = row.querySelector('.target-start');
+            const dur = row.querySelector('.target-duration');
+            const f   = row.querySelector('.target-finish');
+            
+            // auto populate durasi dari data existing (edit mode)
+            if (s && s.value && dur && !dur.value && f && f.value) {
+                const diff = Math.round((new Date(f.value) - new Date(s.value)) / 86400000);
+                if (diff >= 1) dur.value = diff;
+            }
+
+            if (s) s.addEventListener('change', () => applyTargetDuration(row));
+            if (dur) dur.addEventListener('input', () => applyTargetDuration(row));
+            if (f && f.type !== 'hidden') f.addEventListener('change', () => applyTargetChaining());
+
+            applyTargetDuration(row);
+        })
     });
+
+    function calcTargetFinish(startVal, days) {
+        const d = new Date(startVal);
+        d.setDate(d.getDate() + parseInt(days, 10));
+        return d.toISOString().split('T')[0];
+    }
+
+    function applyTargetDuration(row) {
+        const s   = row.querySelector('.target-start');
+        const dur = row.querySelector('.target-duration');
+        const f   = row.querySelector('.target-finish');
+        if (!s || !dur || !f) return;
+
+        if (s.value && dur.value && parseInt(dur.value, 10) >= 1) {
+            f.value     = calcTargetFinish(s.value, dur.value);
+            f.readOnly  = true;
+            f.style.background = '#f1f5f9';
+            f.style.color      = '#64748b';                           
+        } else {
+            if (f.readOnly) {
+                f.value    = '';
+                f.readOnly = false;                                   
+                f.style.background = '';                              
+                f.style.color      = '';
+            }
+        }
+        applyTargetChaining();
+    }
+
+    function applyTargetChaining() {
+        const rows = document.querySelectorAll('#target-schedule-table tbody tr[data-phase-index]');
+        let prev = null;
+        rows.forEach(row => {
+            const s   = row.querySelector('.target-start');
+            const dur = row.querySelector('.target-duration');
+            const f   = row.querySelector('.target-finish');
+            if (s) {
+                if (prev) {
+                    s.min = prev;
+                    if (s.value && s.value < prev) {
+                        s.value = '';
+                        if (dur) dur.value = '';
+                        if (f && f.type !== 'hidden') {
+                            f.value = ''; f.readOnly = false;
+                            f.style.background = ''; f.style.color = '';
+                        }
+                    }
+                } else {
+                    s.removeAttribute('min');
+                }
+            }
+            if (f && f.type !== 'hidden' && f.value) prev =f.value;
+            else prev = null;
+        });
+    }
 
     // --- LOV & MISC LOGIC ---
 
