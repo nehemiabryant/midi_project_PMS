@@ -34,19 +34,24 @@ def create_sr_trx(raw_data: dict, files: dict) -> dict:
 
     try:
         db_params = {
-            'ctg_id': raw_data.get('kategori_sr'),
             'smk_id': 101,
             'maker_id': raw_data.get('maker_id'),
             'req_id': raw_data.get('req_id'),
             'division': raw_data.get('division'),
             'name': raw_data.get('nama_aplikasi'),
-            'module': raw_data.get('modul'),
             'purpose': raw_data.get('tujuan'),
             'details': raw_data.get('detail_permohonan'),
             'frequency': raw_data.get('frequency'),
             'value': raw_data.get('values'),
             'value_det': raw_data.get('keterangan_values'),
         }
+
+        module = raw_data.get('modul')
+        if module == 'NEW_APP':
+            new_app_name = raw_data.get('proposed_modul')
+            db_params['module'] = new_app_name
+        else:
+            db_params['module'] = module
 
         num_user_str = raw_data.get('number_of_user')
         if num_user_str and num_user_str.isdigit():
@@ -123,15 +128,20 @@ def update_sr_trx(raw_data: dict, files: dict, sr_no: str, current_smk_id: int) 
             'sr_no': sr_no,
             'req_id': raw_data.get('req_id'),
             'division': raw_data.get('division'),
-            'ctg_id': raw_data.get('kategori_sr'),
             'name': raw_data.get('nama_aplikasi'),
-            'module': raw_data.get('modul'),
             'purpose': raw_data.get('tujuan'),
             'details': raw_data.get('detail_permohonan'),
             'frequency': raw_data.get('frequency'),
             'value': raw_data.get('values'),
             'value_det': raw_data.get('keterangan_values'),
         }
+
+        module = raw_data.get('modul')
+        if module == 'NEW_APP':
+            new_app_name = raw_data.get('proposed_modul')
+            db_params['module'] = new_app_name
+        else:
+            db_params['module'] = module
 
         num_user_str = raw_data.get('number_of_user')
         if num_user_str and num_user_str.isdigit():
@@ -155,8 +165,7 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str
         db_params = {
             'sr_no': sr_no,
             'q_id': raw_data.get('q_id'),
-            'ctg_id': raw_data.get('ctg_id'),
-            'prj_id': raw_data.get('prj_id')
+            'ctg_id': raw_data.get('ctg_id')
         }
 
         if current_sm_dept_id == 'C122':
@@ -170,9 +179,6 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str
         
         if not db_params['q_id']:
             return {'status': False, 'msg': 'Target Quarter cannot be empty.'}
-        
-        if not db_params['prj_id']:
-            return {'status': False, 'msg': 'Project Status cannot be empty.'}
         
         result = sr_model.update_sr_adjustment(db_params)
         
@@ -206,27 +212,6 @@ def update_sr_quarter_trx(sr_no: str, q_id: int, shared_conn=None) -> dict:
         Log.error(f'Exception | Update SR Quarter Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     
-def update_sr_project_status_trx(sr_no: str, prj_id: int, shared_conn=None) -> dict:
-    try:
-        db_params = {
-            'sr_no': sr_no,
-            'prj_id': prj_id
-        }
-
-        if not db_params['prj_id']:
-            return {'status': False, 'msg': 'Project Status cannot be empty.'}
-        
-        result = sr_model.update_sr_project_status(db_params, shared_conn)
-
-        if result.get('status'):
-            return {'status': True, 'msg': 'Project Status successfully adjusted.', 'data': result.get('data')}
-        else:
-            return {'status': False, 'msg': result.get('msg')}
-    
-    except Exception as e:
-        Log.error(f'Exception | Update SR Project Status Trx | Msg: {str(e)}')
-        return {'status': False, 'msg': str(e)}
-
 def update_sr_midikriing_status_trx(sr_no: str, status_midikriing: str, shared_conn=None) -> dict:
     try:
         db_params = {
@@ -247,6 +232,27 @@ def update_sr_midikriing_status_trx(sr_no: str, status_midikriing: str, shared_c
 
     except Exception as e:
         Log.error(f'Exception | Update SR Midikriing Status Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    
+def update_sr_category_trx(sr_no: str, ctg_id: int, shared_conn=None) -> dict:
+    try:
+        db_params = {
+            'sr_no': sr_no,
+            'ctg_id': ctg_id
+        }
+
+        if not db_params['ctg_id']:
+            return {'status': False, 'msg': 'Category ID cannot be empty.'}
+        
+        result = sr_model.update_sr_category(db_params, shared_conn)
+
+        if result.get('status'):
+            return {'status': True, 'msg': 'Category successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+    
+    except Exception as e:
+        Log.error(f'Exception | Update SR Category Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
 
 def get_full_dashboard_trx() -> dict:
@@ -481,29 +487,6 @@ def get_all_sm_trx() -> list:
         return []
     except Exception as e:
         Log.error(f"Exception | Get All SM Trx | Msg: {str(e)}")
-        return []
-
-def get_all_project_status_trx() -> list:
-    """
-    Retrieves and parses project statuses into a list of dictionaries.
-    Uses uniform try-except styling and manual data unpacking.
-    """
-    try:
-        db_result = sr_model.get_all_project_status()
-        statuses = []
-
-        # Check if query was successful and data is properly formatted
-        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
-            headers = db_result['data'][0]
-            rows = db_result['data'][1]
-            
-            # Loop through the parsed dictionaries and append to our list
-            for status in convert_to_dicts(rows, headers):
-                statuses.append(status)
-
-        return statuses
-    except Exception as e:
-        Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
     
 def get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing, filter_dept_id):

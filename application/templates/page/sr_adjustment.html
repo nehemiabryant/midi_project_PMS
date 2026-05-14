@@ -117,18 +117,6 @@
                             <option value="true" {% if sr_data.status_midikriing == True %}selected{% endif %}>Ya</option>
                         </select>
                     </div>
-
-                    <div class="form-group">
-                        <label class="info-label">Status Project</label>
-                        <select name="prj_id" class="modern-select">
-                            <option value="">-- Pilih Status Project --</option>
-                            {% for ps in project_statuses %}
-                            <option value="{{ ps.prj_id }}" {% if sr_data.prj_id == ps.prj_id %}selected{% endif %}>
-                                {{ ps.status_project }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     
                     <div class="action-bottom-container">
                         <button type="submit" class="btn-primary">Update Detail</button>

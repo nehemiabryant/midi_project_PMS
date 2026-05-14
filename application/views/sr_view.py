@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, url_for, flash, session, request, jsonify, get_flashed_messages
 from common.midiconnectserver.midilog import Logger
-from application.transactions import my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
+from application.transactions import aplikasi_transaction, my_work_transaction, sr_transaction, srlogs_transaction, workflow_transaction, attachment_transaction, assignment_transaction, task_transaction
 from ..helpers.decorators import login_required, bypass_required, ajax_required
 import urllib.parse
 
@@ -35,6 +35,7 @@ def createSR_menu():
     current_files_dict = {}
 
     categories = sr_transaction.get_all_categories_trx()
+    aplikasi = aplikasi_transaction.get_aplikasi_name_and_code_trx().get('data', [])
 
     if request.method == 'POST':
         raw_form_data = request.form.to_dict()
@@ -69,7 +70,7 @@ def createSR_menu():
             return redirect(request.url)
 
     return render_template('/page/sr_form.html', user=session.get('user'), role=session.get('role'), active_menu='create_sr'
-                           , required_docs=ui_doc_blueprints, current_files=current_files_dict, categories=categories)
+                           , required_docs=ui_doc_blueprints, current_files=current_files_dict, categories=categories, aplikasi=aplikasi)
 
 
 @sr_bp.route('/editSR/<path:sr_no>', methods=['GET', 'POST'])
@@ -97,7 +98,7 @@ def editSR_menu(sr_no):
     sr_data = eligibility_result['data'][0]
     current_smk_id = sr_data.get('smk_id', 101)
     categories = sr_transaction.get_all_categories_trx()
-
+    aplikasi = aplikasi_transaction.get_aplikasi_name_and_code_trx().get('data', [])
     docs_res = attachment_transaction.get_required_docs_for_phase_trx(current_smk_id)
     ui_doc_blueprints = docs_res.get('data', [])
 
@@ -147,7 +148,7 @@ def editSR_menu(sr_no):
 
     return render_template('/page/sr_form.html', mode='edit', user=session.get('user'), role=session.get('role'), active_menu='my_sr'
                            , sr_data=sr_data, required_docs=ui_doc_blueprints, current_files=current_files_dict, options=options, 
-                           categories=categories)
+                           categories=categories, aplikasi=aplikasi)
 
 @sr_bp.route('/editSR/<path:sr_no>/confirm', methods=['POST'])
 @login_required
@@ -220,10 +221,12 @@ def approveSR_menu(sr_no):
     user_it_role = sr_data.get('user_it_role') 
     
     is_gm = (user_it_role == 1)
+    is_pm = (user_it_role == 2)
     is_sm = (user_it_role == 3)
 
     gm_assign_data = {}
     assignment_data = {}
+    pm_assignment_data = {}
     
     actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
     ticket_actors = actors_result.get('data', [])
@@ -233,6 +236,11 @@ def approveSR_menu(sr_no):
         gm_page_result = assignment_transaction.get_gm_assign_page_data_trx(sr_no, current_user)
         if gm_page_result.get('status'):
             gm_assign_data = gm_page_result.get('data', {})
+
+    if is_pm:
+        pm_page_result = assignment_transaction.get_pm_assign_page_data_trx(sr_no, current_user)
+        if pm_page_result.get('status'):
+            pm_assignment_data = pm_page_result.get('data', {})
 
     if is_sm:
         sm_page_result = assignment_transaction.get_assign_page_data_trx(sr_no, current_user)
@@ -247,15 +255,15 @@ def approveSR_menu(sr_no):
         next_smk_id = int(request.form.get('intended_next_smk_id'))
         
         # ==========================================
-        # GM-SPECIFIC LOGIC: Assign SM & Advance together
+        # PM-SPECIFIC LOGIC: Assign SM & Advance together
         # ==========================================
-        if is_gm and next_smk_id > current_smk_id:
+        if is_pm and next_smk_id > current_smk_id:
             if not request.form.get('selected_sm_nik'):
                 flash("Anda harus memilih IT SM sebelum menyetujui SR ini.", "error")
                 return redirect(request.url)
             
             # Call a unified transaction function to handle everything safely
-            process_result = assignment_transaction.process_gm_approval_trx(
+            process_result = assignment_transaction.process_pm_approval_trx(
                 sr_no=sr_no,
                 nik=current_user,
                 form_data=request.form,
@@ -298,13 +306,12 @@ def approveSR_menu(sr_no):
             )
 
             if advance_result.get('status'):
-                flash("Service Request approved successfully!", "success")
+                flash("System Request approved successfully!", "success")
                 return redirect(url_for('owh_dashboard.dashboard_menu'))
             else:
                 flash(f"Approval failed: {advance_result.get('msg')}", "error")
                 return redirect(request.url)
 
-    #CHANGE TO sr_approve later
     return render_template('/page/sr_approve.html', 
                            user=session.get('user'), 
                            role=session.get('role'), 
@@ -314,6 +321,8 @@ def approveSR_menu(sr_no):
                            current_files=current_files_dict,
                            is_gm=is_gm,
                            gm_assign_data=gm_assign_data,
+                           is_pm=is_pm,
+                           pm_assignment_data=pm_assignment_data,
                            is_sm=is_sm,
                            assignment_data=assignment_data,
                            ticket_actors=ticket_actors)
@@ -382,7 +391,6 @@ def adjustment_menu(sr_no):
     sr_data = None
     options = []
     categories = []
-    project_statuses = []
     actual_dates = []
     target_dates = []
     quarter = []
@@ -410,7 +418,6 @@ def adjustment_menu(sr_no):
         sr_data = eligibility_result['data'][0]
 
         categories = sr_transaction.get_all_categories_trx()
-        project_statuses = sr_transaction.get_all_project_status_trx()
         options = workflow_transaction.get_adjustment_dropdown_options()
 
         actual_dates_res = srlogs_transaction.get_actual_date_trx(sr_no) # Adjust module name if needed
@@ -469,7 +476,6 @@ def adjustment_menu(sr_no):
         sr_data=sr_data, 
         options=options,
         categories=categories,
-        project_statuses=project_statuses,
         actual_dates=actual_dates,
         target_dates=target_dates,
         quarter=quarter,
