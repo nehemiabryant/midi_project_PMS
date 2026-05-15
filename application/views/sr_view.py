@@ -392,6 +392,7 @@ def adjustment_menu(sr_no):
     options = []
     categories = []
     actual_dates = []
+    target_dates = []
     quarter = []
     pmo_form_data = {}
     user_is_sm = False
@@ -421,6 +422,9 @@ def adjustment_menu(sr_no):
 
         actual_dates_res = srlogs_transaction.get_actual_date_trx(sr_no) # Adjust module name if needed
         actual_dates = actual_dates_res.get('data', []) if actual_dates_res.get('status') else []
+
+        target_dates_res = srlogs_transaction.get_target_date_trx(sr_no)
+        target_dates = target_dates_res.get('data', []) if target_dates_res.get('status') else []
 
         quarter = sr_transaction.get_all_quarters_trx()
 
@@ -473,6 +477,7 @@ def adjustment_menu(sr_no):
         options=options,
         categories=categories,
         actual_dates=actual_dates,
+        target_dates=target_dates,
         quarter=quarter,
         user_is_sm=user_is_sm,
         pmo_form_data=pmo_form_data,
@@ -520,6 +525,22 @@ def pmo_update_dates(sr_no):
 
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
+@sr_bp.route('/adjustment/<path:sr_no>/update-target-dates', methods=['POST'])
+@login_required
+@bypass_required
+def pmo_update_target_dates(sr_no):
+    result = srlogs_transaction.process_target_dates_trx(sr_no, request.form)
+
+    if result.get('status'):
+        flash("Target scheduler update succesfully", "success")
+    else:
+        flash(f"Error: {result.get('msg')}", "error")
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
+        return jsonify({'status': result.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
+    
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
 @sr_bp.route('/adjustment/<path:sr_no>/force-phase', methods=['POST'])
 @login_required
