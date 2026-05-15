@@ -361,60 +361,48 @@ def get_dashboard_top_cards(shared_conn=None) -> dict:
         if conn: conn.close()
 
 def get_dashboard_grid(shared_conn=None) -> dict:
-    """
-    Calculates dynamic progress based on the specific steps available 
-    within each phase.
-    """
-    sql = """
-        WITH phase_bounds AS (
+    """Get all phases with their SR cards for kanban board, including empty phases."""                                     
+    sql = """                                                  
+        WITH all_phases AS (                                   
             SELECT 
                 phase AS phase_name,
-                MIN(smk_id) AS min_id
+                MIN(smk_id) AS phase_order                     
             FROM public.sr_ms_ket
-            GROUP BY phase
-        ),
-        active_data AS (
-            SELECT 
-                m.phase AS phase_name,
+            GROUP BY phase                                     
+        ),      
+        sr_with_phase AS (
+            SELECT
+                k.phase AS phase_name,
+                r.sr_no,
+                r.name AS app_name,                            
                 r.division,
-                COUNT(r.sr_no) AS ticket_count,
-                ROUND(
-                    (COUNT(r.sr_no) * 100.0) / 
-                    NULLIF(SUM(COUNT(r.sr_no)) OVER (PARTITION BY r.division), 0)
-                ) AS phase_progress
+                k.smk_ket AS current_status                    
             FROM public.sr_request r
-            JOIN public.sr_ms_ket m ON r.smk_id = m.smk_id
-            GROUP BY m.phase, r.division
-        )
+            JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id
+        )                                                      
         SELECT 
-            pb.phase_name,
-            a.division,
-            COALESCE(a.ticket_count, 0) AS ticket_count,
-            COALESCE(a.phase_progress, 0) AS global_progress
-        FROM phase_bounds pb
-        LEFT JOIN active_data a ON pb.phase_name = a.phase_name
-        ORDER BY pb.min_id ASC, a.division ASC;
-    """
-
+            ap.phase_name,                                     
+            s.sr_no,
+            s.app_name,
+            s.division,
+            s.current_status,
+            ap.phase_order
+        FROM all_phases ap
+        LEFT JOIN sr_with_phase s ON ap.phase_name = s.phase_name
+        ORDER BY ap.phase_order ASC, s.sr_no DESC NULLS LAST;  
+    """         
     if shared_conn:
-        result = shared_conn.selectDataHeader(sql, {})
-        return result
-
-    conn = None
-    result = {'status': False, 'data': [], 'msg': 'Invalid parameters.'}
-
-    try:
-        conn = DatabasePG("supabase")
-        if conn:
-            result = conn.selectDataHeader(sql, {})
-            return result
-        else:
-            Log.error(f'DB Error | Msg: {result.get("msg")}')
-            return {'status': False, 'data': [], 'msg': result.get('msg')}
+        return shared_conn.selectDataHeader(sql, {})
+    conn = None                                                
+    try:                                                       
+        conn = DatabasePG("supabase")                          
+        if conn:                                               
+            return conn.selectDataHeader(sql, {})              
+        return {'status': False, 'data': [], 'msg': 'DB connection failed'}                                            
     except Exception as e:
-        Log.error(f'DB Exception | get_dashboard_grid | Msg: {str(e)}')
-        return {'status': False, 'data': [], 'msg': 'Failed to fetch SR'}
-    finally:
+        Log.error(f'DB Exception | get_dashboard_grid | Msg: {str(e)}')                                                     
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:                                                   
         if conn: conn.close()
 
 def get_srs_by_phase(phase_name: str, shared_conn=None) -> dict:
@@ -1003,4 +991,34 @@ def get_monitoring_by_pic_model(params: dict) -> dict:
         Log.error(f'DB Exception | get_monitoring_by_pic | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     finally:
+        if conn: conn.close()
+
+
+def get_dashboard_all_projects(shared_conn=None) -> dict:      
+    """Get all projects list for dashboard monitoring table."""
+    sql = """                                                  
+        SELECT                                                 
+            ROW_NUMBER() OVER(ORDER BY r.sr_no DESC) AS no,
+            r.sr_no,
+            r.name AS aplikasi,
+            r.module AS modul,
+            t.start_date AS target,
+            c.category AS tipe
+        FROM public.sr_request r                               
+        LEFT JOIN public.sr_ms_ctg c ON r.ctg_id = c.ctg_id
+        LEFT JOIN public.sr_target_date t ON r.sr_no = t.sr_no AND t.phase_id = 6                                             
+        ORDER BY r.sr_no DESC;
+    """                                                        
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {})
+    conn = None                                                
+    try:
+        conn = DatabasePG("supabase")                          
+        if conn:
+            return conn.selectDataHeader(sql, {})              
+        return {'status': False, 'data': [], 'msg': 'DB connection failed'}                                            
+    except Exception as e:
+        Log.error(f'DB Exception | get_dashboard_all_projects | Msg: {str(e)}')                                               
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:                                                   
         if conn: conn.close()

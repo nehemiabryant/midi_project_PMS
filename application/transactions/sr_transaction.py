@@ -255,59 +255,57 @@ def update_sr_category_trx(sr_no: str, ctg_id: int, shared_conn=None) -> dict:
         Log.error(f'Exception | Update SR Category Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
 
-def get_full_dashboard_trx() -> dict:
-    """
-    Fetches both the top cards and the grid data, returning a complete 
-    package for the dashboard template.
-    """
+def get_full_dashboard_trx() -> dict:                          
+    """Fetches top cards and all SR cards grouped by phase for the kanban dashboard."""                                       
     try:
-        # 1. Fetch Top Cards
-        cards_result = sr_model.get_dashboard_top_cards()
-        top_cards = {'total_sr': 0, 'active_sr': 0, 'completed_sr': 0, 'overdue_sr': 0}
-        
-        if cards_result.get('status') and cards_result.get('data'):
+        cards_result = sr_model.get_dashboard_top_cards()      
+        top_cards = {'total_sr': 0, 'active_sr': 0, 'completed_sr': 0, 'overdue_sr': 0}                            
+        if cards_result.get('status') and cards_result.get('data'):                                      
             headers = cards_result['data'][0]
-            row = cards_result['data'][1][0]
+            row = cards_result['data'][1][0]                   
             top_cards = dict(zip(headers, row))
-
-        # 2. Fetch and Shape the Grid
+                                                                
         grid_result = sr_model.get_dashboard_grid()
-        dashboard_grid = {}
-        
-        if grid_result.get('status') and grid_result.get('data'):
+        kanban = {}                                            
+        if grid_result.get('status') and grid_result.get('data'):                                       
             headers = grid_result['data'][0]
-            rows = grid_result['data'][1]
+            rows = grid_result['data'][1]                      
             flat_data = convert_to_dicts(rows, headers)
-            
-            for row in flat_data:
-                phase_key = row['phase_name'] 
-                
-                if phase_key not in dashboard_grid:
-                    dashboard_grid[phase_key] = {
-                        'phase_name': phase_key,
-                        'total_phase_tickets': 0,
-                        'divisions': []
-                    }
-                
-                if row['division']:
-                    dashboard_grid[phase_key]['divisions'].append({
-                        'name': row['division'],
-                        'count': row['ticket_count'],
-                        'progress': int(row['global_progress']) # The calculated 0-100%
-                    })
-                    
-                    dashboard_grid[phase_key]['total_phase_tickets'] += row['ticket_count']
+            for row in flat_data:                              
+                phase = row['phase_name']
+                if phase not in kanban:                        
+                    kanban[phase] = []
+                if row['sr_no']: 
+                    kanban[phase].append({
+                        'sr_no':          row['sr_no'],            
+                        'app_name':       row['app_name'],
+                        'division':       row['division'] or '',   
+                        'current_status': row['current_status'],
+                    })                                             
 
-        # 3. Return the ultimate package
-        return {
-            'status': True,
-            'top_cards': top_cards,
-            'grid': dashboard_grid
-        }
-        
+        return {'status': True, 'top_cards': top_cards, 'kanban': kanban}
     except Exception as e:
-        Log.error(f"Exception | Full Dashboard Trx | Msg: {str(e)}")
-        return {'status': False, 'top_cards': {}, 'grid': {}}
+        Log.error(f"Exception | Full Dashboard Trx | Msg: {str(e)}")                                                     
+        return {'status': False, 'top_cards': {}, 'kanban': {}}
+    
+def get_dashboard_projects_trx() -> list:                      
+    """Get all projects list for dashboard monitoring table."""
+    try:
+        result = sr_model.get_dashboard_all_projects()
+        if not result.get('status') or not result.get('data'): 
+            return []
+        headers = result['data'][0]                            
+        rows = result['data'][1]
+        items = convert_to_dicts(rows, headers)
+        for item in items:                                     
+            if item.get('target') and hasattr(item['target'], 'strftime'):                                                   
+                item['target'] = item['target'].strftime('%d %b %Y')                                                          
+        return items
+    except Exception as e:                                     
+        Log.error(f"Exception | Dashboard Projects Trx | Msg: {str(e)}")
+        return []
+
+                            
     
 def get_srs_by_phase_trx(phase_name: str) -> list:
     """

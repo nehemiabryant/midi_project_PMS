@@ -29,85 +29,101 @@
         </div>
     </div>
 
+    {% if pending_confirmations %}
+    <div style="background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:16px 20px; margin-bottom:24px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+        <div style="display:flex; align-items:flex-start; gap:12px; flex:1;">
+            <span style="font-size:1.1rem;">⚠️</span>
+            <div>
+                <div style="font-weight:700; color:#92400e; font-size:0.88rem; margin-bottom:6px;">
+                    Anda memiliki {{ pending_confirmations | length }} SR yang perlu dikonfirmasi
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    {% for item in pending_confirmations %}
+                    <span style="font-size:0.75rem; background:white; border:1px solid #fcd34d; border-radius:4px; padding:2px 8px; color:#78350f;">
+                        {{ item.sr_no }} — {{ item.status_label }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <a href="{{ url_for('owh_dashboard.myWork_menu') }}" style="flex-shrink:0; font-size:0.82rem; font-weight:700; color:#92400e; background:white; border:1px solid #fcd34d; border-radius:6px; padding:6px 14px; text-decoration:none; white-space:nowrap;">
+            Lihat MyWork →
+        </a>
+    </div>
+    {% endif %}
+
     <h4 class="section-title">Project Progress</h4>
 
     <div class="phase-grid">
-        {% for phase_key, phase_data in dashboard_grid.items() %}
-            <div class="phase-card">
-                
-                <a href="/project_details/{{ phase_key }}" class="phase-link">
-                    <h5 class="phase-title">{{ phase_data.phase_name }}</h5>
+        {% for phase_name, sr_list in kanban_board.items() %}
+        <div class="phase-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h5 class="phase-title" style="margin:0;">{{ phase_name }}</h5>
+                <span class="ticket-count-badge">{{ sr_list | length }} SR</span>
+            </div>
+            <div class="kanban-card-list">
+                {% for sr in sr_list %}
+                <a href="/sr/view/{{ sr.sr_no }}?back=/dashboard" class="kanban-sr-card">
+                    <div class="kanban-sr-badge">{{ sr.sr_no }}</div>
+                    <div class="kanban-division">{{ sr.division }}</div>
+                    <div class="kanban-app-name">{{ sr.app_name }}</div>
+                    <div class="kanban-status">
+                        <span class="kanban-dot"></span>
+                        <span>{{ sr.current_status }}</span>
+                    </div>
                 </a>
-
-                {% set is_count_only = phase_data.phase_name in ['Takeout', 'RO'] %}
-
-                <div class="progress-header">
-                    <div style="width: {% if is_count_only %}60%{% else %}30%{% endif %};">Divisi</div>
-                    {% if is_count_only %}
-                        <div style="width: 40%; text-align: right;">Jumlah SR</div>
-                    {% else %}
-                        <div style="width: 50%;">Progress</div>
-                        <div style="width: 20%; text-align: right;">%</div>
-                    {% endif %}
-                </div>
-
-                <div class="division-list" id="div-list-{{ loop.index }}">
-                    {% for div in phase_data.divisions %}
-                        {% set page_num = (loop.index0 // 3) + 1 %}
-
-                        <div class="division-row page-{{ page_num }}" data-page="{{ page_num }}" style="{% if page_num > 1 %}display: none;{% endif %}">
-                            <div class="div-name" style="{% if is_count_only %}width: 60%;{% endif %}">{{ div.name }}</div>
-
-                            {% if is_count_only %}
-                                <div style="width: 40%; display: flex; justify-content: flex-end;">
-                                    <span class="ticket-count-badge">{{ div.count }} SR</span>
-                                </div>
-                            {% else %}
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-track">
-                                        {% set bar_color = '#10b981' %}
-                                        {% if div.progress < 30 %} {% set bar_color = '#ef4444' %}
-                                        {% elif div.progress < 70 %} {% set bar_color = '#f59e0b' %}
-                                        {% endif %}
-                                        <div class="progress-bar-fill" style="width: {{ div.progress }}%; background-color: {{ bar_color }};"></div>
-                                    </div>
-                                </div>
-                                <div class="progress-text">{{ div.progress }}%</div>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
-
-                </div>
-        {% else %}
-            {% endfor %}
+                {% else %}
+                <div style="text-align:center; padding:20px; color:#9ca3af; font-size:0.82rem;">Tidak ada SR</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const pageButtons = document.querySelectorAll('.page-btn');
-    
-    pageButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetListId = this.getAttribute('data-target');
-            const targetPage = this.getAttribute('data-page');
-            const container = document.getElementById(targetListId);
-            
-            // Sembunyikan semua baris
-            const allRows = container.querySelectorAll('.division-row');
-            allRows.forEach(row => row.style.display = 'none');
-            
-            // Tampilkan baris sesuai halaman
-            const activeRows = container.querySelectorAll('.division-row.page-' + targetPage);
-            activeRows.forEach(row => row.style.display = 'flex');
-            
-            // Update style tombol (menggunakan class dari CSS)
-            const siblingButtons = this.parentElement.querySelectorAll('.page-btn');
-            siblingButtons.forEach(btn => btn.classList.remove('active-btn'));
-            this.classList.add('active-btn');
-        });
-    });
-});
-</script>
+    <h4 class="section-title" style="margin-top:40px;">All Projects</h4>
+
+    <div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:30px;">
+        <div style="max-height:320px; overflow-y:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <thead>
+                <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; width:50px; position:sticky; top:0; background:#f9fafb; z-index:1;">No</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">No SR</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Aplikasi</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Modul</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Target</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Tipe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in projects %}
+                <tr style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                    <td style="padding:14px 16px; color:#6b7280;">{{ p.no }}</td>
+                    <td style="padding:14px 16px;">
+                        <a href="/sr/view/{{ p.sr_no }}?back=/dashboard" style="color:#2563eb; font-weight:700; font-size:0.78rem; text-decoration:none;">{{ p.sr_no }}</a>
+                    </td>
+                    <td style="padding:14px 16px; font-weight:600; color:#111827;">{{ p.aplikasi }}</td>
+                    <td style="padding:14px 16px; color:#374151;">{{ p.modul or '—' }}</td>
+                    <td style="padding:14px 16px; color:#374151;">{{ p.target or '—' }}</td>
+                    <td style="padding:14px 16px;">
+                        {% if p.tipe %}
+                        <span style="font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:4px;
+                            {% if p.tipe == 'DIVISIONAL' %}background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;
+                            {% else %}background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0;{% endif %}">
+                            {{ p.tipe }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding:30px; text-align:center; color:#9ca3af;">Tidak ada data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+</div>
 {% endblock %}

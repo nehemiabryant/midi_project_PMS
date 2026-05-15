@@ -671,7 +671,7 @@ legend {
         });
         document.querySelectorAll('.gm-dynamic-input').forEach(select => {
             if (isForward && select.offsetParent !== null) {
-                select.setAttribute('required', 'required');
+                select.setAttribute('required', 'required'); 
             } else {
                 select.removeAttribute('required');
             }
@@ -681,7 +681,6 @@ legend {
         });
     }
 
-<<<<<<< HEAD
     // =========================================================
     // MIDIKRIING TOGGLE (IT GM)
     // =========================================================
@@ -738,11 +737,13 @@ legend {
         rows.forEach((row) => {
             const startInput  = row.querySelector('.schedule-start');
             const finishInput = row.querySelector('.schedule-finish');
+            let wasReset = false;
 
             if (startInput) {
                 if (prevFinish) {
                     startInput.min = prevFinish;
                     if (startInput.value && startInput.value < prevFinish) {
+                        wasReset = true;
                         startInput.value = '';
                         const durationInput = row.querySelector('.schedule-duration');
                         if (durationInput) durationInput.value = '';
@@ -757,13 +758,29 @@ legend {
                     startInput.removeAttribute('min');
                 }
             }
+            if (finishInput && finishInput.type !== 'hidden' && !finishInput.readOnly) {
+                startInput && startInput.value
+                    ? finishInput.min = startInput.value
+                    : finishInput.removeAttribute('min');
+            }
 
-            if (finishInput && finishInput.type !== 'hidden' && finishInput.value) {
-                prevFinish = finishInput.value;
-            } else {
-                prevFinish = null;
+            if (!wasReset) {
+                if (finishInput && finishInput.type !== 'hidden' && finishInput.value) {
+                    prevFinish = finishInput.value;  // baris punya finish → update prev
+                } else if (startInput && startInput.value) {
+                    prevFinish = null;               // baris punya start tapi tidak ada finish → putus chain
+                }
+                // baris kosong total → prevFinish dibiarkan, cascade lanjut
             }
         });
+        const rowArr = Array.from(rows);
+        for (let i = 0; i < rowArr.length - 1; i++) {
+            const finishInput = rowArr[i].querySelector('.schedule-finish');
+            const nextStartInput = rowArr[i + 1].querySelector('.schedule-start');
+            if (finishInput && finishInput.type !== 'hidden' && !finishInput.readOnly) {
+                nextStartInput && nextStartInput.value ? finishInput.max = nextStartInput.value: finishInput.removeAttribute('max');
+            }
+        }
     }
 
     // =========================================================
@@ -916,18 +933,6 @@ legend {
             const startInput    = row.querySelector('.schedule-start');
             const durationInput = row.querySelector('.schedule-duration');
             const finishInput   = row.querySelector('.schedule-finish');
-=======
-    document.addEventListener('DOMContentLoaded', function() {
-        const actionSelect = document.getElementById('action-select');
-        if (actionSelect) {
-            actionSelect.addEventListener('change', applyRequiredLogic);
-        }
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const startInputs = document.querySelectorAll('input[name="start_date[]"]');
-        const finishInputs = document.querySelectorAll('input[name="finish_date[]"]');
->>>>>>> 4521564ac224c8d4b3fc8f9d08e24307838c9e30
 
             if (startInput) {
                 startInput.addEventListener('change', () => applyDurationLogic(row));

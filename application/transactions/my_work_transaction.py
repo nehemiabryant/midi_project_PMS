@@ -85,6 +85,21 @@ def get_my_work_trx(nik: str, search_query: str = '') -> dict:
             # Attach the final boolean
             item['is_pic'] = has_active_pic_role or is_pm
 
+        for item in items:
+            smk_id   = item['smk_id']
+            role_ids = set(item['role_ids'])
+            # needs_confirm = True jika button bukan Details
+            # yaitu: is_pic (Manage) ATAU salah satu kondisi approval dari template
+            item['needs_confirm'] = item['is_pic'] or (
+                (9 in role_ids and smk_id == 101) or
+                (1 in role_ids and smk_id == 104) or
+                (2 in role_ids and smk_id == 103) or
+                (3 in role_ids and smk_id in {105, 107}) or
+                (8 in role_ids and smk_id == 102)
+            )
+
+        items.sort(key=lambda x: (not x['needs_confirm'], x['created_at']))
+
         # Filter berdasarkan search query
         if search_query:
             q = search_query.lower()
@@ -281,6 +296,26 @@ def get_manage_detail_trx(sr_no: str, nik: str) -> dict:
         Log.error(f'Exception | get_manage_detail_trx | Msg: {str(e)}')
         return {'status': False, 'data': [], 'msg': str(e)}
     
+def get_pending_confirmations_trx(nik: str) -> list:
+    """Ambil SR yang butuh konfirmasi user — untuk banner dashboard."""
+    try:
+        result = get_my_work_trx(nik)
+        if not result.get('status'):
+            return []
+        return [
+            {
+                'sr_no':        item['sr_no'],
+                'title':        item['title'],
+                'status_label': item['status_label'],
+            }
+            for item in result['data']
+            if item.get('needs_confirm')
+        ]
+    except Exception as e:
+        Log.error(f'Exception | get_pending_confirmations_trx | Msg: {str(e)}')
+        return []
+
+
 def can_approve_sr_trx(sr_no: str, nik: str) -> dict:
     """
     Cek apakah user ini bisa approve SR ini.

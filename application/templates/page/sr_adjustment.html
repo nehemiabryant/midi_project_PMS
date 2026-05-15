@@ -465,6 +465,9 @@
                     
                     const submitBtn = this.querySelector('button[type="submit"]');
                     const originalText = submitBtn ? submitBtn.textContent : 'Submit';
+
+                    if (formId === 'ajax-update-target-dates' && !validateTargetSchedule()) return;
+                    if (formId === 'ajax-update-dates' && !validateActualSchedule()) return;
                     
                     if (submitBtn) {
                         submitBtn.textContent = "Processing...";
@@ -609,7 +612,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const tableRows = document.querySelectorAll('tr');
+        const tableRows = document.querySelectorAll('#ajax-update-dates table tbody tr');
 
         tableRows.forEach(row => {
             const startInput = row.querySelector('input[name="start_date[]"]');
@@ -629,13 +632,16 @@
                     
                     if (finishInput.value) startInput.max = finishInput.value; 
                     else startInput.removeAttribute('max');
-                };
 
+                    applyActualChaining();
+                };
+                
                 startInput.addEventListener('change', handleDateChange);
                 finishInput.addEventListener('change', handleDateChange);
                 handleDateChange({ target: startInput }); 
             }
         });
+        applyActualChaining();
         const targetRows = document.querySelectorAll('#target-schedule-table tbody tr[data-phase-index]');
         targetRows.forEach(row => {
             const s   = row.querySelector('.target-start');
@@ -691,10 +697,12 @@
             const s   = row.querySelector('.target-start');
             const dur = row.querySelector('.target-duration');
             const f   = row.querySelector('.target-finish');
+            let wasReset = false;
             if (s) {
                 if (prev) {
                     s.min = prev;
                     if (s.value && s.value < prev) {
+                        wasReset = true;
                         s.value = '';
                         if (dur) dur.value = '';
                         if (f && f.type !== 'hidden') {
@@ -706,9 +714,119 @@
                     s.removeAttribute('min');
                 }
             }
-            if (f && f.type !== 'hidden' && f.value) prev =f.value;
-            else prev = null;
+            if (f && f.type !== 'hidden' && !f.readOnly) {
+                s && s.value ? f.min = s.value : f.removeAttribute('min');
+            }
+
+            if (!wasReset) {
+                if (f && f.type !== 'hidden' && f.value) {
+                    prev = f.value;        // baris punya finish → update prev
+                } else if (s && s.value) {
+                    prev = null;           // baris punya start tapi tidak ada finish → putus chain
+                }
+                // baris kosong total (s.value='') → prev dibiarkan, cascade lanjut
+            }
         });
+        const rowArr = Array.from(rows);
+        for (let i = 0; i < rowArr.length - 1; i++) {
+            const f = rowArr[i].querySelector('.target-finish');
+            const nextS = rowArr[i + 1].querySelector('.target-start');
+            if (f && f.type !== 'hidden' && !f.readOnly) {
+                nextS && nextS.value ? f.max = nextS.value : f.removeAttribute('max');
+            }
+        }
+    }
+
+    function applyActualChaining() {
+        const rows = Array.from(document.querySelectorAll('#ajax-update-dates table tbody tr'));
+
+        // forward pass: min pada start[N] = finish[N-1], cascade reset jika dilanggar
+        let prevFinish = null;
+        rows.forEach(row => {
+            const s = row.querySelector('input[name="start_date[]"]');
+            const f = row.querySelector('input[name="finish_date[]"]');
+            let wasReset = false;
+            if (s) {
+                if (prevFinish) {
+                    s.min = prevFinish;
+                    if (s.value && s.value < prevFinish) {
+                        wasReset = true;
+                        s.value = '';
+                        if (f && f.type !== 'hidden') f.value = '';
+                    }
+                } else {
+                    s.removeAttribute('min');
+                }
+            }
+            if (!wasReset) {
+                if (f && f.type !== 'hidden' && f.value) prevFinish = f.value;
+                else prevFinish = null;
+            }
+        });
+
+        // backward pass: max pada finish[N] = start[N+1]
+        for (let i = 0; i < rows.length - 1; i++) {
+            const f = rows[i].querySelector('input[name="finish_date[]"]');
+            const nextS = rows[i + 1].querySelector('input[name="start_date[]"]');
+            if (f && f.type !== 'hidden') {
+                nextS && nextS.value ? f.max = nextS.value : f.removeAttribute('max');
+            }
+        }
+    }
+
+    function validateTargetSchedule() {
+        const rows = document.querySelectorAll('#target-schedule-table tbody tr[data-phase-index]');
+        let prevFinish = null, prevName = null;
+        for (const row of rows) {
+            const phaseName = row.dataset.phaseName || 'Phase';
+            const isMilestone = row.dataset.isMilestone === 'true';
+            const s = row.querySelector('.target-start');
+            const f = row.querySelector('.target-finish');
+
+            if (s && !s.value) {
+                showToast(`Target start date wajib diisi pada phase "${phaseName}".`, 'error');
+                s.focus(); return false;
+            }                                         
+            if (!isMilestone && f && f.type !== 'hidden' && !f.value) {                               
+                showToast(`Target finish date wajib diisi pada phase "${phaseName}". Isi durasi hari untuk menghitung otomatis.`, 'error');
+                f.focus(); return false;              
+            }                                       
+            if (!isMilestone && s && f && s.value && f.value && s.value > f.value) {
+                showToast(`Start date tidak boleh melebihi finish date pada phase "${phaseName}".`, 'error');
+                s.focus(); return false;              
+            }                                       
+            if (prevFinish && s && s.value && s.value < prevFinish) {
+                showToast(`Start date "${phaseName}" tidak boleh lebih awal dari finish date "${prevName}".`, 'error');
+                s.focus(); return false;              
+            }                                       
+            if (!isMilestone && f && f.type !== 'hidden' && f.value) {
+                prevFinish = f.value; prevName = phaseName;                                            
+            }                                             
+        }
+        return true; 
+    }
+
+    function validateActualSchedule() {
+        const rows = Array.from(document.querySelectorAll('#ajax-update-dates table tbody tr'));
+        let prevFinish = null;
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const phaseName = row.querySelector('td span')?.textContent?.trim() || `Phase ${i + 1}`;
+            const s = row.querySelector('input[name="start_date[]"]');
+            const f = row.querySelector('input[name="finish_date[]"]');
+            const isRollout = !f || f.type === 'hidden';
+
+            if (!isRollout && s && f && s.value && f.value && s.value > f.value) {
+                showToast(`Start date tidak boleh melebihi finish date pada phase "${phaseName}".`, 'error');
+                s.focus(); return false;
+            }
+            if (prevFinish && s && s.value && s.value < prevFinish) {
+                showToast(`Start date "${phaseName}" tidak boleh lebih awal dari finish date phase sebelumnya.`, 'error');
+                s.focus(); return false;
+            }
+            if (!isRollout && f && f.value) prevFinish = f.value;
+        }
+        return true;
     }
 
     // --- LOV & MISC LOGIC ---
