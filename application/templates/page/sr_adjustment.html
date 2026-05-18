@@ -80,7 +80,7 @@
                 </div>
             </div>
                 
-                <div class="pmo-card" style="margin-bottom: 24px;">
+            <div class="pmo-card" style="margin-bottom: 24px;">
                 <h3 class="pmo-card-header">Detail SR</h3>
                 <form id="ajax-update-details" class="horizontal-form" action="{{ url_for('owh_sr.pmo_update_details', sr_no=sr_data.sr_no) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -88,7 +88,7 @@
                     <div class="form-group">
                         <label class="info-label">Kategori</label>
                         <select name="ctg_id" class="modern-select">
-                            <option value="">-- Pilih Kategori --</option>
+                            <option value="" disabled selected>-- Pilih Kategori --</option>
                             {% set cat_list = categories.data if categories.data is defined else categories %}
                             {% for cat in cat_list %}
                                 <option value="{{ cat.ctg_id }}" {% if sr_data.ctg_id == cat.ctg_id %}selected{% endif %}>
@@ -99,9 +99,20 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="info-label">Priority Status</label>
+                        <select name="priority_status" class="modern-select">
+                            <option value="" disabled selected>-- Pilih Priority Status --</option>
+                            <option value="VIP" {% if sr_data.priority_status == 'VIP' %}selected{% endif %}>VIP</option>
+                            <option value="High" {% if sr_data.priority_status == 'High' %}selected{% endif %}>High</option>
+                            <option value="Medium" {% if sr_data.priority_status == 'Medium' %}selected{% endif %}>Medium</option>
+                            <option value="Low" {% if sr_data.priority_status == 'Low' %}selected{% endif %}>Low</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label class="info-label">Quarter</label>
                         <select name="q_id" class="modern-select">
-                            <option value="">-- Pilih Quarter --</option>
+                            <option value="" disabled selected>-- Pilih Quarter --</option>
                             {% for q in quarter %}
                                 <option value="{{ q.q_id }}" {% if sr_data.q_id == q.q_id %}selected{% endif %}>
                                     {{ q.quarter }}

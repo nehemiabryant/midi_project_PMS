@@ -409,6 +409,19 @@ legend {
 
                             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
 
+                            <div style="margin-bottom: 20px;">
+                                <label for="priority_status" style="font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px; display: block;">Priority Status <span style="color: #ef4444;">*</span></label>
+                                <select name="priority_status" id="priority_status" class="form-input pm-dynamic-input" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;" required>
+                                    <option value="" disabled selected>-- Pilih Priority Status --</option>
+                                    <option value="VIP" {% if pm_assignment_data.sr_detail.priority_status == 'VIP' %}selected{% endif %}>VIP</option>
+                                    <option value="High" {% if pm_assignment_data.sr_detail.priority_status == 'High' %}selected{% endif %}>High</option>
+                                    <option value="Medium" {% if pm_assignment_data.sr_detail.priority_status == 'Medium' %}selected{% endif %}>Medium</option>
+                                    <option value="Low" {% if pm_assignment_data.sr_detail.priority_status == 'Low' %}selected{% endif %}>Low</option>
+                                </select>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+
                             <!-- IT SM RADIO BUTTONS -->
                             <p style="font-size: 13px; color: #64748b; margin-top: 0;">Pilih IT SM yang akan bertanggung jawab:</p>
                             <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
@@ -528,6 +541,8 @@ legend {
                             </select>
                         </div>
 
+
+
                         <table class="modern-inner-table" id="schedule-table">
                             <thead>
                                 <tr>
@@ -584,7 +599,7 @@ legend {
                             <option value="" disabled selected>-- Choose next step --</option>
                             {% for opt in options %}
                                 <option value="{{ opt.next_smk_id }}" data-is-forward="{% if opt.next_smk_id > sr_data.smk_id %}true{% else %}false{% endif %}">
-                                    {{ opt.rule_detail }}
+                                    {{ opt.action_label }}
                                 </option>
                             {% endfor %}
                         </select>

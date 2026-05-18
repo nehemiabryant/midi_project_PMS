@@ -30,7 +30,7 @@ def get_workflow_rule(current_smk_id: int, next_smk_id: int, shared_conn=None) -
 
 def get_next_allowed_phases(current_smk_id: int, shared_conn=None) -> dict:
     sql = """
-        SELECT next_smk_id, rule_detail
+        SELECT next_smk_id, rule_detail, action_label
         FROM public.sr_ms_workflow_rules
         WHERE current_smk_id = %(current_smk_id)s
         ORDER BY next_smk_id ASC
