@@ -24,7 +24,7 @@
                 <div class="status-card-label">Status Saat Ini</div>
                 <div class="status-chip">{{ sr.current_status }}</div>
             </div>
-            {% if active_pics %}    
+            {% if is_it_division and active_pics %}
             <div class="sr-pic-card">
                 <div class="pic-card-label">PIC Aktif</div>
                 {% for pic in active_pics %}
@@ -55,7 +55,8 @@
 <div class="sr-tabs-container">
     <button class="sr-tab-btn active" onclick="window.switchTab(event, 'tab-detail')">Detail Informasi</button>
     <button class="sr-tab-btn" onclick="window.switchTab(event, 'tab-timeline')">Timeline Task</button>
-    <button class="sr-tab-btn" onclick="window.switchTab(event, 'tab-tim')">Tim SR</button>
+    {% if is_it_division %}<button class="sr-tab-btn" onclick="window.switchTab(event, 'tab-tim')">Tim SR</button>{% endif %}
+    <button class="sr-tab-btn" onclick="window.switchTab(event, 'tab-dokumen')">Dokumen</button>
 </div>
 
 <div id="tab-detail" class="tab-pane active">
@@ -101,38 +102,6 @@
             <div class="desc-label">Detail Spesifikasi (Details)</div>
             <p class="desc-text">{{ sr.details|default('Tidak ada spesifikasi detail.', true) }}</p>
         </div>
-
-        <h4 class="sr-section-title border-top">Dokumen Lampiran</h4>
-        
-        {% if current_files_dict %}
-            <div class="doc-grid">
-                {% for file in current_files_dict %}
-                    <a href="{{ file.file_url }}" target="_blank" class="doc-card-link">
-                        <div class="doc-icon-wrapper">
-                            {% if file.thumbnail_url %}
-                                <img src="{{ file.thumbnail_url }}" alt="Thumbnail" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
-                            {% else %}
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                    <polyline points="10 9 9 9 8 9"></polyline>
-                                </svg>
-                            {% endif %}
-                        </div>
-                        <div class="doc-text-wrapper">
-                            <div class="doc-title">{{ file.attach_details }}</div>
-                            <div class="doc-subtitle">Lihat Dokumen</div>
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="doc-empty-state">
-                Tidak ada dokumen yang dilampirkan untuk tiket ini.
-            </div>
-        {% endif %}
     </div>
 </div>
 
@@ -293,6 +262,7 @@
 
 </div>
 
+{% if is_it_division %}
 <div id="tab-tim" class="tab-pane" style="display: none;">
     <div class="desc-card" style="padding-top: 15px;">
         <h4 class="sr-section-title" style="margin-top: 0; margin-bottom: 20px;">Tim yang Terlibat</h4>
@@ -321,8 +291,223 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
+
+<div id="tab-dokumen" class="tab-pane" style="display: none;">
+    {% if all_attachments_grouped %}
+        {% for phase_name, doc_list in all_attachments_grouped.items() %}
+        <div class="doc-accordion">
+            <button class="doc-accordion-header" onclick="toggleDocPhase(this)">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="doc-accordion-title">{{ phase_name }}</span>
+                    <span class="doc-accordion-badge">{{ doc_list | length }} dokumen</span>
+                </div>
+                <i class="fas fa-chevron-down doc-chevron"></i>
+            </button>
+            <div class="doc-accordion-body">
+                <div class="doc-accordion-body-inner">
+                    {% for doc in doc_list %}
+                    {% set pi = loop.index %}
+                    {% set uid = phase_name | replace(' ', '_') ~ '_' ~ pi|string %}
+                    {% set latest = doc.versions[0] %}
+                    <div class="doc-accordion-item">
+
+                        <div class="doc-item-preview" id="thumb_wrapper_{{ uid }}">
+                            {% if latest.thumbnail_url %}
+                            <img src="{{ latest.thumbnail_url }}" alt="{{ doc.attach_details }}" class="doc-item-thumb">
+                            {% else %}
+                            <div class="doc-item-thumb-placeholder">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="doc-item-info">
+                            <div class="doc-item-name">{{ doc.attach_details }}</div>
+                        </div>
+
+                        <div class="doc-item-actions">
+                            {% if doc.versions | length > 1 %}
+                            <select class="doc-version-select" onchange="updateDocLink('{{ uid }}', this)">
+                                {% for v in doc.versions %}
+                                <option value="{{ v.file_url }}" data-thumb="{{ v.thumbnail_url or '' }}">
+                                    Versi {{ v.iteration }}{% if loop.first %} (Terbaru){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+                            <a id="link_{{ uid }}" href="{{ latest.file_url }}" target="_blank" class="doc-view-btn">
+                                Lihat
+                            </a>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="doc-empty-state" style="margin-top: 20px;">
+        Belum ada dokumen yang dilampirkan untuk SR ini.
+    </div>
+    {% endif %}
+</div>
 
 <style>
+.doc-accordion {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+.doc-accordion-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: #f8fafc;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.doc-accordion-header:hover {
+    background: #f1f5f9;
+}
+.doc-accordion-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.doc-accordion-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    background: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+.doc-chevron {
+    font-size: 12px;
+    color: #94a3b8;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.doc-accordion.open .doc-chevron {
+    transform: rotate(180deg);
+}
+.doc-accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    background: #ffffff;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.doc-accordion.open .doc-accordion-body {
+    max-height: 600px;
+}
+.doc-accordion-body-inner {
+    padding: 12px 18px 16px;
+    border-top: 1px solid #e2e8f0;
+}
+.doc-accordion-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.doc-accordion-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.doc-item-preview {
+    width: 44px;
+    height: 54px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+.doc-item-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.doc-item-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+.doc-item-info {
+    flex: 1;
+    min-width: 0;
+}
+.doc-item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.doc-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.doc-version-select {
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 5px 8px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+}
+.doc-version-select:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+}
+.doc-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    padding: 6px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.doc-view-btn:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff;
+}
+
 .tim-sr-wrapper {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -383,3 +568,4 @@
     color: #94a3b8;
 }
 </style>
+

@@ -96,6 +96,48 @@ def get_latest_attachments(sr_no: str, shared_conn=None) -> dict:
     finally:
         if conn: conn.close()
 
+def get_all_attachments_by_phase(sr_no: str, shared_conn=None) -> dict:
+    """Ambil semua attachment (semua iteration) untuk SR, dikelompokkan berdasarkan phase dari mandatory docs."""
+    sql = """
+        WITH doc_to_phase AS (
+            SELECT DISTINCT ON (md.attach_ctg)
+                md.attach_ctg,
+                k.phase  AS phase_name,
+                k.smk_id AS phase_order
+            FROM public.sr_mandatory_docs md
+            JOIN public.sr_ms_workflow_rules r ON md.rule_id = r.rule_id
+            JOIN public.sr_ms_ket k ON r.current_smk_id = k.smk_id
+            ORDER BY md.attach_ctg, k.smk_id ASC
+        )
+        SELECT
+            a.attach_ctg,
+            c.attach_details,
+            a.file_url,
+            a.thumbnail_url,
+            a.iteration,
+            COALESCE(dtp.phase_name, 'Lainnya')  AS phase_name,
+            COALESCE(dtp.phase_order, 9999)       AS phase_order
+        FROM public.sr_attachments a
+        JOIN public.sr_ms_attach_category c ON a.attach_ctg = c.attach_ctg
+        LEFT JOIN doc_to_phase dtp ON a.attach_ctg = dtp.attach_ctg
+        WHERE a.sr_no = %(sr_no)s
+        ORDER BY phase_order ASC, a.attach_ctg ASC, a.iteration DESC
+    """
+    if shared_conn:
+        return shared_conn.selectDataHeader(sql, {'sr_no': sr_no})
+
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if conn:
+            return conn.selectDataHeader(sql, {'sr_no': sr_no})
+        return {'status': False, 'data': [], 'msg': 'DB Connection failed'}
+    except Exception as e:
+        Log.error(f'DB Exception | get_all_attachments_by_phase | Msg: {str(e)}')
+        return {'status': False, 'data': [], 'msg': str(e)}
+    finally:
+        if conn: conn.close()
+
 def get_required_docs_for_phase(current_smk_id: int, shared_conn=None) -> dict:
     """
     Finds all document categories that might be required by the outgoing rules of the current phase.

@@ -118,6 +118,39 @@ def get_attachments_for_view(sr_no: str, shared_conn=None) -> list:
         Log.error(f"Exception | Get Attachments View | Msg: {str(e)}")
         return []
 
+def get_all_attachments_grouped_trx(sr_no: str) -> dict:
+    """
+    Ambil semua attachment (semua iteration) lalu kelompokkan per phase.
+    Return: {'Proposal': [{'attach_details': 'App Flow', 'versions': [{'iteration': 2, 'file_url': '...', 'thumbnail_url': '...'}, ...]}, ...], ...}
+    """
+    try:
+        db_result = attachment_model.get_all_attachments_by_phase(sr_no)
+        rows = parse_rows(db_result)
+        if not rows:
+            return {}
+
+        grouped = {}
+        for row in rows:
+            phase = row['phase_name']
+            ctg   = row['attach_ctg']
+            if phase not in grouped:
+                grouped[phase] = {}
+            if ctg not in grouped[phase]:
+                grouped[phase][ctg] = {
+                    'attach_details': row['attach_details'],
+                    'versions': []
+                }
+            grouped[phase][ctg]['versions'].append({
+                'iteration':     row['iteration'],
+                'file_url':      row['file_url'],
+                'thumbnail_url': row['thumbnail_url'],
+            })
+
+        return {phase: list(docs.values()) for phase, docs in grouped.items()}
+    except Exception as e:
+        Log.error(f'Exception | get_all_attachments_grouped_trx | Msg: {str(e)}')
+        return {}
+
 def get_required_docs_for_phase_trx(current_smk_id: int, shared_conn=None) -> dict:
     """Transaction wrapper for fetching required documents for a given phase."""
     try:

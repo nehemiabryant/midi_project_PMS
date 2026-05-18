@@ -1,10 +1,10 @@
-{% extends 'base.html' %} 
+{% extends 'base.html' %}
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/csspms/dashboard.css') }}">
 
 <div class="dashboard-wrapper">
-    
+
     <h2 class="dashboard-title">Dashboard</h2>
 
     <div class="top-cards-container">
@@ -84,10 +84,10 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
         <h4 class="section-title" style="margin: 0;">All Projects</h4>
-        
+
         <div style="position: relative;">
             <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #adb5bd; font-size: 13px;"></i>
-            <input type="text" id="searchAllProjects" onkeyup="filterAllProjects()" placeholder="Cari No SR atau Judul SR..." 
+            <input type="text" id="searchAllProjects" onkeyup="filterAllProjects()" placeholder="Cari No SR atau Judul SR..."
                 style="padding: 8px 12px 8px 34px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: 260px; outline: none; transition: 0.2s; font-family: inherit;"
                 onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)';"
                 onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none';">
@@ -95,7 +95,7 @@
     </div>
 
     <div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:30px; background:#ffffff;">
-        
+
         <div style="height:320px; overflow-y:auto;">
         <table style="width:100%; border-collapse:collapse; font-size:0.85rem;" id="allProjectsTable">
             <thead>
@@ -110,7 +110,7 @@
             <tbody id="allProjectsTableBody">
                 {% for p in projects %}
                 <tr class="project-row" style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
-                  
+
                     <td style="padding:14px 16px;" class="col-sr">
                         <a href="/sr/view/{{ p.sr_no }}?back=/dashboard" style="color:#2563eb; font-weight:700; font-size:0.78rem; text-decoration:none;">{{ p.sr_no }}</a>
                     </td>
@@ -141,25 +141,20 @@
 
 <script>
 function filterAllProjects() {
-    // Ambil nilai yang diketik di search bar (jadikan huruf kecil)
     const input = document.getElementById("searchAllProjects").value.toLowerCase();
     const tableBody = document.getElementById("allProjectsTableBody");
     const rows = tableBody.getElementsByClassName("project-row");
-    
+
     let hasVisibleRow = false;
 
-    // Looping melalui semua baris tabel
     for (let i = 0; i < rows.length; i++) {
-        // Ambil elemen kolom No SR dan Judul SR
         const tdSr = rows[i].querySelector(".col-sr");
         const tdJudul = rows[i].querySelector(".col-judul");
 
         if (tdSr && tdJudul) {
-            // Ambil teks dari kolom tersebut
             const textSr = tdSr.textContent || tdSr.innerText;
             const textJudul = tdJudul.textContent || tdJudul.innerText;
 
-            // Jika teks sesuai dengan pencarian, tampilkan. Jika tidak, sembunyikan.
             if (textSr.toLowerCase().includes(input) || textJudul.toLowerCase().includes(input)) {
                 rows[i].style.display = "";
                 hasVisibleRow = true;
@@ -169,7 +164,6 @@ function filterAllProjects() {
         }
     }
 
-    // Tampilkan pesan "Tidak ada data" jika pencarian tidak membuahkan hasil
     let emptyRow = document.getElementById("emptySearchRow");
     if (!hasVisibleRow && input !== "") {
         if (!emptyRow) {

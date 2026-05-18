@@ -49,7 +49,7 @@ def validate_user_gateway(nik, password):
                 'jabatan': 'IT Programmer',
                 'toko': 'T000',
                 'nm_toko': 'Head Office',
-                'divisi': 'IT Development',
+                'divisi': 'Information Technology',
                 'email': 'dev@midiconnect.com',
                 'branch': 'HO'
             }
@@ -62,11 +62,24 @@ def validate_user_gateway(nik, password):
                 'jabatan': 'IT Programmer',
                 'toko': 'T000',
                 'nm_toko': 'Head Office',
-                'divisi': 'IT Development',
+                'divisi': 'Information Technology',
                 'email': 'dev@midiconnect.com',
                 'branch': 'HO'
             }
             return _finalize_login('00000', 'DUMMY USER LOGIN SUCCESS')
+
+        if nik == 'nonit' and password == 'nonit123':
+            session['user'] = {
+                'nik': 'nonit001',
+                'nama': 'Non IT User',
+                'jabatan': 'Staff',
+                'toko': 'T000',
+                'nm_toko': 'Head Office',
+                'divisi': 'Finance',
+                'email': 'nonit@test.com',
+                'branch': 'HO'
+            }
+            return _finalize_login('nonit001', 'DUMMY NON-IT USER LOGIN SUCCESS')
 
         _test_accounts = {
             # NIK: (password, nama, jabatan)
@@ -89,7 +102,7 @@ def validate_user_gateway(nik, password):
                 'jabatan': acct[2],
                 'toko': 'SZ01',
                 'nm_toko': 'Head Office',
-                'divisi': 'IT Development',
+                'divisi': 'Information Technology',
                 'email': f'{nik}@test.com',
                 'branch': 'HO'
             }
