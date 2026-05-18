@@ -16,13 +16,15 @@ def dashboard_menu():
     dashboard_data = sr_transaction.get_full_dashboard_trx()
     projects = sr_transaction.get_dashboard_projects_trx()
     pending_confirmations = my_work_transaction.get_pending_confirmations_trx(session['user']['nik'])
+    is_it_division = session['user'].get('divisi', '') == 'Information Technology'
     return render_template('/page/dashboard.html', user=session['user'],
                            role=session['role'],
                            active_menu='dashboard',
                            top_cards=dashboard_data.get('top_cards', {}),
                            kanban_board=dashboard_data.get('kanban', {}),
                            projects=projects,
-                           pending_confirmations=pending_confirmations)
+                           pending_confirmations=pending_confirmations,
+                           is_it_division=is_it_division)
 
 @dashboard_bp.route('/myWork', methods=['GET'])
 @login_required

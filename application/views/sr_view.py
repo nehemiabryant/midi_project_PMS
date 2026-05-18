@@ -320,6 +320,9 @@ def api_get_sr_detail(sr_no):
     active_pics = sr_transaction.get_active_pics_for_sr_trx(clean_sr_no, current_smk_id) if current_smk_id else []
     all_assignments = assignment_transaction.get_all_assignments_trx(clean_sr_no)
 
+    is_it_division = session.get('user', {}).get('divisi', '') == 'Information Technology'
+    all_attachments_grouped = attachment_transaction.get_all_attachments_grouped_trx(clean_sr_no)
+
     return render_template(
         '/partials/_sr_detail_content.html',
         sr=sr_data,
@@ -329,6 +332,8 @@ def api_get_sr_detail(sr_no):
         actual_dates=actual_dates,
         active_pics=active_pics,
         all_assignments=all_assignments,
+        is_it_division=is_it_division,
+        all_attachments_grouped=all_attachments_grouped,
     )
 
 @sr_bp.route('/api/adjustment/lov', methods=['GET'])
