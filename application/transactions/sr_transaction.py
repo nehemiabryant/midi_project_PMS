@@ -165,7 +165,8 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str
         db_params = {
             'sr_no': sr_no,
             'q_id': raw_data.get('q_id'),
-            'ctg_id': raw_data.get('ctg_id')
+            'ctg_id': raw_data.get('ctg_id'),
+            'priority_status': raw_data.get('priority_status')
         }
 
         if current_sm_dept_id == 'C122':
@@ -173,12 +174,18 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str
         else:
             db_params['status_midikriing'] = False
 
+        if db_params['priority_status'] and db_params['priority_status'] not in ['Low', 'Medium', 'High', 'VIP']:
+            return {'status': False, 'msg': 'Invalid Priority Status value.'}
+
         # Basic validation
         if not db_params['ctg_id']:
             return {'status': False, 'msg': 'Category ID cannot be empty.'}
         
         if not db_params['q_id']:
             return {'status': False, 'msg': 'Target Quarter cannot be empty.'}
+        
+        if not db_params['priority_status']:
+            return {'status': False, 'msg': 'Priority Status cannot be empty.'}
         
         result = sr_model.update_sr_adjustment(db_params)
         
@@ -253,6 +260,30 @@ def update_sr_category_trx(sr_no: str, ctg_id: int, shared_conn=None) -> dict:
     
     except Exception as e:
         Log.error(f'Exception | Update SR Category Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    
+def update_priority_status_trx(sr_no: str, priority_status: str, shared_conn=None) -> dict:
+    try:
+        db_params = {
+            'sr_no': sr_no,
+            'priority_status': priority_status
+        }
+
+        if not db_params['priority_status']:
+            return {'status': False, 'msg': 'Priority Status cannot be empty.'}
+        
+        if db_params['priority_status'] not in ['Low', 'Medium', 'High', 'VIP']:
+            return {'status': False, 'msg': 'Invalid Priority Status value.'}
+        
+        result = sr_model.update_priority_status(db_params, shared_conn)
+
+        if result.get('status'):
+            return {'status': True, 'msg': 'Priority Status successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+    
+    except Exception as e:
+        Log.error(f'Exception | Update SR Priority Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
 
 def get_full_dashboard_trx() -> dict:                          

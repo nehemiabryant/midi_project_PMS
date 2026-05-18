@@ -384,6 +384,16 @@ def process_pm_approval_trx(sr_no: str, nik: str, form_data: dict, current_smk_i
             )
             if not category_result.get('status'):
                 raise Exception(f"Update kategori gagal: {category_result.get('msg')}")
+            
+        priority_status = form_data.get('priority_status')
+        if priority_status:
+            priority_result = sr_transaction.update_priority_status_trx(
+                sr_no=sr_no,
+                priority_status=priority_status,
+                shared_conn=shared_conn
+            )
+            if not priority_result.get('status'):
+                raise Exception(f"Update priority status gagal: {priority_result.get('msg')}")
 
         # ==========================================
         # 2. Execute the Assignment 
