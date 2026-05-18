@@ -311,7 +311,7 @@
             document.getElementById('apk_opr').value = buttonElement.getAttribute('data-opr');
             
             // Opsional: Kunci field kode saat update agar tidak berubah (hapus jika boleh diubah)
-            document.getElementById('new_apk_kode').disabled = true; 
+            document.getElementById('new_apk_kode').disabled = false; // Set ke true jika ingin mencegah perubahan kode aplikasi
         }
         
         modal.classList.add('active'); // Tampilkan pop-up dengan transisi CSS
