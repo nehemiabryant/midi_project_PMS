@@ -170,7 +170,7 @@ def update_sr_adjustment(db_params: dict, shared_conn=None) -> dict:
     sql = """
         UPDATE public.sr_request 
         SET 
-            ctg_id = %(ctg_id)s, q_id = %(q_id)s, status_midikriing = %(status_midikriing)s
+            ctg_id = %(ctg_id)s, q_id = %(q_id)s, status_midikriing = %(status_midikriing)s, priority_status = %(priority_status)s
         WHERE sr_no = %(sr_no)s
         RETURNING sr_no;
     """
@@ -268,6 +268,33 @@ def update_sr_category(db_params: dict, shared_conn=None) -> dict:
         return conn.selectData(sql, db_params)
     except Exception as e:
         Log.error(f'DB Exception | update_sr_category | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+    finally:
+        if conn: 
+            conn.close()
+
+def update_priority_status(db_params: dict, shared_conn=None) -> dict:
+    """Update the priority status for a specific SR."""
+    sql = """
+        UPDATE sr_request 
+        SET priority_status = %(priority_status)s
+        WHERE sr_no = %(sr_no)s
+        RETURNING sr_no;
+    """
+
+    if shared_conn:
+        result = shared_conn.selectData(sql, db_params)
+        return result
+    
+    conn = None
+    try:
+        conn = DatabasePG("supabase")
+        if not conn.status.get('status'):
+            return {'status': False, 'msg': conn.status.get('msg')}
+            
+        return conn.selectData(sql, db_params)
+    except Exception as e:
+        Log.error(f'DB Exception | update_priority_status | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     finally:
         if conn: 
@@ -513,6 +540,8 @@ def get_sr_detail(sr_no: str, shared_conn=None) -> dict:
             COALESCE(task_counts.total, 0) AS task_count,
             r.q_id,
             q.quarter,
+            r.created_at,
+            r.priority_status,
             COALESCE(md.departemen, '-') AS department_name
         FROM public.sr_request r
         JOIN public.sr_ms_ket k ON r.smk_id = k.smk_id

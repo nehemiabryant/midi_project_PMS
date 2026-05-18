@@ -354,7 +354,7 @@ def _get_handover_options(sr_no: str, nik: str, current_smk_id: int = None) -> l
             handover_opts.append({
                 'action_type': 'handover',
                 'next_smk_id': None,
-                'rule_detail': f"Oper ke {c['nama']} ({role_detail})",
+                'action_label': f"Oper ke {c['nama']} ({role_detail})",
                 'target_assign_id': c['assign_id']
             })
 
@@ -423,6 +423,6 @@ def get_update_action() -> list:
     """
     return [{
         'next_smk_id': 'update_only',
-        'rule_detail': 'Simpan sebagai Draft (Update Data)',
+        'action_label': 'Simpan sebagai Draft (Update Data)',
         'action_type': 'update'
     }]

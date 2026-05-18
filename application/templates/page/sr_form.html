@@ -192,7 +192,7 @@
                         <label for="sr_action" class="form-label">Tindakan <span style="color: #ef4444;">*</span></label>
                         <select name="sr_action" id="sr_action" class="form-input" required style="max-width: 400px;">
                             {% for opt in options %}
-                                <option value="{{ opt.next_smk_id }}">{{ opt.rule_detail }}</option>
+                                <option value="{{ opt.next_smk_id }}">{{ opt.action_label }}</option>
                             {% endfor %}
                         </select>
                     </div>
