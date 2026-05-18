@@ -29,85 +29,162 @@
         </div>
     </div>
 
-    <h4 class="section-title">Project Progress</h4>
-
-    <div class="phase-grid">
-        {% for phase_key, phase_data in dashboard_grid.items() %}
-            <div class="phase-card">
-                
-                <a href="/project_details/{{ phase_key }}" class="phase-link">
-                    <h5 class="phase-title">{{ phase_data.phase_name }}</h5>
-                </a>
-
-                {% set is_count_only = phase_data.phase_name in ['Takeout', 'RO'] %}
-
-                <div class="progress-header">
-                    <div style="width: {% if is_count_only %}60%{% else %}30%{% endif %};">Divisi</div>
-                    {% if is_count_only %}
-                        <div style="width: 40%; text-align: right;">Jumlah SR</div>
-                    {% else %}
-                        <div style="width: 50%;">Progress</div>
-                        <div style="width: 20%; text-align: right;">%</div>
-                    {% endif %}
+    {% if pending_confirmations %}
+    <div class="notification-banner">
+        <div class="notif-content">
+            <i class="fas fa-triangle-exclamation notif-icon"></i>
+            <div class="notif-text-group">
+                <div class="notif-title">
+                    Anda memiliki {{ pending_confirmations | length }} SR yang perlu dikonfirmasi
                 </div>
-
-                <div class="division-list" id="div-list-{{ loop.index }}">
-                    {% for div in phase_data.divisions %}
-                        {% set page_num = (loop.index0 // 3) + 1 %}
-
-                        <div class="division-row page-{{ page_num }}" data-page="{{ page_num }}" style="{% if page_num > 1 %}display: none;{% endif %}">
-                            <div class="div-name" style="{% if is_count_only %}width: 60%;{% endif %}">{{ div.name }}</div>
-
-                            {% if is_count_only %}
-                                <div style="width: 40%; display: flex; justify-content: flex-end;">
-                                    <span class="ticket-count-badge">{{ div.count }} SR</span>
-                                </div>
-                            {% else %}
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-track">
-                                        {% set bar_color = '#10b981' %}
-                                        {% if div.progress < 30 %} {% set bar_color = '#ef4444' %}
-                                        {% elif div.progress < 70 %} {% set bar_color = '#f59e0b' %}
-                                        {% endif %}
-                                        <div class="progress-bar-fill" style="width: {{ div.progress }}%; background-color: {{ bar_color }};"></div>
-                                    </div>
-                                </div>
-                                <div class="progress-text">{{ div.progress }}%</div>
-                            {% endif %}
-                        </div>
+                <div class="notif-tags">
+                    {% for item in pending_confirmations %}
+                    <span class="notif-badge">
+                        {{ item.sr_no }} &bull; {{ item.status_label }}
+                    </span>
                     {% endfor %}
                 </div>
-
-                </div>
-        {% else %}
-            {% endfor %}
+            </div>
+        </div>
+        <a href="{{ url_for('owh_dashboard.myWork_menu') }}" class="btn-notif-action">
+            Lihat MyWork <i class="fas fa-arrow-right"></i>
+        </a>
     </div>
+    {% endif %}
+
+    <h4 class="section-title">Project Progress</h4>
+
+    <div class="kanban-scroll-wrapper">
+        <div class="phase-grid">
+            {% for phase_name, sr_list in kanban_board.items() %}
+            <div class="phase-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h5 class="phase-title" style="margin:0;">{{ phase_name }}</h5>
+                    <span class="ticket-count-badge">{{ sr_list | length }} SR</span>
+                </div>
+                <div class="kanban-card-list">
+                    {% for sr in sr_list %}
+                    <a href="/sr/view/{{ sr.sr_no }}?back=/dashboard" class="kanban-sr-card">
+                        <div class="kanban-sr-badge">{{ sr.sr_no }}</div>
+                        <div class="kanban-division">{{ sr.division }}</div>
+                        <div class="kanban-app-name">{{ sr.app_name }}</div>
+                        <div class="kanban-status">
+                            <span class="kanban-dot"></span>
+                            <span>{{ sr.current_status }}</span>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div style="text-align:center; padding:20px; color:#9ca3af; font-size:0.82rem; border: 1px dashed #e5e7eb; border-radius: 8px;">Tidak ada SR</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+        <h4 class="section-title" style="margin: 0;">All Projects</h4>
+        
+        <div style="position: relative;">
+            <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #adb5bd; font-size: 13px;"></i>
+            <input type="text" id="searchAllProjects" onkeyup="filterAllProjects()" placeholder="Cari No SR atau Judul SR..." 
+                style="padding: 8px 12px 8px 34px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: 260px; outline: none; transition: 0.2s; font-family: inherit;"
+                onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)';"
+                onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none';">
+        </div>
+    </div>
+
+    <div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:30px; background:#ffffff;">
+        
+        <div style="height:320px; overflow-y:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;" id="allProjectsTable">
+            <thead>
+                <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">No SR</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Judul SR</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Modul</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Target</th>
+                    <th style="padding:12px 16px; text-align:left; font-weight:700; color:#6b7280; text-transform:uppercase; font-size:0.72rem; letter-spacing:0.05em; position:sticky; top:0; background:#f9fafb; z-index:1;">Tipe</th>
+                </tr>
+            </thead>
+            <tbody id="allProjectsTableBody">
+                {% for p in projects %}
+                <tr class="project-row" style="border-bottom:1px solid #f3f4f6;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                  
+                    <td style="padding:14px 16px;" class="col-sr">
+                        <a href="/sr/view/{{ p.sr_no }}?back=/dashboard" style="color:#2563eb; font-weight:700; font-size:0.78rem; text-decoration:none;">{{ p.sr_no }}</a>
+                    </td>
+                    <td style="padding:14px 16px; font-weight:600; color:#111827;" class="col-judul">{{ p.aplikasi }}</td>
+                    <td style="padding:14px 16px; color:#374151;">{{ p.modul or '—' }}</td>
+                    <td style="padding:14px 16px; color:#374151;">{{ p.target or '—' }}</td>
+                    <td style="padding:14px 16px;">
+                        {% if p.tipe %}
+                        <span style="font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:4px;
+                            {% if p.tipe == 'DIVISIONAL' %}background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;
+                            {% else %}background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0;{% endif %}">
+                            {{ p.tipe }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr id="emptyProjectRow">
+                    <td colspan="6" style="padding:30px; text-align:center; color:#9ca3af;">Tidak ada data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const pageButtons = document.querySelectorAll('.page-btn');
+function filterAllProjects() {
+    // Ambil nilai yang diketik di search bar (jadikan huruf kecil)
+    const input = document.getElementById("searchAllProjects").value.toLowerCase();
+    const tableBody = document.getElementById("allProjectsTableBody");
+    const rows = tableBody.getElementsByClassName("project-row");
     
-    pageButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetListId = this.getAttribute('data-target');
-            const targetPage = this.getAttribute('data-page');
-            const container = document.getElementById(targetListId);
-            
-            // Sembunyikan semua baris
-            const allRows = container.querySelectorAll('.division-row');
-            allRows.forEach(row => row.style.display = 'none');
-            
-            // Tampilkan baris sesuai halaman
-            const activeRows = container.querySelectorAll('.division-row.page-' + targetPage);
-            activeRows.forEach(row => row.style.display = 'flex');
-            
-            // Update style tombol (menggunakan class dari CSS)
-            const siblingButtons = this.parentElement.querySelectorAll('.page-btn');
-            siblingButtons.forEach(btn => btn.classList.remove('active-btn'));
-            this.classList.add('active-btn');
-        });
-    });
-});
+    let hasVisibleRow = false;
+
+    // Looping melalui semua baris tabel
+    for (let i = 0; i < rows.length; i++) {
+        // Ambil elemen kolom No SR dan Judul SR
+        const tdSr = rows[i].querySelector(".col-sr");
+        const tdJudul = rows[i].querySelector(".col-judul");
+
+        if (tdSr && tdJudul) {
+            // Ambil teks dari kolom tersebut
+            const textSr = tdSr.textContent || tdSr.innerText;
+            const textJudul = tdJudul.textContent || tdJudul.innerText;
+
+            // Jika teks sesuai dengan pencarian, tampilkan. Jika tidak, sembunyikan.
+            if (textSr.toLowerCase().includes(input) || textJudul.toLowerCase().includes(input)) {
+                rows[i].style.display = "";
+                hasVisibleRow = true;
+            } else {
+                rows[i].style.display = "none";
+            }
+        }
+    }
+
+    // Tampilkan pesan "Tidak ada data" jika pencarian tidak membuahkan hasil
+    let emptyRow = document.getElementById("emptySearchRow");
+    if (!hasVisibleRow && input !== "") {
+        if (!emptyRow) {
+            emptyRow = document.createElement("tr");
+            emptyRow.id = "emptySearchRow";
+            emptyRow.innerHTML = `<td colspan="6" style="padding:30px; text-align:center; color:#9ca3af; font-style: italic;">Pencarian "${input}" tidak ditemukan.</td>`;
+            tableBody.appendChild(emptyRow);
+        } else {
+            emptyRow.style.display = "";
+            emptyRow.innerHTML = `<td colspan="6" style="padding:30px; text-align:center; color:#9ca3af; font-style: italic;">Pencarian "${input}" tidak ditemukan.</td>`;
+        }
+    } else if (emptyRow) {
+        emptyRow.style.display = "none";
+    }
+}
 </script>
+
 {% endblock %}

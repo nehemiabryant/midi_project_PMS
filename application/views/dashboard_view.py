@@ -14,8 +14,15 @@ dashboard_bp = Blueprint('owh_dashboard', __name__, url_prefix='/', template_fol
 @login_required
 def dashboard_menu():
     dashboard_data = sr_transaction.get_full_dashboard_trx()
-    return render_template('/page/dashboard.html', user=session['user'], role=session['role'], active_menu='dashboard'
-                           , top_cards=dashboard_data.get('top_cards', {}), dashboard_grid=dashboard_data.get('grid', {}))
+    projects = sr_transaction.get_dashboard_projects_trx()
+    pending_confirmations = my_work_transaction.get_pending_confirmations_trx(session['user']['nik'])
+    return render_template('/page/dashboard.html', user=session['user'],
+                           role=session['role'],
+                           active_menu='dashboard',
+                           top_cards=dashboard_data.get('top_cards', {}),
+                           kanban_board=dashboard_data.get('kanban', {}),
+                           projects=projects,
+                           pending_confirmations=pending_confirmations)
 
 @dashboard_bp.route('/myWork', methods=['GET'])
 @login_required

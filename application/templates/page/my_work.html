@@ -68,18 +68,18 @@
                             <td>{{ item.created_at | format_wib }}</td>
                             <td style="text-align: center;">
                                 {% if 9 in item.role_ids and item.smk_id == 101 %}
-                                    <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Confirmation</a>
-                                    
-                                {% elif (1 in item.role_ids and item.smk_id == 104) or 
-                                        (2 in item.role_ids and item.smk_id == 103) or 
-                                        (3 in item.role_ids and item.smk_id == 105) or 
-                                        (3 in item.role_ids and item.smk_id == 107) or 
+                                    <a href="{{ url_for('owh_sr.editSR_menu', sr_no=item.sr_no) }}" class="btn-rect btn-rect-edit" style="text-decoration: none;">Confirm</a>
+
+                                {% elif (1 in item.role_ids and item.smk_id == 104) or
+                                        (2 in item.role_ids and item.smk_id == 103) or
+                                        (3 in item.role_ids and item.smk_id == 105) or
+                                        (3 in item.role_ids and item.smk_id == 107) or
                                         (8 in item.role_ids and item.smk_id == 102) %}
-                                    <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="btn-rect btn-rect-primary" style="text-decoration: none;">Approvals</a>
-                                    
+                                    <a href="{{ url_for('owh_sr.approveSR_menu', sr_no=item.sr_no) }}" class="btn-rect btn-rect-primary" style="text-decoration: none;">Confirm</a>
+
                                 {% else %}
                                     {% if item.is_pic %}
-                                        <a href="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=item.sr_no) }}" class="btn-rect btn-rect-warning" style="text-decoration: none;">Manage</a>
+                                        <a href="{{ url_for('owh_dashboard.sr_detail_pic', sr_no=item.sr_no) }}" class="btn-rect btn-rect-warning" style="text-decoration: none;">Confirm</a>
                                     {% else %}
                                         <a href="{{ url_for('owh_dashboard.sr_detail_view', sr_no=item.sr_no) }}" class="btn-rect btn-rect-detail" style="text-decoration: none;">Details</a>
                                     {% endif %}

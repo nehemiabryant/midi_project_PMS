@@ -165,8 +165,7 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str
         db_params = {
             'sr_no': sr_no,
             'q_id': raw_data.get('q_id'),
-            'ctg_id': raw_data.get('ctg_id'),
-            'prj_id': raw_data.get('prj_id')
+            'ctg_id': raw_data.get('ctg_id')
         }
 
         if current_sm_dept_id == 'C122':
@@ -180,9 +179,6 @@ def update_sr_adjustment_trx(raw_data: dict, sr_no: str, current_sm_dept_id: str
         
         if not db_params['q_id']:
             return {'status': False, 'msg': 'Target Quarter cannot be empty.'}
-        
-        if not db_params['prj_id']:
-            return {'status': False, 'msg': 'Project Status cannot be empty.'}
         
         result = sr_model.update_sr_adjustment(db_params)
         
@@ -216,27 +212,6 @@ def update_sr_quarter_trx(sr_no: str, q_id: int, shared_conn=None) -> dict:
         Log.error(f'Exception | Update SR Quarter Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
     
-def update_sr_project_status_trx(sr_no: str, prj_id: int, shared_conn=None) -> dict:
-    try:
-        db_params = {
-            'sr_no': sr_no,
-            'prj_id': prj_id
-        }
-
-        if not db_params['prj_id']:
-            return {'status': False, 'msg': 'Project Status cannot be empty.'}
-        
-        result = sr_model.update_sr_project_status(db_params, shared_conn)
-
-        if result.get('status'):
-            return {'status': True, 'msg': 'Project Status successfully adjusted.', 'data': result.get('data')}
-        else:
-            return {'status': False, 'msg': result.get('msg')}
-    
-    except Exception as e:
-        Log.error(f'Exception | Update SR Project Status Trx | Msg: {str(e)}')
-        return {'status': False, 'msg': str(e)}
-
 def update_sr_midikriing_status_trx(sr_no: str, status_midikriing: str, shared_conn=None) -> dict:
     try:
         db_params = {
@@ -258,60 +233,79 @@ def update_sr_midikriing_status_trx(sr_no: str, status_midikriing: str, shared_c
     except Exception as e:
         Log.error(f'Exception | Update SR Midikriing Status Trx | Msg: {str(e)}')
         return {'status': False, 'msg': str(e)}
-
-def get_full_dashboard_trx() -> dict:
-    """
-    Fetches both the top cards and the grid data, returning a complete 
-    package for the dashboard template.
-    """
+    
+def update_sr_category_trx(sr_no: str, ctg_id: int, shared_conn=None) -> dict:
     try:
-        # 1. Fetch Top Cards
-        cards_result = sr_model.get_dashboard_top_cards()
-        top_cards = {'total_sr': 0, 'active_sr': 0, 'completed_sr': 0, 'overdue_sr': 0}
-        
-        if cards_result.get('status') and cards_result.get('data'):
-            headers = cards_result['data'][0]
-            row = cards_result['data'][1][0]
-            top_cards = dict(zip(headers, row))
-
-        # 2. Fetch and Shape the Grid
-        grid_result = sr_model.get_dashboard_grid()
-        dashboard_grid = {}
-        
-        if grid_result.get('status') and grid_result.get('data'):
-            headers = grid_result['data'][0]
-            rows = grid_result['data'][1]
-            flat_data = convert_to_dicts(rows, headers)
-            
-            for row in flat_data:
-                phase_key = row['phase_name'] 
-                
-                if phase_key not in dashboard_grid:
-                    dashboard_grid[phase_key] = {
-                        'phase_name': phase_key,
-                        'total_phase_tickets': 0,
-                        'divisions': []
-                    }
-                
-                if row['division']:
-                    dashboard_grid[phase_key]['divisions'].append({
-                        'name': row['division'],
-                        'count': row['ticket_count'],
-                        'progress': int(row['global_progress']) # The calculated 0-100%
-                    })
-                    
-                    dashboard_grid[phase_key]['total_phase_tickets'] += row['ticket_count']
-
-        # 3. Return the ultimate package
-        return {
-            'status': True,
-            'top_cards': top_cards,
-            'grid': dashboard_grid
+        db_params = {
+            'sr_no': sr_no,
+            'ctg_id': ctg_id
         }
+
+        if not db_params['ctg_id']:
+            return {'status': False, 'msg': 'Category ID cannot be empty.'}
         
+        result = sr_model.update_sr_category(db_params, shared_conn)
+
+        if result.get('status'):
+            return {'status': True, 'msg': 'Category successfully adjusted.', 'data': result.get('data')}
+        else:
+            return {'status': False, 'msg': result.get('msg')}
+    
     except Exception as e:
-        Log.error(f"Exception | Full Dashboard Trx | Msg: {str(e)}")
-        return {'status': False, 'top_cards': {}, 'grid': {}}
+        Log.error(f'Exception | Update SR Category Trx | Msg: {str(e)}')
+        return {'status': False, 'msg': str(e)}
+
+def get_full_dashboard_trx() -> dict:                          
+    """Fetches top cards and all SR cards grouped by phase for the kanban dashboard."""                                       
+    try:
+        cards_result = sr_model.get_dashboard_top_cards()      
+        top_cards = {'total_sr': 0, 'active_sr': 0, 'completed_sr': 0, 'overdue_sr': 0}                            
+        if cards_result.get('status') and cards_result.get('data'):                                      
+            headers = cards_result['data'][0]
+            row = cards_result['data'][1][0]                   
+            top_cards = dict(zip(headers, row))
+                                                                
+        grid_result = sr_model.get_dashboard_grid()
+        kanban = {}                                            
+        if grid_result.get('status') and grid_result.get('data'):                                       
+            headers = grid_result['data'][0]
+            rows = grid_result['data'][1]                      
+            flat_data = convert_to_dicts(rows, headers)
+            for row in flat_data:                              
+                phase = row['phase_name']
+                if phase not in kanban:                        
+                    kanban[phase] = []
+                if row['sr_no']: 
+                    kanban[phase].append({
+                        'sr_no':          row['sr_no'],            
+                        'app_name':       row['app_name'],
+                        'division':       row['division'] or '',   
+                        'current_status': row['current_status'],
+                    })                                             
+
+        return {'status': True, 'top_cards': top_cards, 'kanban': kanban}
+    except Exception as e:
+        Log.error(f"Exception | Full Dashboard Trx | Msg: {str(e)}")                                                     
+        return {'status': False, 'top_cards': {}, 'kanban': {}}
+    
+def get_dashboard_projects_trx() -> list:                      
+    """Get all projects list for dashboard monitoring table."""
+    try:
+        result = sr_model.get_dashboard_all_projects()
+        if not result.get('status') or not result.get('data'): 
+            return []
+        headers = result['data'][0]                            
+        rows = result['data'][1]
+        items = convert_to_dicts(rows, headers)
+        for item in items:                                     
+            if item.get('target') and hasattr(item['target'], 'strftime'):                                                   
+                item['target'] = item['target'].strftime('%d %b %Y')                                                          
+        return items
+    except Exception as e:                                     
+        Log.error(f"Exception | Dashboard Projects Trx | Msg: {str(e)}")
+        return []
+
+                            
     
 def get_srs_by_phase_trx(phase_name: str) -> list:
     """
@@ -333,6 +327,7 @@ def get_srs_by_phase_trx(phase_name: str) -> list:
         # Quick cleanup to ensure progress is a clean integer for the HTML width styles
         for sr in sr_list:
             sr['ticket_progress'] = int(sr['ticket_progress']) if sr['ticket_progress'] else 0
+            sr['task_count'] = int(sr.get('task_count') or 0)
             
         return sr_list
         
@@ -363,6 +358,7 @@ def get_sr_detail_trx(sr_no: str) -> dict:
         
         # Clean up the progress integer
         sr_detail['ticket_progress'] = int(sr_detail['ticket_progress']) if sr_detail.get('ticket_progress') else 0
+        sr_detail['task_count'] = int(sr_detail.get('task_count') or 0)
         
         # You can add more data transformations here if needed 
         # (e.g., fetching comments or attachments for this specific sr_no)
@@ -489,29 +485,6 @@ def get_all_sm_trx() -> list:
         return []
     except Exception as e:
         Log.error(f"Exception | Get All SM Trx | Msg: {str(e)}")
-        return []
-
-def get_all_project_status_trx() -> list:
-    """
-    Retrieves and parses project statuses into a list of dictionaries.
-    Uses uniform try-except styling and manual data unpacking.
-    """
-    try:
-        db_result = sr_model.get_all_project_status()
-        statuses = []
-
-        # Check if query was successful and data is properly formatted
-        if db_result.get('status') and db_result.get('data') and len(db_result['data']) >= 2:
-            headers = db_result['data'][0]
-            rows = db_result['data'][1]
-            
-            # Loop through the parsed dictionaries and append to our list
-            for status in convert_to_dicts(rows, headers):
-                statuses.append(status)
-
-        return statuses
-    except Exception as e:
-        Log.error(f"Exception | Get All Project Status Trx | Msg: {str(e)}")
         return []
     
 def get_filtered_sr_no_trx(filter_year, filter_q_id, filter_ctg_id, filter_midikriing, filter_dept_id):

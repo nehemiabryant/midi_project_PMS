@@ -221,10 +221,12 @@ def approveSR_menu(sr_no):
     user_it_role = sr_data.get('user_it_role') 
     
     is_gm = (user_it_role == 1)
+    is_pm = (user_it_role == 2)
     is_sm = (user_it_role == 3)
 
     gm_assign_data = {}
     assignment_data = {}
+    pm_assignment_data = {}
     
     actors_result = assignment_transaction.get_sr_actors_trx(sr_no)
     ticket_actors = actors_result.get('data', [])
@@ -234,6 +236,11 @@ def approveSR_menu(sr_no):
         gm_page_result = assignment_transaction.get_gm_assign_page_data_trx(sr_no, current_user)
         if gm_page_result.get('status'):
             gm_assign_data = gm_page_result.get('data', {})
+
+    if is_pm:
+        pm_page_result = assignment_transaction.get_pm_assign_page_data_trx(sr_no, current_user)
+        if pm_page_result.get('status'):
+            pm_assignment_data = pm_page_result.get('data', {})
 
     if is_sm:
         sm_page_result = assignment_transaction.get_assign_page_data_trx(sr_no, current_user)
@@ -248,15 +255,15 @@ def approveSR_menu(sr_no):
         next_smk_id = int(request.form.get('intended_next_smk_id'))
         
         # ==========================================
-        # GM-SPECIFIC LOGIC: Assign SM & Advance together
+        # PM-SPECIFIC LOGIC: Assign SM & Advance together
         # ==========================================
-        if is_gm and next_smk_id > current_smk_id:
+        if is_pm and next_smk_id > current_smk_id:
             if not request.form.get('selected_sm_nik'):
                 flash("Anda harus memilih IT SM sebelum menyetujui SR ini.", "error")
                 return redirect(request.url)
             
             # Call a unified transaction function to handle everything safely
-            process_result = assignment_transaction.process_gm_approval_trx(
+            process_result = assignment_transaction.process_pm_approval_trx(
                 sr_no=sr_no,
                 nik=current_user,
                 form_data=request.form,
@@ -299,13 +306,12 @@ def approveSR_menu(sr_no):
             )
 
             if advance_result.get('status'):
-                flash("Service Request approved successfully!", "success")
+                flash("System Request approved successfully!", "success")
                 return redirect(url_for('owh_dashboard.dashboard_menu'))
             else:
                 flash(f"Approval failed: {advance_result.get('msg')}", "error")
                 return redirect(request.url)
 
-    #CHANGE TO sr_approve later
     return render_template('/page/sr_approve.html', 
                            user=session.get('user'), 
                            role=session.get('role'), 
@@ -315,6 +321,8 @@ def approveSR_menu(sr_no):
                            current_files=current_files_dict,
                            is_gm=is_gm,
                            gm_assign_data=gm_assign_data,
+                           is_pm=is_pm,
+                           pm_assignment_data=pm_assignment_data,
                            is_sm=is_sm,
                            assignment_data=assignment_data,
                            ticket_actors=ticket_actors)
@@ -383,8 +391,8 @@ def adjustment_menu(sr_no):
     sr_data = None
     options = []
     categories = []
-    project_statuses = []
     actual_dates = []
+    target_dates = []
     quarter = []
     pmo_form_data = {}
     user_is_sm = False
@@ -410,11 +418,13 @@ def adjustment_menu(sr_no):
         sr_data = eligibility_result['data'][0]
 
         categories = sr_transaction.get_all_categories_trx()
-        project_statuses = sr_transaction.get_all_project_status_trx()
         options = workflow_transaction.get_adjustment_dropdown_options()
 
         actual_dates_res = srlogs_transaction.get_actual_date_trx(sr_no) # Adjust module name if needed
         actual_dates = actual_dates_res.get('data', []) if actual_dates_res.get('status') else []
+
+        target_dates_res = srlogs_transaction.get_target_date_trx(sr_no)
+        target_dates = target_dates_res.get('data', []) if target_dates_res.get('status') else []
 
         quarter = sr_transaction.get_all_quarters_trx()
 
@@ -466,8 +476,8 @@ def adjustment_menu(sr_no):
         sr_data=sr_data, 
         options=options,
         categories=categories,
-        project_statuses=project_statuses,
         actual_dates=actual_dates,
+        target_dates=target_dates,
         quarter=quarter,
         user_is_sm=user_is_sm,
         pmo_form_data=pmo_form_data,
@@ -515,6 +525,22 @@ def pmo_update_dates(sr_no):
 
     return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
+@sr_bp.route('/adjustment/<path:sr_no>/update-target-dates', methods=['POST'])
+@login_required
+@bypass_required
+def pmo_update_target_dates(sr_no):
+    result = srlogs_transaction.process_target_dates_trx(sr_no, request.form)
+
+    if result.get('status'):
+        flash("Target scheduler update succesfully", "success")
+    else:
+        flash(f"Error: {result.get('msg')}", "error")
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
+        return jsonify({'status': result.get('status'), 'flashes': get_flashed_messages(with_categories=True)})
+    
+    return redirect(url_for('owh_sr.adjustment_menu', sr_no=sr_no))
 
 @sr_bp.route('/adjustment/<path:sr_no>/force-phase', methods=['POST'])
 @login_required
